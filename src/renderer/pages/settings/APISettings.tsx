@@ -6,6 +6,7 @@ import {
   InputOnChangeData,
   Label,
   Option,
+  Button,
 } from '@fluentui/react-components';
 import { Premium16Regular } from '@fluentui/react-icons';
 import useSettingsStore from '../../../stores/useSettingsStore';
@@ -16,6 +17,7 @@ import useProvider from 'hooks/useProvider';
 import useAuthStore from 'stores/useAuthStore';
 import TooltipIcon from 'renderer/components/TooltipIcon';
 import ModelMappingButton from './ModelMappingButton';
+import { syncOllamaModels } from '../../../providers/Ollama';
 
 export default function APISettings() {
   const { t } = useTranslation();
@@ -189,6 +191,34 @@ export default function APISettings() {
             />
           </div>
         ) : null}
+        {provider.name === 'Ollama' && (
+          <div className="my-3.5">
+            <div className="flex justify-start items-center mb-1.5">
+              <Label htmlFor="ollamaSync">Sync Models</Label>
+              <TooltipIcon tip="Sync available models from your Ollama instance" />
+            </div>
+            <Button
+              id="ollamaSync"
+              onClick={async () => {
+                try {
+                  const api = useSettingsStore.getState().api;
+                  const models = await syncOllamaModels(api.base);
+                  const ollamaProvider = getProvider('Ollama');
+                  if (ollamaProvider) {
+                    ollamaProvider.chat.models = models;
+                    setProvider({...ollamaProvider});
+                  }
+                  console.log('Synced Ollama models:', models);
+                } catch (error) {
+                  console.error('Failed to sync Ollama models:', error);
+                }
+              }}
+              className="w-50 latin"
+            >
+              Sync Ollama Models
+            </Button>
+          </div>
+        )}
         <ModelField provider={provider} />
         {provider.description && (
           <div className="tips">

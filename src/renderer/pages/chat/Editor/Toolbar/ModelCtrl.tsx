@@ -42,6 +42,9 @@ export default function ModelCtrl({
     if (!api.provider || api.provider === 'Azure') return [];
     const provider = getProvider(api.provider);
     setProviderName(provider.name);
+    if (provider.name === 'Ollama') {
+      return getChatModels(provider.name) || [];
+    }
     if (provider.chat.options.modelCustomizable) {
       return getChatModels(provider.name) || [];
     }

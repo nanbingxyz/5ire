@@ -13,6 +13,10 @@ export interface IAPISettings {
   endpoint?: string;
 }
 
+export interface IChatModel {
+  // Add properties for IChatModel as needed
+}
+
 export interface ISettings {
   theme: ThemeType;
   language: LanguageType;
@@ -23,6 +27,9 @@ export interface ISettings {
     };
   };
   modelMapping: IModelMapping;
+  ollama?: {
+    models: Record<string, IChatModel>;
+  };
 }
 
 export interface IModelMapping {

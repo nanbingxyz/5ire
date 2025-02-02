@@ -427,6 +427,14 @@ ipcMain.handle('mcp-get-active-servers', () => {
   return mcp.getClientNames();
 });
 
+ipcMain.on('show-error-box', (_, { title, content }) => {
+  dialog.showErrorBox(title, content);
+});
+
+ipcMain.on('show-message-box', (_, options) => {
+  dialog.showMessageBox(options);
+});
+
 if (process.env.NODE_ENV === 'production') {
   const sourceMapSupport = require('source-map-support');
   sourceMapSupport.install();
@@ -636,6 +644,14 @@ deeplink.on('received', (link: string) => {
   } else {
     logging.captureException(`Invalid deeplink, ${link}`);
   }
+});
+
+process.on('uncaughtException', (error) => {
+  logging.captureException(error);
+});
+
+process.on('unhandledRejection', (reason: any, promise) => {
+  logging.captureException(reason);
 });
 
 process.on('uncaughtException', (error) => {

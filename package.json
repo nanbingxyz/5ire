@@ -79,7 +79,8 @@
     }
   },
   "dependencies": {
-    "@lancedb/lancedb": "^0.14.1"
+    "@lancedb/lancedb": "^0.14.1",
+    "ts-node": "^10.9.2"
   },
   "devDependencies": {
     "@axiomhq/js": "^1.0.0-rc.1",
@@ -172,7 +173,7 @@
     "pdf-parse": "^1.1.1",
     "postcss": "^8.4.24",
     "postcss-loader": "^7.3.3",
-    "prettier": "^2.8.8",
+    "prettier": "^3.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hotkeys-hook": "^4.4.1",
@@ -195,7 +196,7 @@
     "tsconfig-paths-webpack-plugin": "^4.0.1",
     "tsx": "^4.19.2",
     "typeid-js": "^0.3.0",
-    "typescript": "^5.1.3",
+    "typescript": "^5.7.3",
     "update-electron-app": "^3.0.0",
     "url-loader": "^4.1.1",
     "valid-url": "^1.0.9",
@@ -325,7 +326,7 @@
     "logLevel": "quiet"
   },
   "volta": {
-    "node": "20.10.0",
+    "node": "18.20.6",
     "yarn": "1.22.21"
   }
 }
