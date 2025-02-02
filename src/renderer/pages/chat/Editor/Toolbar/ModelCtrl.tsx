@@ -90,6 +90,7 @@ export default function ModelCtrl({
     <Menu
       hasCheckmarks
       open={open}
+      onOpenChange={(e, data) => setOpen(data.open)}
       onCheckedValueChange={onModelChange}
       checkedValues={{ model: [activeModel.label as string] }}
     >
