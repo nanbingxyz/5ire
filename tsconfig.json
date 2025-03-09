@@ -15,5 +15,6 @@
     "allowJs": true,
     "outDir": ".erb/dll"
   },
+  "include": ["src", ".erb/scripts"],
   "exclude": ["test", "release/build", "release/app/dist", ".erb/dll"]
 }
