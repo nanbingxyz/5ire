@@ -33,6 +33,12 @@ import useChatStore from 'stores/useChatStore';
 
 const ImageAddIcon = bundleIcon(ImageAdd20Filled, ImageAdd20Regular);
 
+/**
+ * ImgCtrl component
+ * 
+ * This component provides a button and dialog for adding images to the chat.
+ * It only renders when the selected model has vision capabilities enabled.
+ */
 export default function ImgCtrl({
   ctx,
   chat,
@@ -47,6 +53,8 @@ export default function ImgCtrl({
   const [imgURL, setImgURL] = useState<string>('');
   const [imgName, setImgName] = useState<string>('');
   const [imgBase64, setImgBase64] = useState<string>('');
+  // true for <embed> tag, false for <img> tag
+  const [useEmbed, setUseEmbed] = useState<boolean>(false);
   const [errMsg, setErrMsg] = useState<string>('');
   const [open, setOpen] = useState<boolean>(false);
   const model = ctx.getModel();
@@ -70,9 +78,10 @@ export default function ImgCtrl({
     Mousetrap.unbind('esc');
   };
 
+  // Make sure vision capabilities are properly detected when model changes
   const vision = useMemo<IChatModelVision>(() => {
     return model?.vision || { enabled: false };
-  }, [model]);
+  }, [model, chat]); // Add chat as a dependency to ensure updates when chat changes
 
   useEffect(() => {
     Mousetrap.bind('mod+shift+7', openDialog);
@@ -111,7 +120,7 @@ export default function ImgCtrl({
     editStage(chat.id, {
       input: insertAtCursor(
         editor,
-        `<img src="${url}" style="width:260px; display:block;" />`
+        useEmbed ? `<iframe src="${url}" style="width:100%; height:500px; display:block; border:1px solid #ccc; border-radius:4px;" sandbox="allow-same-origin" frameborder="0"></iframe>` : `<img src="${url}" style="width:260px; display:block;" />`
       ),
     });
     setOpen(false);
@@ -146,10 +155,11 @@ export default function ImgCtrl({
             if (file.name && file.base64) {
               setImgName(file.name);
               setImgBase64(file.base64);
+              setUseEmbed(file.useEmbed);
             }
           }}
         >
-          {t('Common.SelectImage')}
+          {t('Common.SelectFile')}
         </Button>
         <div className="mt-1 text-base">{imgName}</div>
       </div>

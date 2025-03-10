@@ -70,6 +70,7 @@ export interface IChatRequestMessageContent {
     | 'text'
     | 'image_url'
     | 'image'
+    | 'document'
     | 'function'
     | 'tool_result'
     | 'tool_use';

@@ -271,10 +271,14 @@ export async function getBase64(url: string): Promise<string> {
   return arrayBufferToBase64(await resp.arrayBuffer());
 }
 
-export function removeTagsExceptImg(html: string): string {
-  // 使用正则表达式移除除 <img> 以外的所有标签
-  return html.replace(/<(?!img\b)[^>]*>/gi, '');
-}
+/**
+ * Removes all HTML tags except <img> and <embed> tags.
+ * Used by the editor to preserve both images and embedded documents (PDFs) when submitting content.
+ */
+export function removeTagsExceptMediaTags(html: string): string {
+  // Remove all HTML tags except <img>, <embed>, and <iframe> tags (iframe is used for PDF display)
+  return html.replace(/<(?!(img|embed|iframe)\b)[^>]*>/gi, '');
+} 
 
 export function stripHtmlTags(html: string): string {
   return html.replace(/<[^>]*>/g, '');
@@ -291,21 +295,24 @@ export function splitByImg(html: string, base64Only: boolean = false) {
     '.webp': 'image/webp',
     '.heic': 'image/heic',
     '.heif': 'image/heif',
+    '.pdf': 'application/pdf',
   };
-  const splitRegex = base64Only
-    ? /(<img\s+src="data:[^"]+"\s*.*\/?>)/g
-    : /(<img\s+src="[^"]+"\s*.*\/?>)/g;
-  const srcRegex = base64Only
-    ? /<img\s+src="(data:[^"]+)"\s*.*\/?>/g
-    : /<img\s+src="([^"]+)"\s*.*\/?>/g;
-  const items = html
+  const splitRegex = base64Only 
+    ? /(<(img|embed|iframe)\s+src="data:[^"]+"\s*.*?>)/g 
+    : /(<(img|embed|iframe)\s+src="[^"]+"\s*.*?>)/g;
+  const srcRegex = base64Only 
+    ? /<(img|embed|iframe)\s+src="(data:[^"]+)"\s*.*?>/g
+    : /<(img|embed|iframe)\s+src="([^"]+)"\s*.*?>/g;
+  const items = html 
     .split(splitRegex)
     .map((item) => item.trim())
     .filter((item: string) => item !== '');
   return items.map((item: string) => {
     const matches = item.match(srcRegex);
     if (matches) {
-      const data = matches.map((match) => match.replace(srcRegex, '$1'))[0];
+      // Get tag type from first capture group
+      const tagType = matches[0].replace(srcRegex, '$1');
+      let data = matches.map((match) => match.replace(srcRegex, '$2'))[0];
       const dataType = data.startsWith('data:') ? 'base64' : 'URL';
       let mimeType = defaultMimeType;
       if (dataType === 'base64') {
@@ -315,7 +322,7 @@ export function splitByImg(html: string, base64Only: boolean = false) {
         mimeType = ext ? mimeTypes[ext] || defaultMimeType : defaultMimeType;
       }
       return {
-        type: 'image',
+        type: tagType === 'img' ? 'image' : 'document', // Both embed and iframe tags are treated as documents
         dataType,
         mimeType,
         data,

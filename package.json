@@ -1,8 +1,8 @@
 {
   "name": "5ire",
-  "productName": "5ire",
   "version": "0.9.7",
   "description": "A Sleek Desktop AI Assistant & MCP Client",
+  "productName": "5ire-dev",
   "main": "src/main/main.ts",
   "repository": "https://github.com/nanbingxyz/5ire.git",
   "author": {
@@ -318,7 +318,7 @@
       }
     ]
   },
-  "devEngines": {
+  "engines": {
     "node": ">=16.x",
     "npm": ">=7.x"
   },

@@ -193,7 +193,7 @@ ipcMain.handle('get-app-version', () => {
 });
 
 ipcMain.handle('ingest-event', (_, data) => {
-  axiom.ingest(data);
+  //axiom.ingest(data);
 });
 
 ipcMain.handle('open-external', (_, data) => {
@@ -334,6 +334,10 @@ ipcMain.handle('select-image-with-base64', async () => {
           name: 'Images',
           extensions: ['jpg', 'png', 'jpeg'],
         },
+        {
+          name: 'Documents',
+          extensions: ['pdf'],
+        },
       ],
     });
     const filePath = result.filePaths[0];
@@ -355,6 +359,7 @@ ipcMain.handle('select-image-with-base64', async () => {
       );
       return null;
     }
+    const fileGroup = fileType == 'pdf' ? 'application' : 'image';
     const blob = fs.readFileSync(filePath);
     const base64 = Buffer.from(blob).toString('base64');
     return JSON.stringify({
@@ -362,7 +367,8 @@ ipcMain.handle('select-image-with-base64', async () => {
       path: filePath,
       size: fileInfo.size,
       type: fileInfo.type,
-      base64: `data:image/${fileType};base64,${base64}`,
+      useEmbed: fileType == 'pdf',
+      base64: `data:${fileGroup}/${fileType};base64,${base64}`,
     });
   } catch (err: any) {
     logging.captureException(err);

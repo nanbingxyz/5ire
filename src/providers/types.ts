@@ -50,6 +50,14 @@ export interface IChatModelVision{
   allowBase64?: boolean;
   allowedMimeTypes?: string[];
 }
+
+export interface IChatModelPdf {
+  enabled: boolean;
+  allowUrl?: boolean;
+  allowBase64?: boolean;
+  allowedMimeTypes?: string[];
+}
+
 export interface IChatModel {
   label?: string;
   name: string;
@@ -63,6 +71,7 @@ export interface IChatModel {
   jsonModelEnabled?: boolean;
   toolEnabled?: boolean;
   vision?: IChatModelVision;
+  pdfSupport? : IChatModelPdf;
   endpoint?: string;
   group: ChatModelGroup;
 }

@@ -34,6 +34,12 @@ export default {
             'image/webp',
           ],
         },
+        pdfSupport: {
+          enabled: true,
+          allowUrl: true,
+          allowBase64: true,
+          allowedMimeTypes: ['application/pdf'],
+        },
         description: `Highest level of intelligence and capability with toggleable extended thinking`,
         group: 'Claude-3.5',
       },
@@ -56,6 +62,33 @@ export default {
           ],
         },
         description: `High level of intelligence and capability`,
+        pdfSupport: {
+          enabled: true,
+          allowUrl: true,
+          allowBase64: true,
+          allowedMimeTypes: ['application/pdf'],
+        },
+        group: 'Claude-3.5',
+      },
+      'claude-3.5-sonnet': {
+        name: 'claude-3-5-sonnet-20240620',
+        contextWindow: 200000,
+        maxTokens: 8192,
+        inputPrice: 0.003,
+        outputPrice: 0.015,
+        toolEnabled: true,
+        vision: {
+          enabled: true,
+          allowBase64: true,
+          allowedMimeTypes: [
+            'image/jpeg',
+            'image/png',
+            'image/gif',
+            'image/webp',
+          ],
+        },
+        isDefault: true,
+        description: `Most intelligent multilingual model, highest level of intelligence and capability`,
         group: 'Claude-3.5',
       },
       'claude-3.5-haiku': {
@@ -66,6 +99,22 @@ export default {
         inputPrice: 0.001,
         outputPrice: 0.005,
         description: `The fastest model of Anthropic, Intelligence at blazing speeds`,
+        vision: {
+          enabled: true,
+          allowBase64: true,
+          allowedMimeTypes: [
+            'image/jpeg',
+            'image/png',
+            'image/gif',
+            'image/webp',
+          ],
+        },
+        pdfSupport: {
+          enabled: true,
+          allowUrl: true,
+          allowBase64: true,
+          allowedMimeTypes: ['application/pdf'],
+        },
         toolEnabled: true,
         group: 'Claude-3.5',
       },
@@ -89,6 +138,12 @@ export default {
         },
         description: `Powerful multilingual model for highly complex tasks, top-level performance, intelligence, fluency, and understanding`,
         group: 'Claude-3',
+        pdfSupport: {
+          enabled: true,
+          allowUrl: true,
+          allowBase64: true,
+          allowedMimeTypes: ['application/pdf'],
+        },
       },
       'claude-3-sonnet': {
         name: 'claude-3-sonnet-20240229',
@@ -110,6 +165,12 @@ export default {
         },
         description:
           'A multilingual model with balance of intelligence and speed, strong utility, balanced for scaled deployments',
+        pdfSupport: {
+          enabled: true,
+          allowUrl: true,
+          allowBase64: true,
+          allowedMimeTypes: ['application/pdf'],
+        },
         group: 'Claude-3',
       },
       'claude-3-haiku': {
@@ -132,6 +193,12 @@ export default {
         },
         description:
           'Fastest and most compact multilingual model for near-instant responsiveness, quick and accurate targeted performance',
+        pdfSupport: {
+          enabled: true,
+          allowUrl: true,
+          allowBase64: true,
+          allowedMimeTypes: ['application/pdf'],
+        },
         group: 'Claude-3',
       },
     },

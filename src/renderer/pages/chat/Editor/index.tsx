@@ -11,7 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@fluentui/react-components';
 import Toolbar from './Toolbar';
 import Spinner from '../../../components/Spinner';
-import { removeTagsExceptImg, setCursorToEnd } from 'utils/util';
+import { removeTagsExceptMediaTags, setCursorToEnd } from 'utils/util';
 import { debounce } from 'lodash';
 import { tempChatId } from 'consts';
 
@@ -83,7 +83,7 @@ export default function Editor({
           } else {
             event.preventDefault();
             setSubmitted(true);
-            onSubmit(removeTagsExceptImg(editorRef.current?.innerHTML || ''));
+            onSubmit(removeTagsExceptMediaTags(editorRef.current?.innerHTML || ''));
             // @ts-ignore
             editorRef.current.innerHTML = '';
             editStage(chat.id, { input: '' });

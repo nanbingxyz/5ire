@@ -49,13 +49,17 @@ export default function ModelCtrl({
     return [];
   }, [api.provider, session]);
 
-  const activeModel = useMemo(() => ctx.getModel(), [chat.model]);
+  // Get the active model and make it reactive to changes in chat.model
+  // Get the active model and make it reactive to changes in chat.model
+  const activeModel = useMemo(() => ctx.getModel(), [chat, ctx]);
 
   const onModelChange = (
     _: MenuCheckedValueChangeEvent,
     data: MenuCheckedValueChangeData,
   ) => {
     const $model = data.checkedItems[0];
+    
+    // Update the model in the chat store
     editStage(chat.id, { model: $model });
     window.electron.ingestEvent([{ app: 'switch-model' }, { model: $model }]);
     closeDialog();
@@ -94,6 +98,7 @@ export default function ModelCtrl({
       open={open}
       onCheckedValueChange={onModelChange}
       checkedValues={{ model: [activeModel.label as string] }}
+      defaultCheckedValues={{ model: [activeModel.label as string] }}
     >
       <MenuTrigger disableButtonEnhancement>
         <Button
@@ -125,9 +130,9 @@ export default function ModelCtrl({
                 {activeModel.label}
               </span>
             )}
-            {modelMapping[activeModel.label || ''] && (
+            {modelMapping && activeModel.label && modelMapping[activeModel.label] && (
               <span className="text-gray-300 dark:text-gray-600">
-                ‣{modelMapping[activeModel.label || '']}
+                ‣{modelMapping[activeModel.label]}
               </span>
             )}
           </div>
@@ -152,9 +157,9 @@ export default function ModelCtrl({
                     model={item.name}
                   />
                   <span className="latin">{item.label}</span>
-                  {modelMapping[item.label || ''] && (
+                  {modelMapping && item.label && modelMapping[item.label] && (
                     <span className="text-gray-300 dark:text-gray-600 -ml-1">
-                      ‣{modelMapping[item.label || '']}
+                      ‣{modelMapping[item.label]}
                     </span>
                   )}
                 </div>

@@ -12,7 +12,7 @@ export default function useMarkdown() {
   const { notifySuccess } = useToast();
   const { t } = useTranslation();
   const md = new MarkdownIt({
-    html: true,
+    html: true, // This is important to allow HTML tags including iframes
     linkify: true,
     typographer: true,
     highlight(str: string, lang: string) {
@@ -83,3 +83,13 @@ export default function useMarkdown() {
     render: (str: string): string => md.render(str)
   };
 }
+
+// The markdown-it configuration above has html: true which allows raw HTML including iframe tags.
+// For PDF display we're using <iframe> instead of <embed> because:
+// 1. iframes have better security sandbox controls
+// 2. Electron has specific security policies that may block embed tags
+// 3. iframes are more widely compatible with content security policies
+//
+// You may need to restart the application for these changes to take full effect.
+// If PDF display issues persist, try checking browser console logs for 
+// specific security errors or Content Security Policy violations.

@@ -80,7 +80,8 @@ export default class AnthropicChatService
   protected async convertPromptContent(
     content: string,
   ): Promise<string | IChatRequestMessageContent[]> {
-    if (this.context.getModel().vision?.enabled) {
+    const model = this.context.getModel();
+    if (model.vision?.enabled || model.pdfSupport?.enabled) {
       const items = splitByImg(content);
       const result: IChatRequestMessageContent[] = [];
       for (let item of items) {
@@ -93,6 +94,21 @@ export default class AnthropicChatService
           }
           result.push({
             type: 'image',
+            source: {
+              type: 'base64',
+              media_type: item.mimeType as string,
+              data,
+            },
+          });
+        } else if (item.type === 'document') {
+          let data = '';
+          if (item.dataType === 'URL') {
+            data = await getBase64(item.data);
+          } else {
+            data = item.data.split(',')[1]; // remove data:application/pdf;base64,
+          }
+          result.push({
+            type: 'document',
             source: {
               type: 'base64',
               media_type: item.mimeType as string,
@@ -118,16 +134,17 @@ export default class AnthropicChatService
     messages: IChatRequestMessage[],
   ): Promise<IChatRequestMessage[]> {
     const result = [];
-    this.context.getCtxMessages().forEach((msg: IChatMessage) => {
+    // Process context messages through convertPromptContent to handle media properly
+    for (const msg of this.context.getCtxMessages()) {
       result.push({
         role: 'user',
-        content: msg.prompt,
+        content: await this.convertPromptContent(msg.prompt),
       });
       result.push({
         role: 'assistant',
-        content: msg.reply,
+        content: await this.convertPromptContent(msg.reply),
       });
-    });
+    }
     for (const msg of messages) {
       if (msg.role === 'tool') {
         result.push({

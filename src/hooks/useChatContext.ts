@@ -13,13 +13,23 @@ import { IChatModel } from 'providers/types';
 
 const debug = Debug('5ire:hooks:useChatContext');
 
+/**
+ * useChatContext hook
+ *
+ * This hook provides access to the current chat context, including the active chat,
+ * provider, model, and various settings. It reacts to changes in the chat store
+ * to ensure the UI is updated when the model or other settings change.
+ */
 export default function useChatContext(): IChatContext {
   const { getProvider: getChatProvider, getChatModel } = useProvider();
+  
+  // Get the current chat from the store to make the context reactive
+  const chat = useChatStore(state => state.chat);
+  const api = useSettingsStore(state => state.api);
 
+  // Create the context with dependencies on chat and api to ensure it updates
   const context = useMemo(() => {
     const getActiveChat = () => {
-      const { chat } = useChatStore.getState();
-      // debug(`Chat(${chat.id}):getActiveChat: ${chat.summary}`);
       return {
         ...chat,
         isPersisted: !!(chat?.id && chat.id !== tempChatId),
@@ -27,7 +37,6 @@ export default function useChatContext(): IChatContext {
     };
 
     const getProvider = () => {
-      const { api } = useSettingsStore.getState();
       return getChatProvider(api.provider);
     };
 
@@ -36,27 +45,40 @@ export default function useChatContext(): IChatContext {
      * 因此要判断当前模型是否在支持的模型列表中，
      * 如果不在，则使用设置的模型
      */
+    /**
+     * Get the current model for the chat.
+     * This function checks if the chat has a model set, and if so, returns that model.
+     * Otherwise, it returns the default model from the API settings.
+     */
     const getModel = () => {
-      const { api } = useSettingsStore.getState();
       const defaultModel = { name: api.model, label: api.model } as IChatModel;
-      const provider = getChatProvider(api.provider)
-      if (Object.keys(provider.chat.models)) {
+      const provider = getChatProvider(api.provider);
+      
+      // Only return defaultModel if there are no models
+      if (!provider.chat.models || Object.keys(provider.chat.models).length === 0) {
         return defaultModel;
       }
+      
+      // Get the default model from the API settings
       let model = getChatModel(api.provider, api.model) || defaultModel;
+      
+      // For Azure, just return the model from API settings
       if (api.provider === 'Azure') {
         return model;
       }
-      const { chat } = useChatStore.getState();
+      
+      // If the chat has a model set, use that model
       if (chat?.model) {
-        model = getChatModel(api.provider, chat.model) || model;
+        const chatModel = getChatModel(api.provider, chat.model);
+        if (chatModel) {
+          model = chatModel;
+        }
       }
-      // debug(`Chat(${chat.id}):getModel: ${model.label}`);
+      
       return model;
     };
 
     const getSystemMessage = () => {
-      const chat = useChatStore.getState().chat;
       const prompt = chat.prompt as IPrompt | null;
       const systemMessage =
         prompt?.systemMessage || chat?.systemMessage || null;
@@ -65,8 +87,6 @@ export default function useChatContext(): IChatContext {
     };
 
     const getTemperature = (): number => {
-      const { chat } = useChatStore.getState();
-      const { api } = useSettingsStore.getState();
       let temperature = getChatProvider(api.provider).chat.temperature
         .default as number;
       const prompt = chat.prompt as IPrompt | null;
@@ -81,8 +101,6 @@ export default function useChatContext(): IChatContext {
     };
 
     const getMaxTokens = () => {
-      const { chat } = useChatStore.getState();
-      const { api } = useSettingsStore.getState();
       const model = getModel();
       let maxTokens =
         model.defaultMaxTokens || model.maxTokens || DEFAULT_MAX_TOKENS;
@@ -104,14 +122,12 @@ export default function useChatContext(): IChatContext {
     };
 
     const getChatContext = () => {
-      const { chat } = useChatStore.getState();
       const chatContext = chat?.context || '';
       // debug(`Chat(${chat.id}):getChatContext: ${chatContext}`);
       return chatContext;
     };
 
     const isStream = () => {
-      const { chat } = useChatStore.getState();
       let stream = true;
       if (!isNil(chat?.stream)) {
         stream = chat.stream;
@@ -131,7 +147,6 @@ export default function useChatContext(): IChatContext {
     };
 
     const getCtxMessages = () => {
-      const { chat } = useChatStore.getState();
       let ctxMessages: IChatMessage[] = [];
       const maxCtxMessages = isNumber(chat?.maxCtxMessages)
         ? chat?.maxCtxMessages
@@ -165,7 +180,7 @@ export default function useChatContext(): IChatContext {
       isToolEnabled,
     };
     return ctx;
-  }, []);
+  }, [chat, api]); // Add dependencies to ensure context updates when chat or api changes
 
   return context;
 }

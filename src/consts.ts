@@ -24,4 +24,5 @@ export const SUPPORTED_IMAGE_TYPES: { [key: string]: string } = {
   jpg: 'image/jpeg',
   jpeg: 'image/jpeg',
   png: 'image/png',
+  pdf: 'application/pdf'
 };
