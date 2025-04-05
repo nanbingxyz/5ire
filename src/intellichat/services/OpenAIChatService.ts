@@ -99,9 +99,45 @@ export default class OpenAIChatService
     const processedMessages = await Promise.all(
       messages.map(async (msg) => {
         if (msg.role === 'tool') {
+          // Helper function to format tool message content
+          const formatToolMsgContent = (content: any): string => {
+            if (typeof content === 'string') {
+              return content;
+            }
+
+            if (Array.isArray(content)) {
+              return content
+                .map((item) => {
+                  if (typeof item === 'string') return item;
+
+                  if (item && typeof item === 'object') {
+                    if (item.type === 'text' && typeof item.text === 'string') {
+                      return item.text;
+                    }
+                    return JSON.stringify(item);
+                  }
+
+                  return String(item);
+                })
+                .join(' ');
+            }
+
+            if (content && typeof content === 'object') {
+              if (
+                'type' in content &&
+                content.type === 'text' &&
+                typeof content.text === 'string'
+              ) {
+                return content.text;
+              }
+            }
+
+            return String(content);
+          };
+
           return {
             role: 'tool',
-            content: JSON.stringify(msg.content),
+            content: formatToolMsgContent(msg.content),
             name: msg.name,
             tool_call_id: msg.tool_call_id,
           };
