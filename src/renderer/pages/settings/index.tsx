@@ -27,7 +27,7 @@ import {
   MenuTrigger,
 } from '@fluentui/react-components';
 import { captureException } from '../../logging';
-import Version from './Version';
+
 import AppearanceSettings from './AppearanceSettings';
 import APISettings from './APISettings';
 import EmbedSettings from './EmbedSettings';
@@ -196,7 +196,7 @@ export default function Settings() {
         <EmbedSettings />
         <AppearanceSettings />
         <LanguageSettings />
-        <Version />
+
       </div>
     </div>
   );

@@ -14,7 +14,6 @@ import {
   nativeTheme,
 } from 'electron';
 import crypto from 'crypto';
-import { autoUpdater } from 'electron-updater';
 import { Deeplink } from 'electron-deeplink';
 import Store from 'electron-store';
 import * as logging from './logging';
@@ -60,75 +59,6 @@ if (!gotTheLock) {
 const mcp = new ModuleContext();
 const store = new Store();
 
-class AppUpdater {
-  constructor() {
-    autoUpdater.forceDevUpdateConfig = true;
-    autoUpdater.setFeedURL({
-      provider: 'generic',
-      url: 'https://github.com/nanbingxyz/5ire/releases/latest/download/',
-    });
-
-    autoUpdater.on('update-available', (info: any) => {
-      store.set('updateInfo', {
-        version: info.version,
-        isDownloading: true,
-      });
-      if (mainWindow) {
-        mainWindow.webContents.send('app-upgrade-start', info);
-      }
-    });
-
-    autoUpdater.on('update-not-available', () => {
-      store.delete('updateInfo');
-      if (mainWindow) {
-        mainWindow.webContents.send('app-upgrade-not-available');
-      }
-    });
-
-    autoUpdater.on(
-      'update-downloaded' as any,
-      (event: Event, releaseNotes: string, releaseName: string) => {
-        logging.info(event, releaseNotes, releaseName);
-        store.set('updateInfo', {
-          version: releaseName,
-          releaseNotes,
-          releaseName,
-          isDownloading: false,
-        });
-        if (mainWindow) {
-          mainWindow.webContents.send('app-upgrade-end');
-        }
-        /**
-        const dialogOpts = {
-          type: 'info',
-          buttons: ['Restart', 'Later'],
-          title: 'Application Update',
-          message: process.platform === 'win32' ? releaseNotes : releaseName,
-          detail:
-            'A new version has been downloaded. Restart the application to apply the updates.',
-        } as MessageBoxOptions;
-
-        dialog.showMessageBox(dialogOpts).then((returnValue) => {
-          if (returnValue.response === 0) autoUpdater.quitAndInstall();
-        });
-        */
-
-        axiom.ingest([{ app: 'upgrade' }, { version: releaseName }]);
-      },
-    );
-
-    autoUpdater.on('error', (message) => {
-      if (mainWindow) {
-        mainWindow.webContents.send('app-upgrade-error');
-      }
-      logging.captureException(message);
-    });
-    // if (process.env.NODE_ENV === 'production') {
-    //   autoUpdater.checkForUpdates();
-    // }
-    autoUpdater.checkForUpdates();
-  }
-}
 let downloader: Downloader;
 let mainWindow: BrowserWindow | null = null;
 const protocol = app.isPackaged ? 'app.5ire' : 'app.5ire.dev';
@@ -161,10 +91,6 @@ ipcMain.on('maximize-app', () => {
 });
 ipcMain.on('close-app', () => {
   mainWindow?.close();
-});
-
-ipcMain.handle('quit-and-upgrade', () => {
-  autoUpdater.quitAndInstall();
 });
 
 ipcMain.handle('encrypt', (_event, text: string, key: string) => {
@@ -315,8 +241,7 @@ ipcMain.handle('select-knowledge-files', async () => {
       if (fileInfo.size > MAX_FILE_SIZE) {
         dialog.showErrorBox(
           'Error',
-          `the size of ${filePath} exceeds the limit (${
-            MAX_FILE_SIZE / (1024 * 1024)
+          `the size of ${filePath} exceeds the limit (${MAX_FILE_SIZE / (1024 * 1024)
           } MB})`,
         );
         return '[]';
@@ -355,8 +280,7 @@ ipcMain.handle('select-image-with-base64', async () => {
     if (fileInfo.size > MAX_FILE_SIZE) {
       dialog.showErrorBox(
         'Error',
-        `the size of ${filePath} exceeds the limit (${
-          MAX_FILE_SIZE / (1024 * 1024)
+        `the size of ${filePath} exceeds the limit (${MAX_FILE_SIZE / (1024 * 1024)
         } MB})`,
       );
       return null;
@@ -416,6 +340,7 @@ ipcMain.handle('mcp-add-server', async (_, config) => {
 ipcMain.handle('mcp-update-server', async (_, config) => {
   return await mcp.updateServer(config);
 });
+
 ipcMain.handle('mcp-activate', async (_, config) => {
   return await mcp.activate(config);
 });
