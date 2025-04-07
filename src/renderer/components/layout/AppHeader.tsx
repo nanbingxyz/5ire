@@ -23,7 +23,6 @@ import useAppearanceStore from '../../../stores/useAppearanceStore';
 import './AppHeader.scss';
 import SearchDialog from '../SearchDialog';
 import TrafficLights from '../TrafficLights';
-import UpgradeIndicator from '../UpgradeIndicator';
 
 const PanelLeftIcon = bundleIcon(PanelLeftText24Filled, PanelLeftText24Regular);
 const SearchIcon = bundleIcon(Search24Filled, Search24Regular);
@@ -68,9 +67,8 @@ export default function AppHeader() {
   return (
     <div>
       <div
-        className={`app-header z-30 pl-20 pt-2.5 w-auto ${
-          collapsed ? 'md:w-[10rem]' : 'md:w-[17rem]'
-        } flex items-center`}
+        className={`app-header z-30 pl-20 pt-2.5 w-auto ${collapsed ? 'md:w-[10rem]' : 'md:w-[17rem]'
+          } flex items-center`}
       >
         <TrafficLights />
         <div className="block md:hidden pl-1">
@@ -88,9 +86,6 @@ export default function AppHeader() {
           />
         </div>
         <div>{NetworkStatusIcon}</div>
-        <div className="ml-2">
-          <UpgradeIndicator />
-        </div>
       </div>
       <SearchDialog open={searchOpen} setOpen={setSearchOpen} />
     </div>
