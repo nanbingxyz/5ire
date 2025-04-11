@@ -21,7 +21,7 @@ const defaultFontSize = 'base';
 
 const defaultAPI: IAPISettings = {
   provider: 'OpenAI',
-  base: 'https://api.openai.com',
+  base: 'https://api.openai.com/v1',
   key: '',
   model: '',
 };
