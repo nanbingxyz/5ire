@@ -11,6 +11,7 @@ export interface IMCPServer {
   headers?: Record<string, string>;
   isActive: boolean;
   homepage?: string;
+  proxy?: string; // Optional: Proxy URL for this entrypoint (e.g., "http://localhost:8080")
 }
 
 export type MCPArgType = 'string' | 'list' | 'number';

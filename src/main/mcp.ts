@@ -230,10 +230,16 @@ export default class ModuleContext {
       if (mcpSvr.url) {
         const options = {} as {
           requestInit: { headers: Record<string, string> };
+          // Optionally add proxy support here if the transport supports it
+          // proxy?: string;
         };
         if (mcpSvr.headers) {
           options.requestInit = { headers: mcpSvr.headers };
         }
+        // If proxy is set, pass it to the transport if supported (TODO: implement in transport)
+        // if (mcpSvr.proxy) {
+        //   options.proxy = mcpSvr.proxy;
+        // }
         const isSSE = mcpSvr.url.endsWith('sse');
         const PrimaryTransport = isSSE
           ? this.SSETransport
@@ -256,7 +262,7 @@ export default class ModuleContext {
           await client.connect(transport, { timeout: CONNECT_TIMEOUT });
         }
       } else {
-        const { command, args, env } = mcpSvr;
+        const { command, args, env, proxy } = mcpSvr;
         let cmd: string = command as string;
         if (command === 'npx') {
           cmd = process.platform === 'win32' ? `${command}.cmd` : command;
@@ -265,6 +271,23 @@ export default class ModuleContext {
           ...getDefaultEnvironment(),
           ...env,
           PATH: process.env.PATH,
+          ...(proxy
+            ? {
+                // Basic validation: ensure proxy URL looks valid
+                ...((() => {
+                  try {
+                    new URL(proxy);
+                  } catch (error) {
+                    logging.error(`Invalid proxy URL: ${proxy}`, error);
+                    throw new Error(`Invalid proxy URL: ${proxy}`);
+                  }
+                  return {};
+                })()),
+                HTTP_PROXY: proxy,
+                HTTPS_PROXY: proxy,
+                ALL_PROXY: proxy,
+              }
+            : {}),
         };
         const transport = new this.StdioTransport({
           command: cmd,

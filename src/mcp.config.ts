@@ -9,6 +9,8 @@ export default {
         'The server implements the ability to read and write to your Apple Notes. Require Python>=3.12.',
       args: ['apple-notes-mcp'],
       isActive: false,
+      // Example proxy configuration - replace with your actual proxy URL
+      proxy: 'http://localhost:8080',
     },
     {
       key: 'FileSystem',
