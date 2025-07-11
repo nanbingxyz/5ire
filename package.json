@@ -80,9 +80,7 @@
     }
   },
   "dependencies": {
-    "@lancedb/lancedb": "^0.14.1",
-    "katex": "^0.16.22",
-    "markdown-it-texmath": "^1.0.0"
+    "@lancedb/lancedb": "^0.14.1"
   },
   "devDependencies": {
     "@axiomhq/js": "^1.0.0-rc.1",
@@ -222,7 +220,10 @@
     "webpack-cli": "^5.1.1",
     "webpack-dev-server": "^4.15.0",
     "webpack-merge": "^5.9.0",
-    "zustand": "^4.3.9"
+    "zustand": "^4.3.9",
+    "katex": "^0.16.22",
+    "markdown-it-texmath": "^1.0.0",
+    "node-fetch": "^3.3.2"
   },
   "build": {
     "productName": "5ire",
