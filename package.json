@@ -80,7 +80,9 @@
     }
   },
   "dependencies": {
-    "@lancedb/lancedb": "^0.14.1"
+    "@lancedb/lancedb": "^0.14.1",
+    "katex": "^0.16.22",
+    "markdown-it-texmath": "^1.0.0"
   },
   "devDependencies": {
     "@axiomhq/js": "^1.0.0-rc.1",
@@ -174,9 +176,8 @@
     "llama-tokenizer-js": "^1.2.1",
     "llama3-tokenizer-js": "^1.0.0",
     "lodash": "^4.17.21",
-    "markdown-it": "^13.0.1",
+    "markdown-it": "^13.0.2",
     "markdown-it-emoji": "^3.0.0",
-    "markdown-it-mathjax3": "^4.3.2",
     "markdown-it-mermaid": "^0.2.5",
     "mini-css-extract-plugin": "^2.7.6",
     "mitt": "^3.0.1",

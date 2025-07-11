@@ -1,10 +1,12 @@
 /* eslint-disable react/no-danger */
 import { useTranslation } from 'react-i18next';
+// @ts-ignore
+import texmath from 'markdown-it-texmath';
+// @ts-ignore
+import katex from 'katex';
 import DOMPurify from 'dompurify';
 // @ts-ignore
 import MarkdownIt from 'markdown-it';
-// @ts-ignore
-import mathjax3 from 'markdown-it-mathjax3';
 // @ts-ignore
 import markdownItMermaid from 'markdown-it-mermaid';
 import hljs from 'highlight.js/lib/common';
@@ -63,7 +65,11 @@ export default function useMarkdown() {
       );
     },
   })
-    .use(mathjax3)
+    .use(texmath, {
+      engine: katex, // 使用 KaTeX 渲染
+      delimiters: 'dollars', // 识别 $…$ 与 $$…$$
+      katexOptions: {}, // 可传入 KaTeX 各种配置
+    })
     .use(markdownItMermaid, {
       startOnLoad: false,
       securityLevel: 'loose',
@@ -135,6 +141,24 @@ export default function useMarkdown() {
   };
 
   return {
-    render: (str: string): string => DOMPurify.sanitize(md.render(str)),
+    render: (str: string): string => {
+      // 1. 替换 \pi 为 π
+      const str1 = str.replace(/\\pi/g, 'π');
+
+      // 2. 用 $ 包裹所有的 LaTeX 命令（如 \frac, \sum 等）
+      const str2 = str1.replace(
+        /(\\[a-zA-Z]+(?:\{(?:[^{}]|\{[^}]*\})*\})*)/g,
+        (_, expr) => {
+          return `$${expr}$`;
+        },
+      );
+
+      // 3. 替换 \left 和 \right 为小括号
+      const str3 = str2.replace(/\\left|\\right/g, (match) =>
+        match === '\\left' ? '(' : ')',
+      );
+
+      return DOMPurify.sanitize(md.render(str3));
+    },
   };
 }
