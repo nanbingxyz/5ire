@@ -30,9 +30,14 @@ const defaultOptions = {
  * Creates a wrapper function that enhances code block rendering with copy functionality.
  * Takes the original rendering rule and adds a copy button to the rendered output.
  * 
- * @param origRule - The original markdown-it rendering rule function
- * @param options - Configuration options for button styling and behavior
- * @returns A new rendering function that includes the copy button
+ * @param {Function} origRule - The original markdown-it rendering rule function
+ * @param {Object} options - Configuration options for button styling and behavior
+ * @param {string} options.buttonClass - CSS class for the copy button
+ * @param {string} options.buttonStyle - Inline styles for the copy button
+ * @param {string} options.iconStyle - Inline styles for the copy icon
+ * @param {string} options.iconClass - CSS class for the copy icon
+ * @param {string} options.element - Additional element content for the button
+ * @returns {Function} A new rendering function that includes the copy button
  */
 function renderCode(
   origRule: (...args: [any, any]) => any,
@@ -68,8 +73,10 @@ function renderCode(
  * Main plugin function that adds copy functionality to markdown-it code blocks.
  * Registers the plugin with markdown-it and sets up event handlers for copy operations.
  * 
- * @param md - The markdown-it instance to enhance
- * @param options - Plugin configuration options including success/error callbacks
+ * @param {any} md - The markdown-it instance to enhance
+ * @param {Object} options - Plugin configuration options including success/error callbacks
+ * @param {Function} [options.onSuccess] - Callback function executed when copy operation succeeds
+ * @param {Function} [options.onError] - Callback function executed when copy operation fails
  */
 export default function MarkdownItCodeCopy(md: any, options: any) {
   if (clipboard) {

@@ -142,6 +142,7 @@ export default function ChatItem({
         /**
          * Handles double-click events to enter edit mode.
          * Only activates when the chat list is not collapsed.
+         * Sets up escape key binding to cancel editing.
          */
         () => {
         if (!collapsed) {

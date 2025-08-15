@@ -68,6 +68,8 @@ export default function App() {
      * Handles knowledge base import completion events from the main process.
      * Creates a new file entry in the knowledge store when import succeeds.
      * This listener is placed at the app level to ensure it persists across component unmounts.
+     * 
+     * @param {unknown} data - Import completion data containing collection ID, file info, and chunk count
      */
     window.electron.ipcRenderer.on(
       'knowledge-import-success',
