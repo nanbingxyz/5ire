@@ -352,5 +352,7 @@
   "Tools.ApprovalPolicy.Once.Hint": "Requires one-time approval for each session",
   "Tools.ApprovalMessage": "Allow executing the tool from \"{{tool}}\" ({{type}})?",
   "Common.Allow": "Allow",
-  "Common.Deny": "Deny"
+  "Common.Deny": "Deny",
+  "Tools.AllowSystemEnv": "Allow System Environment Variables",
+  "Tools.AllowSystemEnv.Allow.Hint": "Allows MCP subprocesses to inherit system environment variables. Commands can access host environment variables. Be aware of potential sensitive information exposure."
 }

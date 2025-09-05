@@ -27,22 +27,36 @@ export const DEFAULT_INHERITED_ENV_VARS =
       ]
     : /* list inspired by the default env inheritance of sudo */
       ['HOME', 'LOGNAME', 'PATH', 'SHELL', 'TERM', 'USER'];
+
 /**
- * Returns a default environment object including only environment variables deemed safe to inherit.
+ * Get the default environment variables for executing local MCP commands or subprocesses.
+ *
+ * @param allowSystemEnv - Whether to allow full inheritance of system environment variables.
+ *                         - true: MCP subprocesses will inherit all environment variables from the host.
+ *                         - false: Only environment variables listed in DEFAULT_INHERITED_ENV_VARS
+ *                           are inherited, reducing the risk of exposing sensitive information.
+ * @returns A key-value object representing the environment variables to pass to the subprocess.
  */
-export function getDefaultEnvironment() {
+export function getDefaultEnvironment(
+  allowSystemEnv = false,
+): Record<string, string> {
   const env: Record<string, string> = {};
-  DEFAULT_INHERITED_ENV_VARS.forEach((key) => {
-    const value = process.env[key];
-    if (value === undefined) {
+
+  Object.entries(process.env).forEach(([key, value]) => {
+    // Skip undefined values or function-like variables (starting with '()') to avoid security risks.
+    if (value === undefined || value.startsWith('()')) {
       return;
     }
-    if (value.startsWith('()')) {
-      // Skip functions, which are a security risk.
-      return;
+
+    if (allowSystemEnv) {
+      // Allow full inheritance of system environment variables
+      env[key] = value;
+    } else if (DEFAULT_INHERITED_ENV_VARS.includes(key)) {
+      // Only inherit the default allowed environment variables
+      env[key] = value;
     }
-    env[key] = value;
   });
+
   return env;
 }
 

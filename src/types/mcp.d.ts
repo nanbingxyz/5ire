@@ -16,6 +16,11 @@ export interface IMCPServer {
   proxy?: string; // Optional: Proxy URL for this entrypoint (e.g., "http://localhost:8080")
   capabilities: MCPServerCapability[];
   approvalPolicy?: MCPServerApprovalPolicy;
+  /**
+   * Whether to allow inheriting system environment variables.
+   * Controls if the subprocess can access system environment variables when executing local MCP commands.
+   */
+  allowSystemEnv?: boolean;
 }
 
 export type MCPArgType = 'string' | 'list' | 'number';

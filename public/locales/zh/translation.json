@@ -341,5 +341,7 @@
   "Tools.ApprovalPolicy.Once.Hint": "每个会话都需一次性审批",
   "Tools.ApprovalMessage": "允许执行来自“{{tool}}”（{{type}}）的工具吗？",
   "Common.Allow": "允许",
-  "Common.Deny": "拒绝"
+  "Common.Deny": "拒绝",
+  "Tools.AllowSystemEnv": "允许使用系统环境变量",
+  "Tools.AllowSystemEnv.Allow.Hint": "允许 MCP 子进程继承系统环境变量，子命令可以访问宿主机的环境变量。请注意可能带来的敏感信息泄露风险。"
 }

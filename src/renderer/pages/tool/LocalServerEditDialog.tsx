@@ -57,6 +57,7 @@ export default function ToolEditDialog(options: {
   const [env, setEnv] = useState<{ [key: string]: string }>({});
   const [approvalPolicy, setApprovalPolicy] =
     useState<MCPServerApprovalPolicy>('always');
+  const [allowSystemEnv, setAllowSystemEnv] = useState(false);
 
   const { addServer, updateServer } = useMCPStore();
 
@@ -107,6 +108,7 @@ export default function ToolEditDialog(options: {
       payload.env = { ...env, [envName.trim()]: envValue.trim() };
     }
     payload.approvalPolicy = approvalPolicy;
+    payload.allowSystemEnv = allowSystemEnv;
     return payload;
   }, [
     name,
@@ -118,6 +120,7 @@ export default function ToolEditDialog(options: {
     envName,
     envValue,
     approvalPolicy,
+    allowSystemEnv,
   ]);
 
   const addEnv = useCallback(() => {
@@ -148,6 +151,7 @@ export default function ToolEditDialog(options: {
     }
     const upset = server ? updateServer : addServer;
     config.type = 'local';
+    console.log(config);
     const ok = await upset(config);
     if (ok) {
       setOpen(false);
@@ -166,6 +170,7 @@ export default function ToolEditDialog(options: {
     envValue,
     server,
     approvalPolicy,
+    allowSystemEnv,
   ]);
 
   useEffect(() => {
@@ -179,6 +184,7 @@ export default function ToolEditDialog(options: {
       setCommand([server.command, ...$args].join(' '));
       setEnv(server.env || {});
       setApprovalPolicy(server.approvalPolicy || 'always');
+      setAllowSystemEnv(server.allowSystemEnv ?? false);
     }
 
     return () => {
@@ -190,6 +196,7 @@ export default function ToolEditDialog(options: {
       setEnvValue('');
       setEnv({});
       setApprovalPolicy('always');
+      setAllowSystemEnv(false);
     };
   }, [open, server]);
 
@@ -318,6 +325,32 @@ export default function ToolEditDialog(options: {
                       value="once"
                       label={t('Tools.ApprovalPolicy.Once')}
                     />
+                  </RadioGroup>
+                </Field>
+              </div>
+              <div>
+                <Field
+                  label={t('Tools.AllowSystemEnv')}
+                  validationMessage={
+                    allowSystemEnv
+                      ? `${t('Tools.AllowSystemEnv.Allow.Hint')}`
+                      : undefined
+                  }
+                  validationState="none"
+                >
+                  <RadioGroup
+                    value={allowSystemEnv ? 'allow' : 'deny'}
+                    layout="horizontal"
+                    onChange={(_, data) => {
+                      setAllowSystemEnv(data.value === 'allow');
+                    }}
+                  >
+                    <Radio
+                      key="allow"
+                      value="allow"
+                      label={t('Common.Allow')}
+                    />
+                    <Radio key="deny" value="deny" label={t('Common.Deny')} />
                   </RadioGroup>
                 </Field>
               </div>

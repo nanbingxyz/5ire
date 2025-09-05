@@ -35,6 +35,7 @@ export function fillArgs(args: string[], params: MCPArgParameter): string[] {
   const pattern =
     /\{\{(?<name>[^@]+)@(?<type>[^:]+)(::(?<description>[^}]*)?)?\}\}/;
   const $args: (string | string[])[] = [...args];
+  // eslint-disable-next-line no-plusplus
   for (let index = 0; index < args.length; index++) {
     const arg = args[index];
     const match = arg.match(pattern);
@@ -59,10 +60,12 @@ export function FillEnvOrHeaders(
     /\{\{(?<name>[^@]+)@(?<type>[^:]+)(::(?<description>[^}]*)?)?\}\}/g;
   const $envOrHeaders = { ...envOrHeaders };
   const keys = Object.keys(envOrHeaders);
+  // eslint-disable-next-line no-restricted-syntax
   for (const key of keys) {
     const item = envOrHeaders[key];
     let result = item;
     let match;
+    // eslint-disable-next-line no-cond-assign
     while ((match = pattern.exec(item)) !== null) {
       if (match.groups) {
         const placeholder = match[0];
@@ -78,7 +81,9 @@ export function FillEnvOrHeaders(
   return $envOrHeaders;
 }
 
-export function purifyServer(server: IMCPServer): Omit<IMCPServer, 'type' | 'key' > {
+export function purifyServer(
+  server: IMCPServer,
+): Omit<IMCPServer, 'type' | 'key'> {
   return {
     name: server.name,
     description: server.description,
@@ -91,5 +96,7 @@ export function purifyServer(server: IMCPServer): Omit<IMCPServer, 'type' | 'key
     ...(Object.keys(server.env || {}).length ? { env: server.env } : {}),
     isActive: server.isActive || false,
     approvalPolicy: server.approvalPolicy,
+    allowSystemEnv: server.allowSystemEnv,
+    capabilities: server.capabilities,
   };
 }
