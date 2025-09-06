@@ -2,7 +2,18 @@ import { basename } from 'node:path';
 
 import type { URILoader, URIResource } from './DocumentLoader';
 
+/**
+ * HTTP/HTTPS URI loader implementation that fetches resources from web URLs.
+ * Handles network requests and converts HTTP responses into URIResource format.
+ */
 export class HttpURILoader implements URILoader {
+  /**
+   * Loads a resource from an HTTP or HTTPS URL.
+   * 
+   * @param url - The URL object representing the HTTP/HTTPS resource to fetch
+   * @returns A promise that resolves to a URIResource containing the response stream and metadata
+   * @throws {Error} If the network request fails or returns a non-200 status code
+   */
   load = async (url: URL): Promise<URIResource> => {
     let response: Response;
 
@@ -25,6 +36,11 @@ export class HttpURILoader implements URILoader {
         mimeType: 'text/plain',
         size: 0,
         stream: new ReadableStream<Uint8Array>({
+          /**
+           * Initializes the stream by immediately closing it for empty responses.
+           * 
+           * @param controller - The ReadableStreamDefaultController to control the stream
+           */
           start(controller) {
             controller.close();
           },
@@ -45,6 +61,11 @@ export class HttpURILoader implements URILoader {
     };
   };
 
+  /**
+   * Returns the list of URI protocols supported by this loader.
+   * 
+   * @returns An array containing the supported protocols: 'http' and 'https'
+   */
   getSupportedProtocols = () => {
     return ['http', 'https'];
   };

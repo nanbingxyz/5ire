@@ -63,6 +63,14 @@ const MoreHorizontalIcon = bundleIcon(
   MoreHorizontalRegular,
 );
 
+/**
+ * Grid component that displays knowledge collections in a data grid format.
+ * Provides functionality for viewing, editing, deleting, pinning, and managing files for collections.
+ * 
+ * @param {Object} props - The component props
+ * @param {any[]} props.collections - Array of collection objects to display in the grid
+ * @returns {JSX.Element} The rendered grid component
+ */
 export default function Grid({ collections }: { collections: any[] }) {
   const { t } = useTranslation();
   const [delConfirmDialogOpen, setDelConfirmDialogOpen] =
@@ -73,9 +81,21 @@ export default function Grid({ collections }: { collections: any[] }) {
   const [innerHeight, setInnerHeight] = useState(window.innerHeight);
   const { notifySuccess } = useToast();
   const navigate = useNav();
+  
+  /**
+   * Pins a collection by setting its pinedAt timestamp to the current date.
+   * 
+   * @param {string} id - The ID of the collection to pin
+   */
   const pin = (id: string) => {
     updateCollection({ id, pinedAt: date2unix(new Date()) });
   };
+  
+  /**
+   * Unpins a collection by setting its pinedAt value to null.
+   * 
+   * @param {string} id - The ID of the collection to unpin
+   */
   const unpin = (id: string) => {
     updateCollection({ id, pinedAt: null });
   };
@@ -90,6 +110,13 @@ export default function Grid({ collections }: { collections: any[] }) {
     };
   }, []);
 
+  /**
+   * Processes and sorts the collections for display in the grid.
+   * Formats the updatedAt timestamp and sorts items with pinned collections first,
+   * then by pin date, and finally by ID.
+   * 
+   * @returns {Item[]} The processed and sorted array of collection items
+   */
   const items = useMemo(
     () =>
       collections
@@ -115,10 +142,17 @@ export default function Grid({ collections }: { collections: any[] }) {
     [collections],
   );
 
+  /**
+   * Type definition for the updated date cell containing both display value and timestamp.
+   */
   type UpdatedCell = {
     value: string;
     timestamp: number;
   };
+  
+  /**
+   * Type definition for a collection item displayed in the grid.
+   */
   type Item = {
     id: string;
     name: string;
@@ -128,6 +162,12 @@ export default function Grid({ collections }: { collections: any[] }) {
     pinedAt: number | null;
   };
 
+  /**
+   * Configuration for the data grid columns including name, last updated, and number of files.
+   * Each column defines sorting behavior, header rendering, and cell content rendering.
+   * 
+   * @type {TableColumnDefinition<Item>[]}
+   */
   const columns: TableColumnDefinition<Item>[] = [
     createTableColumn<Item>({
       columnId: 'name',
@@ -249,6 +289,15 @@ export default function Grid({ collections }: { collections: any[] }) {
     }),
   ];
 
+  /**
+   * Custom row renderer for the data grid that renders each collection item as a row.
+   * 
+   * @param {Object} params - The render parameters
+   * @param {Item} params.item - The collection item to render
+   * @param {string} params.rowId - The unique identifier for the row
+   * @param {React.CSSProperties} style - The inline styles for the row
+   * @returns {JSX.Element} The rendered data grid row
+   */
   const renderRow: RowRenderer<Item> = ({ item, rowId }, style) => (
     <DataGridRow<Item> key={rowId} style={style}>
       {({ renderCell }) => <DataGridCell>{renderCell(item)}</DataGridCell>}
@@ -284,6 +333,10 @@ export default function Grid({ collections }: { collections: any[] }) {
         setOpen={setDelConfirmDialogOpen}
         message={t('Knowledge.Confirmation.DeleteCollection')}
         onConfirm={async () => {
+          /**
+           * Handles the deletion of the active collection.
+           * Deletes the collection, resets the active collection state, and shows a success notification.
+           */
           await deleteCollection(activeCollection.id);
           setActiveCollection(null);
           notifySuccess(t('Knowledge.Notification.CollectionDeleted'));

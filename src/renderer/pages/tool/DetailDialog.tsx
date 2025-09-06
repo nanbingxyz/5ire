@@ -23,6 +23,16 @@ import useMarkdown from 'hooks/useMarkdown';
 import { IMCPServer } from 'types/mcp';
 import Spinner from 'renderer/components/Spinner';
 
+/**
+ * Dialog component that displays detailed information about MCP server tools and prompts.
+ * Shows an accordion-style interface with expandable sections for each tool and prompt.
+ * 
+ * @param {Object} options - Component configuration options
+ * @param {IMCPServer | null} options.server - The MCP server to display details for
+ * @param {boolean} options.open - Whether the dialog is currently open
+ * @param {Function} options.setOpen - Function to control the dialog's open state
+ * @returns {JSX.Element} The rendered dialog component
+ */
 export default function ToolDetailDialog(options: {
   server: IMCPServer | null;
   open: boolean;
@@ -35,6 +45,14 @@ export default function ToolDetailDialog(options: {
   const [prompts, setPrompts] = useState<any[]>([]);
   const { render } = useMarkdown();
 
+  /**
+   * Loads the list of available tools from the specified MCP server.
+   * Only loads tools if the server has the 'tools' capability.
+   * Updates the tools state with the retrieved data.
+   * 
+   * @param {IMCPServer} svr - The MCP server to load tools from
+   * @returns {Promise<void>} Promise that resolves when tools are loaded
+   */
   const loadTools = async (svr: IMCPServer) => {
     if (svr.capabilities.includes('tools')) {
       const res = await window.electron.mcp.listTools(svr.key);
@@ -44,6 +62,14 @@ export default function ToolDetailDialog(options: {
     }
   };
 
+  /**
+   * Loads the list of available prompts from the specified MCP server.
+   * Only loads prompts if the server has the 'prompts' capability.
+   * Updates the prompts state with the retrieved data.
+   * 
+   * @param {IMCPServer} svr - The MCP server to load prompts from
+   * @returns {Promise<void>} Promise that resolves when prompts are loaded
+   */
   const loadPrompts = async (svr: IMCPServer) => {
     if (svr.capabilities.includes('prompts')) {
       const res = await window.electron.mcp.listPrompts(svr.key);
@@ -55,6 +81,12 @@ export default function ToolDetailDialog(options: {
     setPrompts([]);
   };
 
+  /**
+   * Loads both tools and prompts data for the current server.
+   * Sets loading state during the data fetching process.
+   * 
+   * @returns {Promise<void>} Promise that resolves when all data is loaded
+   */
   const loadData = async () => {
     if (server) {
       setLoading(true);

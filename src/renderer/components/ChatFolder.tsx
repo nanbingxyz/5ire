@@ -176,6 +176,10 @@ export default function ChatFolder({
     };
   }, [folder.isNew, folder.id, markFolderAsOld]);
 
+  /**
+   * Updates the appearance store with the current editing state.
+   * Synchronizes the folder editing state with the global appearance store.
+   */
   useEffect(() => {
     setFolderEditing(editable);
   }, [editable, setFolderEditing]);

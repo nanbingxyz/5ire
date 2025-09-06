@@ -29,16 +29,30 @@ import { isValidMCPServerKey } from 'utils/validators';
 import useMCPStore from 'stores/useMCPStore';
 import useToast from 'hooks/useToast';
 
+/**
+ * Parses a command string into an array of arguments, handling quoted strings.
+ * @param {string} cmd - The command string to parse
+ * @returns {string[]} Array of parsed command arguments with quotes removed
+ */
 const parseCommand = (cmd: string) => {
-  const regex = /[^\s"']+|"([^"]*)"|'([^']*)'/g;
+  const regex = /[^\s\"']+|\"([^\"]*)\"|'([^']*)'/g;
 
   const matches = cmd.match(regex) || [];
 
   return matches.map((match) => {
-    return match.replace(/^['"](.*)['"]$/, '$1');
+    return match.replace(/^['\"](.*)['\"]$/, '$1');
   });
 };
 
+/**
+ * Dialog component for editing or creating local MCP server configurations.
+ * Provides form fields for server details, command configuration, environment variables, and approval policies.
+ * @param {Object} options - Component options
+ * @param {IMCPServer | null} options.server - Existing server configuration to edit, or null for new server
+ * @param {boolean} options.open - Whether the dialog is open
+ * @param {Function} options.setOpen - Function to control dialog open state
+ * @returns {JSX.Element} The dialog component
+ */
 export default function ToolEditDialog(options: {
   server: IMCPServer | null;
   open: boolean;
@@ -120,6 +134,10 @@ export default function ToolEditDialog(options: {
     approvalPolicy,
   ]);
 
+  /**
+   * Adds a new environment variable to the env state if both name and value are provided.
+   * Clears the input fields after adding.
+   */
   const addEnv = useCallback(() => {
     if (envName.trim() === '' || envValue.trim() === '') {
       return;
@@ -129,6 +147,11 @@ export default function ToolEditDialog(options: {
     setEnvValue('');
   }, [envName, envValue]);
 
+  /**
+   * Validates form inputs and submits the server configuration.
+   * Shows validation errors for invalid key or missing command.
+   * Calls appropriate store method (add or update) and handles success/error notifications.
+   */
   const submit = useCallback(async () => {
     let isValid = true;
     if (!isValidMCPServerKey(key)) {
