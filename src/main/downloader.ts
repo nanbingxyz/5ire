@@ -3,13 +3,28 @@ import fs from 'fs';
 import log from 'electron-log';
 import { app } from 'electron';
 
+/**
+ * Manages file downloads in an Electron application with progress tracking and cancellation support
+ */
 export default class Downloader {
+  /** The Electron BrowserWindow instance */
   private win: any;
 
+  /** Map of active downloads indexed by filename */
   private downloads: { [key: string]: any } = {};
 
+  /** Callback function called when a download fails */
   private onFailed: Function | undefined;
 
+  /**
+   * Creates a new Downloader instance and sets up download event handlers
+   * @param {any} win - The Electron BrowserWindow instance
+   * @param {Object} callbacks - Callback functions for download events
+   * @param {Function} callbacks.onStart - Called when a download starts with fileName
+   * @param {Function} callbacks.onCompleted - Called when a download completes with fileName and savePath
+   * @param {Function} callbacks.onFailed - Called when a download fails with fileName, savePath, and state
+   * @param {Function} callbacks.onProgress - Called during download progress with fileName and progress ratio
+   */
   constructor(
     win: any,
     { onStart, onCompleted, onFailed, onProgress } = {
@@ -70,11 +85,20 @@ export default class Downloader {
     });
   }
 
+  /**
+   * Initiates a download from the specified URL
+   * @param {string} fileName - The name to use for the downloaded file
+   * @param {string} url - The URL to download from
+   */
   download(fileName: string, url: string) {
     this.downloads[fileName] = { pending: true };
     this.win.webContents.session.downloadURL(url);
   }
 
+  /**
+   * Cancels an active download or marks a pending download for cancellation
+   * @param {string} fileName - The name of the file to cancel downloading
+   */
   cancel(fileName: string) {
     let item = this.downloads[fileName];
     if (!item) {
