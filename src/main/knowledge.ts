@@ -23,9 +23,16 @@ const knowledgeSchema = new Schema([
   ),
 ]);
 
+/**
+ * Manages vector database operations for knowledge storage and retrieval
+ */
 export default class Knowledge {
   private static db: any;
 
+  /**
+   * Gets the database instance, initializing it if necessary
+   * @returns {Promise<any>} The database instance
+   */
   public static async getDatabase() {
     if (!this.db) {
       try {
@@ -37,6 +44,10 @@ export default class Knowledge {
     return this.db;
   }
 
+  /**
+   * Initializes the LanceDB database and creates the knowledge table if it doesn't exist
+   * @returns {Promise<any>} The initialized database instance
+   */
   private static async init() {
     const lancedb = await import('@lancedb/lancedb');
     const uri = path.join(app.getPath('userData'), 'lancedb.db');
@@ -50,6 +61,10 @@ export default class Knowledge {
     return db;
   }
 
+  /**
+   * Closes the database connection and clears the instance
+   * @returns {Promise<void>}
+   */
   public static async close() {
     if (this.db) {
       await this.db.close();
@@ -57,6 +72,15 @@ export default class Knowledge {
     }
   }
 
+  /**
+   * Imports a file by loading its content, chunking it, generating embeddings, and storing in the database
+   * @param {Object} params - Import parameters
+   * @param {Object} params.file - File information containing id, path, name, size, and type
+   * @param {string} params.collectionId - ID of the collection to associate with the file
+   * @param {Function} [params.onProgress] - Optional callback for progress updates
+   * @param {Function} [params.onSuccess] - Optional callback for successful completion
+   * @returns {Promise<void>}
+   */
   public static async importFile({
     file,
     collectionId,
@@ -99,6 +123,13 @@ export default class Knowledge {
       });
   }
 
+  /**
+   * Adds data to the knowledge table
+   * @param {Data} data - The data to add to the table
+   * @param {Object} [options] - Optional configuration
+   * @param {boolean} [options.stayOpen] - Whether to keep the table connection open
+   * @returns {Promise<void>}
+   */
   public static async add(data: Data, options?: { stayOpen: boolean }) {
     const db = await this.getDatabase();
     const table = await db.openTable(TABLE_NAME);
@@ -108,6 +139,13 @@ export default class Knowledge {
     }
   }
 
+  /**
+   * Retrieves a specific chunk by its ID
+   * @param {string} id - The ID of the chunk to retrieve
+   * @param {Object} [options] - Optional configuration
+   * @param {boolean} [options.stayOpen] - Whether to keep the table connection open
+   * @returns {Promise<Object|null>} The chunk data or null if not found
+   */
   public static async getChunk(id: string, options?: { stayOpen: boolean }) {
     const db = await this.getDatabase();
     const table = await db.openTable(TABLE_NAME);
@@ -131,6 +169,15 @@ export default class Knowledge {
     return null;
   }
 
+  /**
+   * Performs vector similarity search across specified collections
+   * @param {string[]} collectionIds - Array of collection IDs to search within
+   * @param {string} query - The search query text
+   * @param {Object} [options] - Optional configuration
+   * @param {boolean} [options.stayOpen] - Whether to keep the table connection open
+   * @param {number} [options.limit] - Maximum number of results to return (default: 6)
+   * @returns {Promise<Array>} Array of matching chunks with similarity scores
+   */
   public static async search(
     collectionIds: string[],
     query: string,
@@ -156,6 +203,16 @@ export default class Knowledge {
     }));
   }
 
+  /**
+   * Removes records from the knowledge table based on provided criteria
+   * @param {Object} criteria - Deletion criteria (at least one must be provided)
+   * @param {string} [criteria.id] - Specific record ID to delete
+   * @param {string} [criteria.collectionId] - Collection ID to delete all records from
+   * @param {string} [criteria.fileId] - File ID to delete all records from
+   * @param {Object} [options] - Optional configuration
+   * @param {boolean} [options.stayOpen] - Whether to keep the table connection open
+   * @returns {Promise<boolean>} True if deletion was successful, false otherwise
+   */
   public static async remove(
     {
       id,

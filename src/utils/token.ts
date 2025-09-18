@@ -15,6 +15,14 @@ let llamaTokenizer: any;
   llamaTokenizer = (await import('llama-tokenizer-js')).default;
 })();
 
+/**
+ * Counts the number of tokens in messages for GPT models using tiktoken encoding.
+ * Automatically maps model names to supported tiktoken models and falls back to cl100k_base encoding if needed.
+ * 
+ * @param {IChatRequestMessage[]} messages - Array of chat messages to count tokens for
+ * @param {string} model - The GPT model name (e.g., 'gpt-3.5-turbo', 'gpt-4')
+ * @returns {number} Total number of tokens including message overhead and assistant prompt tokens
+ */
 export function countGPTTokens(messages: IChatRequestMessage[], model: string) {
   let _model = model;
   if (model.startsWith('gpt-3.5') || model.startsWith('gpt-35')) {
@@ -46,6 +54,16 @@ export function countGPTTokens(messages: IChatRequestMessage[], model: string) {
   return numTokens;
 }
 
+/**
+ * Counts tokens for Gemini models using the official Google API endpoint.
+ * Makes a POST request to the Gemini API to get accurate token counts.
+ * 
+ * @param {IChatRequestMessage[]} messages - Array of chat messages to count tokens for
+ * @param {string} apiBase - Base URL for the Gemini API
+ * @param {string} apiKey - API key for authentication
+ * @param {string} model - The Gemini model name
+ * @returns {Promise<number>} Promise that resolves to the total token count
+ */
 export async function countTokensOfGemini(
   messages: IChatRequestMessage[],
   apiBase: string,
@@ -66,6 +84,16 @@ export async function countTokensOfGemini(
   return data.totalTokens;
 }
 
+/**
+ * Counts tokens for Moonshot models using their token estimation API.
+ * Includes error handling that returns 0 on failure and logs exceptions.
+ * 
+ * @param {IChatRequestMessage[]} messages - Array of chat messages to count tokens for
+ * @param {string} apiBase - Base URL for the Moonshot API
+ * @param {string} apiKey - Bearer token for authentication
+ * @param {string} model - The Moonshot model name
+ * @returns {Promise<number>} Promise that resolves to the total token count, or 0 if an error occurs
+ */
 export async function countTokensOfMoonshot(
   messages: IChatRequestMessage[],
   apiBase: string,
@@ -89,6 +117,14 @@ export async function countTokensOfMoonshot(
   }
 }
 
+/**
+ * Counts tokens for Llama models using local tokenizers.
+ * Automatically selects between llama3-tokenizer-js and llama-tokenizer-js based on model name.
+ * 
+ * @param {IChatRequestMessage[]} messages - Array of chat messages to count tokens for
+ * @param {string} model - The Llama model name (determines which tokenizer to use)
+ * @returns {Promise<number>} Promise that resolves to the total token count including message overhead
+ */
 export async function countTokenOfLlama(
   messages: IChatRequestMessage[],
   model: string,

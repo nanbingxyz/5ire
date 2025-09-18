@@ -7,18 +7,38 @@ import {
   MenuItemConstructorOptions,
 } from 'electron';
 
+/**
+ * Extended menu item constructor options for Darwin (macOS) platform
+ * Includes additional properties specific to macOS menu behavior
+ */
 interface DarwinMenuItemConstructorOptions extends MenuItemConstructorOptions {
+  /** macOS-specific selector for native menu actions */
   selector?: string;
+  /** Submenu items, can be an array of Darwin options or a Menu instance */
   submenu?: DarwinMenuItemConstructorOptions[] | Menu;
 }
 
+/**
+ * Builds and manages application menus for Electron applications
+ * Provides platform-specific menu implementations and context menu handling
+ */
 export default class MenuBuilder {
+  /** The main browser window instance for menu interactions */
   mainWindow: BrowserWindow;
 
+  /**
+   * Creates a new MenuBuilder instance
+   * @param {BrowserWindow} mainWindow - The main browser window to associate with menus
+   */
   constructor(mainWindow: BrowserWindow) {
     this.mainWindow = mainWindow;
   }
 
+  /**
+   * Builds and sets the application menu based on the current platform
+   * Sets up context menu handling and returns the created menu
+   * @returns {Menu} The constructed application menu
+   */
   buildMenu(): Menu {
     this.setupContextMenu();
     const template =
@@ -32,6 +52,10 @@ export default class MenuBuilder {
     return menu;
   }
 
+  /**
+   * Sets up context menu handling for the main window
+   * Provides copy, paste, cut, select all, spell check suggestions, and developer tools
+   */
   setupContextMenu(): void {
     this.mainWindow.webContents.on('context-menu', (_, props) => {
       const template = [
@@ -87,6 +111,11 @@ export default class MenuBuilder {
     });
   }
 
+  /**
+   * Builds the menu template for macOS (Darwin) platform
+   * Includes standard macOS menu structure with app, edit, view, window, and help menus
+   * @returns {MenuItemConstructorOptions[]} Array of menu items for macOS
+   */
   buildDarwinTemplate(): MenuItemConstructorOptions[] {
     const subMenuAbout: DarwinMenuItemConstructorOptions = {
       label: '5ire',
@@ -213,6 +242,11 @@ export default class MenuBuilder {
     return [subMenuAbout, subMenuEdit, subMenuView, subMenuWindow, subMenuHelp];
   }
 
+  /**
+   * Builds the default menu template for non-macOS platforms
+   * Includes file, view, and help menus with platform-appropriate keyboard shortcuts
+   * @returns {MenuItemConstructorOptions[]} Array of menu items for default platforms
+   */
   buildDefaultTemplate() {
     const templateDefault = [
       {
