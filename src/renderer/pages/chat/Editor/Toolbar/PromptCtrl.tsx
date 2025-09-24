@@ -34,19 +34,13 @@ import PromptVariableDialog from '../PromptVariableDialog';
 const PromptIcon = bundleIcon(Prompt20Filled, Prompt20Regular);
 
 /**
- * Props for the PromptCtrl component
- * @typedef {Object} PromptCtrlProps
- * @property {IChatContext} ctx - The chat context containing model and configuration information
- * @property {IChat} chat - The current chat instance
- * @property {boolean} [disabled] - Whether the prompt control is disabled
- */
-
-/**
- * A React component that provides prompt selection and management functionality.
- * Renders a button that opens a dialog for browsing, searching, and applying prompts to a chat.
- * Supports variable substitution and keyboard shortcuts.
+ * A React component that provides a prompt selection and management interface for chat conversations.
+ * Displays a dialog with searchable prompts that can be applied to the current chat.
  * 
- * @param {PromptCtrlProps} props - The component props
+ * @param {Object} props - The component props
+ * @param {IChatContext} props.ctx - The chat context containing model and configuration information
+ * @param {IChat} props.chat - The current chat object
+ * @param {boolean} [props.disabled] - Whether the prompt control should be disabled
  * @returns {JSX.Element} The rendered prompt control component
  */
 export default function PromptCtrl({
@@ -73,7 +67,7 @@ export default function PromptCtrl({
   const editStage = useChatStore((state) => state.editStage);
 
   /**
-   * Closes the prompt dialog and unbinds keyboard shortcuts
+   * Closes the prompt dialog and unbinds the escape key handler.
    */
   const closeDialog = () => {
     setOpen(false);
@@ -81,7 +75,7 @@ export default function PromptCtrl({
   };
 
   /**
-   * Opens the prompt dialog, fetches prompts, sets focus to search input, and binds keyboard shortcuts
+   * Opens the prompt dialog, fetches available prompts, focuses the search input, and binds the escape key handler.
    */
   const openDialog = () => {
     fetchPrompts({});
@@ -94,8 +88,8 @@ export default function PromptCtrl({
   };
 
   /**
-   * Filters prompts based on the search keyword
-   * @returns {IPromptDef[]} Array of filtered prompts matching the search criteria
+   * Filters prompts based on the search keyword.
+   * @returns {IPromptDef[]} Array of prompts that match the search criteria
    */
   const prompts = useMemo(() => {
     return allPrompts.filter((prompt) => {
@@ -109,9 +103,9 @@ export default function PromptCtrl({
   }, [allPrompts, keyword]);
 
   /**
-   * Inserts a message into the editor at the current cursor position
-   * @param {string} msg - The message text to insert
-   * @returns {string} The updated HTML content of the editor
+   * Inserts a message into the editor at the current cursor position.
+   * @param {string} msg - The message to insert
+   * @returns {string} The updated content of the editor
    */
   const insertUserMessage = (msg: string): string => {
     const editor = document.querySelector('#editor') as HTMLDivElement;
@@ -119,7 +113,7 @@ export default function PromptCtrl({
   };
 
   /**
-   * Applies a selected prompt to the current chat
+   * Applies a selected prompt to the current chat, handling variable substitution if needed.
    * @param {string} promptId - The ID of the prompt to apply
    */
   const applyPrompt = async (promptId: string) => {
@@ -153,7 +147,7 @@ export default function PromptCtrl({
   };
 
   /**
-   * Removes the current prompt from the chat
+   * Removes the current prompt from the chat after a brief delay.
    */
   const removePrompt = () => {
     setOpen(false);
@@ -161,7 +155,7 @@ export default function PromptCtrl({
   };
 
   /**
-   * Handles cancellation of the variable dialog
+   * Handles cancellation of the variable dialog by resetting state.
    */
   const onVariablesCancel = useCallback(() => {
     setPickedPrompt(null);
@@ -169,7 +163,7 @@ export default function PromptCtrl({
   }, [setPickedPrompt]);
 
   /**
-   * Handles confirmation of variable values and applies the prompt with filled variables
+   * Handles confirmation of variable values by filling the prompt template and applying it to the chat.
    * @param {Object} systemVars - Key-value pairs for system message variables
    * @param {Object} userVars - Key-value pairs for user message variables
    */
