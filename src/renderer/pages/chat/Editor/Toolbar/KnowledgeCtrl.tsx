@@ -33,15 +33,14 @@ const debug = Debug('5ire:pages:chat:Editor:Toolbar:KnowledgeCtrl');
 const KnowledgeIcon = bundleIcon(Library20Filled, Library20Regular);
 
 /**
- * Knowledge control component that provides a dialog interface for managing knowledge collections
- * associated with a chat. Allows users to select and remove knowledge collections that will be
- * used as context for the chat conversation.
+ * Knowledge control component for managing knowledge collections in chat contexts.
+ * Provides a dialog interface for selecting and managing knowledge collections associated with a chat.
  * 
- * @param {Object} props - Component properties
- * @param {IChatContext} props.ctx - Chat context object containing chat-related utilities
- * @param {IChat} props.chat - Current chat object
- * @param {boolean} props.disabled - Whether the control should be disabled
- * @returns {JSX.Element} The knowledge control component with dialog interface
+ * @param {Object} props - Component props
+ * @param {IChatContext} props.ctx - Chat context object
+ * @param {IChat} props.chat - Chat instance
+ * @param {boolean} props.disabled - Whether the control is disabled
+ * @returns {JSX.Element} Knowledge control component with dialog interface
  */
 export default function KnowledgeCtrl({
   ctx,
@@ -66,8 +65,7 @@ export default function KnowledgeCtrl({
   );
 
   /**
-   * Closes the knowledge collections dialog and unbinds the escape key handler.
-   * @returns {void}
+   * Closes the knowledge collections dialog and unbinds escape key handler.
    */
   const closeDialog = () => {
     setOpen(false);
@@ -76,8 +74,7 @@ export default function KnowledgeCtrl({
 
   /**
    * Opens the knowledge collections dialog, loads available collections,
-   * and sets up the current chat's selected collections. Also binds keyboard shortcuts.
-   * @returns {void}
+   * and sets up keyboard shortcuts. Focuses the combobox input after opening.
    */
   const openDialog = () => {
     listCollections().then(async (collections) => {
@@ -112,12 +109,11 @@ export default function KnowledgeCtrl({
   }, [chat.id]);
 
   /**
-   * Handles selection of collections from the combobox. Updates both the local state
-   * and persists the selection to the chat knowledge store.
+   * Handles collection selection from the combobox.
+   * Updates selected collections in the chat and local state.
    * 
    * @param {any} _ - Unused event parameter
-   * @param {Object} data - Selection data containing the selected option IDs
-   * @returns {Promise<void>}
+   * @param {Object} data - Selection data containing selectedOptions array
    */
   const onCollectionSelect: ComboboxProps['onOptionSelect'] = async (
     _,
@@ -134,11 +130,10 @@ export default function KnowledgeCtrl({
   };
 
   /**
-   * Removes a specific collection from the chat's selected collections.
-   * Updates both local state and the persistent store.
+   * Removes a collection from the chat's selected collections.
+   * Updates both the chat store and local state.
    * 
-   * @param {ICollection} collection - The collection to remove
-   * @returns {Promise<void>}
+   * @param {ICollection} collection - Collection to remove
    */
   const onCollectionRemove = async (collection: ICollection) => {
     setSelectedCollectionIds(

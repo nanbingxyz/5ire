@@ -37,39 +37,30 @@ import { decodePromptId, encodePromptId } from 'intellichat/mcp/ids';
 import MCPPromptContentPreview from '../../MCPPromptContentPreview';
 import McpPromptVariableDialog from '../McpPromptVariableDialog';
 
-/**
- * Bundled icon for the prompt control button
- */
 const PromptIcon = bundleIcon(
   CommentMultipleLinkFilled,
   CommentMultipleLinkRegular,
 );
 
 /**
- * Props interface for the McpPromptCtrl component
- */
-interface McpPromptCtrlProps {
-  /** The chat instance to associate with the prompt */
-  chat: IChat;
-  /** Whether the control should be disabled */
-  disabled?: boolean;
-  /** Callback function triggered when a prompt is selected and applied */
-  onTrigger?: (prompt: unknown) => void;
-}
-
-/**
- * A React component that provides a dialog interface for browsing and selecting MCP prompts.
- * Displays available prompts from MCP servers, handles variable input for parameterized prompts,
- * and triggers the selected prompt through a callback.
+ * A React component that provides a dialog interface for selecting and applying MCP prompts.
+ * Displays a button that opens a dialog with a searchable list of available prompts,
+ * handles prompt variables, and triggers the selected prompt.
  * 
- * @param props - The component props
- * @returns JSX element containing the prompt control dialog
+ * @param {Object} props - The component props
+ * @param {IChat} props.chat - The current chat context
+ * @param {boolean} [props.disabled] - Whether the prompt control is disabled
+ * @param {Function} [props.onTrigger] - Callback function called when a prompt is triggered
  */
 export default function McpPromptCtrl({
   chat,
   disabled,
   onTrigger,
-}: McpPromptCtrlProps) {
+}: {
+  chat: IChat;
+  disabled?: boolean;
+  onTrigger?: (prompt: unknown) => void;
+}) {
   const { t } = useTranslation();
   const { notifyError } = useToast();
   const [loadingList, setLoadingList] = useState<boolean>(false);
@@ -83,7 +74,7 @@ export default function McpPromptCtrl({
   const [prompt, setPrompt] = useState<IMCPPrompt | null>(null);
 
   /**
-   * Closes the main prompt dialog and unbinds keyboard shortcuts
+   * Closes the main dialog and unbinds the escape key handler.
    */
   const closeDialog = () => {
     setOpen(false);
@@ -91,8 +82,7 @@ export default function McpPromptCtrl({
   };
 
   /**
-   * Opens the main prompt dialog, loads available prompts from MCP servers,
-   * and sets up keyboard shortcuts
+   * Opens the main dialog, loads the list of available prompts, and sets up keyboard shortcuts.
    */
   const openDialog = () => {
     setOpen(true);
@@ -114,9 +104,10 @@ export default function McpPromptCtrl({
 
   /**
    * Applies a selected prompt by decoding its ID and either showing the variable dialog
-   * for parameterized prompts or directly fetching the prompt content
+   * or directly fetching the prompt if no variables are required.
    * 
-   * @param promptName - The encoded prompt identifier containing server and prompt name
+   * @param {string} promptName - The encoded prompt ID containing server and prompt name
+   * @returns {Promise<void>} A promise that resolves when the prompt application is complete
    */
   const applyPrompt = async (promptName: string) => {
     const { server, prompt: name } = decodePromptId(promptName);
@@ -148,7 +139,7 @@ export default function McpPromptCtrl({
   };
 
   /**
-   * Resets all prompt-related state and closes dialogs
+   * Resets all dialog states and closes both the main dialog and variable dialog.
    */
   const removePrompt = useCallback(() => {
     setOpen(false);
@@ -158,7 +149,7 @@ export default function McpPromptCtrl({
   }, []);
 
   /**
-   * Handles cancellation of the variable input dialog
+   * Handles cancellation of the variable dialog by clearing the prompt item and closing the dialog.
    */
   const onVariablesCancel = useCallback(() => {
     setPromptItem(null);
@@ -166,9 +157,9 @@ export default function McpPromptCtrl({
   }, [setPromptItem]);
 
   /**
-   * Handles confirmation of variable input and fetches the prompt with provided arguments
+   * Handles confirmation of the variable dialog by fetching the prompt with the provided arguments.
    * 
-   * @param args - Key-value pairs of variable names and their values
+   * @param {Object} args - Key-value pairs of variable names and their values
    */
   const onVariablesConfirm = useCallback(
     async (args: { [key: string]: string }) => {
@@ -193,9 +184,6 @@ export default function McpPromptCtrl({
     [promptItem, chat.id],
   );
 
-  /**
-   * Sets up keyboard shortcut for opening the dialog
-   */
   useEffect(() => {
     Mousetrap.bind('mod+shift+2', openDialog);
     return () => {
@@ -204,9 +192,9 @@ export default function McpPromptCtrl({
   }, [open]);
 
   /**
-   * Renders the dropdown options for available prompts, grouped by MCP server
+   * Renders the options for the combobox, showing loading state, empty state, or grouped prompt options.
    * 
-   * @returns JSX elements representing the prompt options
+   * @returns {JSX.Element} The rendered options for the combobox
    */
   const renderOptions = useCallback(() => {
     if (loadingList) {
@@ -241,9 +229,9 @@ export default function McpPromptCtrl({
   }, [loadingList, options]);
 
   /**
-   * Renders the preview of the selected prompt content
+   * Renders the prompt preview area, showing either a placeholder message or the prompt content.
    * 
-   * @returns JSX element showing the prompt preview or placeholder message
+   * @returns {JSX.Element} The rendered prompt preview
    */
   const renderPrompt = useCallback(() => {
     if (!prompt) {
@@ -259,8 +247,7 @@ export default function McpPromptCtrl({
   }, [prompt, t]);
 
   /**
-   * Handles submission of the selected prompt by triggering the callback
-   * and resetting the component state
+   * Handles form submission by triggering the onTrigger callback with prompt data and closing the dialog.
    */
   const onSubmit = useCallback(async () => {
     if (prompt && promptItem) {
@@ -315,6 +302,12 @@ export default function McpPromptCtrl({
                 placeholder={t('Common.Search')}
                 className="w-full"
                 onOptionSelect={(e, data) => {
+                  /**
+                   * Handles option selection in the combobox by applying the selected prompt.
+                   * 
+                   * @param {Event} e - The selection event
+                   * @param {Object} data - The selection data containing the option value
+                   */
                   applyPrompt(data.optionValue as string);
                 }}
               >
