@@ -12,19 +12,19 @@ Technical architecture documentation for 5ire, an Electron-based AI assistant wi
 - Manages application lifecycle and native system APIs
 - Handles file I/O, SQLite database operations, and document processing
 - Runs MCP servers and manages their lifecycle
-- Executes Python-based embedding model for knowledge base
-- Processes IPC requests from renderer
+- Executes the embedding model for the knowledge base
+- Processes IPC requests from the renderer
 
 **Renderer Process (Chromium + React)**
 - Runs the React/TypeScript UI application
 - Manages application state with Zustand stores
-- Communicates with main process via IPC bridge
+- Communicates with the main process via IPC bridge
 - Handles user interactions and real-time streaming responses
 
 **Preload Scripts**
 - Secure bridge between main and renderer processes
-- Exposes controlled IPC channels to renderer
-- Prevents direct Node.js access from renderer for security
+- Exposes controlled IPC channels to the renderer
+- Prevents direct Node.js access from the renderer for security
 
 ### Application Layers
 
@@ -63,7 +63,6 @@ Technical architecture documentation for 5ire, an Electron-based AI assistant wi
 - **Electron** for cross-platform desktop capabilities
 - **Node.js** runtime environment
 - **SQLite** (better-sqlite3) for local data persistence
-- **Python** integration via child processes for ML models
 
 ### Key Dependencies
 - `@modelcontextprotocol/sdk` - MCP protocol implementation
@@ -173,7 +172,7 @@ The knowledge base implements Retrieval-Augmented Generation using local embeddi
 5. Documents are organized into collections
 
 **Embedding Service (`src/main/embedder.ts`)**
-- Runs local bge-m3 model via Python subprocess
+- Runs local bge-m3 model via node subprocess
 - Supports multilingual text (90+ languages)
 - Generates 1024-dimensional embeddings
 - Processes documents in batches for efficiency
@@ -249,9 +248,9 @@ Update Usage Statistics
 ```
 User Message
     ↓
-Check if knowledge enabled
+Check if knowledge is enabled
     ↓
-Embed message (Python subprocess)
+Embed message (Node subprocess)
     ↓
 Vector similarity search (SQLite)
     ↓
@@ -308,7 +307,7 @@ Optional Supabase integration provides:
 - User account management
 - Settings backup across devices
 - OAuth authentication flow
-- Offline-first design (works without account)
+- Offline-first design (works without an account)
 
 ### Analytics
 
@@ -332,16 +331,16 @@ Electron-store persists user preferences:
 ### Why Electron?
 - Cross-platform desktop application (Windows, macOS, Linux)
 - Access to native APIs (file system, system info)
-- Ability to run local Python models for embeddings
+- Ability to run local models for embeddings
 - Rich UI with web technologies
 - Offline-capable with local data storage
 
 ### Why Local Embeddings?
 - **Privacy**: Documents never leave the device
-- **Offline**: No internet required for knowledge base
+- **Offline**: No internet required for the knowledge base
 - **Cost**: No API fees for embeddings
 - **Multilingual**: bge-m3 supports 90+ languages
-- **Control**: Full control over embedding process
+- **Control**: Full control over the embedding process
 
 ### Why MCP?
 - **Standardization**: Open protocol for tool integration
