@@ -19,6 +19,10 @@ import {
 import { fmtDateTime } from 'utils/util';
 import { captureException } from '../../logging';
 
+/**
+ * Subscription management component that displays subscription status, usage quota, and order history.
+ * Provides functionality to redeem subscription codes.
+ */
 export default function TabSubscription() {
   const { t } = useTranslation();
   const { notifyError, notifyInfo, notifySuccess } = useToast();
@@ -31,6 +35,9 @@ export default function TabSubscription() {
   const [usage, setUsage] = useState<string>('-');
   const user = useAuthStore((state) => state.user);
 
+  /**
+   * Determines if the user has an active subscription by comparing the deadline with today's date.
+   */
   const isSubscribed = useMemo(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -41,6 +48,10 @@ export default function TabSubscription() {
     );
   }, [subscription]);
 
+  /**
+   * Fetches the current usage data for the user from the external API.
+   * Updates the usage state with the retrieved value or captures any errors.
+   */
   const loadUsage = async (userId: string) => {
     try {
       const resp = await fetch('https://openai.5ireai.com/v1/usage', {
@@ -57,6 +68,10 @@ export default function TabSubscription() {
     }
   };
 
+  /**
+   * Retrieves the user's order history from the database, sorted by creation date in descending order.
+   * Displays an error notification if the query fails.
+   */
   const loadOrders = async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -74,6 +89,10 @@ export default function TabSubscription() {
     }
   };
 
+  /**
+   * Fetches the user's subscription details including quota and deadline from the database.
+   * Displays an error notification if the query fails.
+   */
   const loadSubscription = async (userId: string) => {
     try {
       const { data, error } = await supabase
@@ -91,6 +110,11 @@ export default function TabSubscription() {
     }
   };
 
+  /**
+   * Processes a redeem code by attempting to associate it with the user's account.
+   * Validates the code length, updates the coupon record in the database, and refreshes subscription data on success.
+   * Shows appropriate notifications for validation errors, redemption failures, or success.
+   */
   const onRedeem = useCallback(
     async (userId: string | undefined) => {
       if (!userId) {
@@ -132,6 +156,10 @@ export default function TabSubscription() {
     [redeemCode],
   );
 
+  /**
+   * Loads subscription, orders, and usage data when the user is available.
+   * Sets loading state appropriately and captures any errors that occur during data fetching.
+   */
   useEffect(() => {
     if (!user) {
       return;
@@ -149,6 +177,9 @@ export default function TabSubscription() {
       });
   }, [user]);
 
+  /**
+   * Renders either a skeleton loading state or an empty orders message based on the loading state.
+   */
   const emptyOrders = useCallback(() => {
     return loading ? (
       <Skeleton>

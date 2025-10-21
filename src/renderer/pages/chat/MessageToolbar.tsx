@@ -33,6 +33,11 @@ const BookmarkAddIcon = bundleIcon(Bookmark16Filled, Bookmark16Regular);
 const BookmarkOffIcon = bundleIcon(Bookmark16Regular, Bookmark16Filled);
 const ArrowSync = bundleIcon(ArrowSync16Filled, ArrowSync16Regular);
 
+/**
+ * Renders a toolbar with action buttons for a chat message.
+ * Provides bookmark, copy, retry, and delete functionality along with message metadata display.
+ * The toolbar is only visible when the message is not active.
+ */
 export default function MessageToolbar({
   message,
   isReady,
@@ -49,6 +54,10 @@ export default function MessageToolbar({
   const { notifySuccess } = useToast();
   const bus = useRef(eventBus);
 
+  /**
+   * Creates a bookmark from the current message and updates the message with the bookmark ID.
+   * Sends a tracking event and displays a success notification.
+   */
   const mark = async () => {
     const bookmark = await createBookmark({
       msgId: message.id,
@@ -66,6 +75,10 @@ export default function MessageToolbar({
     window.electron.ingestEvent([{ app: 'bookmark' }]);
   };
 
+  /**
+   * Removes the bookmark associated with the message if it exists.
+   * Clears the bookmark ID from the message and displays a success notification.
+   */
   const unMark = async () => {
     if (message.bookmarkId) {
       await deleteBookmark(message.bookmarkId);
@@ -75,6 +88,10 @@ export default function MessageToolbar({
     }
   };
 
+  /**
+   * Copies the message prompt and reply to the clipboard in a formatted string.
+   * Displays a success notification after copying.
+   */
   const copy = () => {
     const content = `user: \n${message.prompt}\n\nassistant:\n${message.reply}`;
     navigator.clipboard.writeText(content);
