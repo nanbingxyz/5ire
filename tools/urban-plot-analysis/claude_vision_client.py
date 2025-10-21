@@ -18,7 +18,7 @@ class ClaudeVisionClient:
             api_key: API ключ Anthropic
         """
         self.client = Anthropic(api_key=api_key)
-        self.model = "claude-sonnet-4-20250514"  # Актуальная модель с Vision
+        self.model = "claude-sonnet-4-5-20250929"  # Claude Sonnet 4.5
 
     def analyze_plot_occupancy(self,
                                image_data: bytes,
