@@ -30,6 +30,11 @@ import { fileSize, paddingZero } from 'utils/util';
 import useNav from 'hooks/useNav';
 import { captureException } from 'renderer/logging';
 
+/**
+ * Renders a drawer interface for managing files within a knowledge collection.
+ * Displays file upload progress, existing files list, and handles file import/deletion operations.
+ * Shows a dialog if the embedding model is not ready before allowing file additions.
+ */
 export default function FileDrawer({
   collection,
   open,
@@ -89,6 +94,11 @@ export default function FileDrawer({
     };
   }, [collection, open]);
 
+  /**
+   * Imports files into the collection by processing them in batches of 3.
+   * Updates the files state and triggers the import process for each file with progress tracking.
+   * Displays error notifications for any failed imports.
+   */
   const importFiles = async (newFiles: File[]) => {
     setFiles(newFiles);
     const collectionId = collection.id;
@@ -124,6 +134,10 @@ export default function FileDrawer({
     }
   };
 
+  /**
+   * Removes a file from the collection and updates the file list.
+   * Displays success or error notifications based on the operation result.
+   */
   const removeFile = async (fileId: string) => {
     const ok = await window.electron.knowledge.removeFile(fileId);
     if (!ok) {
