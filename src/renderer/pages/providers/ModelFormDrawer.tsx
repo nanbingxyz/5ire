@@ -26,6 +26,11 @@ import { IChatModelConfig, IChatProviderConfig } from 'providers/types';
 import { useEffect, useMemo, useState } from 'react';
 import useProviderStore from 'stores/useProviderStore';
 
+/**
+ * Renders a drawer form for creating or editing AI model configurations.
+ * Manages form state for model properties including name, pricing, capabilities, and context settings.
+ * Validates model names to prevent duplicates and handles save/delete operations through the provider store.
+ */
 export default function ModelFormDrawer({
   open,
   setOpen,
@@ -61,14 +66,25 @@ export default function ModelFormDrawer({
   const [disabled, setDisabled] = useState<boolean>(false);
   const [extras, setExtras] = useState<{ [key: string]: string }>({});
 
+  /** Computes the list of existing model names excluding the current model being edited */
   const modelNames = useMemo(() => {
     return models.map((m) => m.name).filter((n) => n !== model?.name);
   }, [models, model?.name]);
 
+  /**
+   * Formats a numeric price value with the appropriate currency symbol
+   * @param value - The numeric price value to format
+   * @returns The formatted price string with currency symbol
+   */
   const formatter = (value: number) => {
     return `${provider.currency === 'USD' ? '$' : '¥'}${value}`;
   };
 
+  /**
+   * Parses a formatted currency string back to a numeric value
+   * @param formattedValue - The formatted currency string to parse
+   * @returns The parsed numeric value or NaN if parsing fails
+   */
   const parser = (formattedValue: string | null) => {
     if (formattedValue === null) {
       return NaN;
@@ -77,7 +93,18 @@ export default function ModelFormDrawer({
     return parseFloat(formattedValue.replace(/[$¥]/g, ''));
   };
 
+  /**
+   * Creates a change handler for SpinButton components that updates the provided state setter.
+   * Handles both direct value changes and display value parsing.
+   * @param setValue - State setter function to update with the new value
+   * @returns Event handler function for SpinButton onChange events
+   */
   const onSpinButtonChange = (setValue: (value: number) => void) => {
+    /**
+     * Handles SpinButton change events by extracting and validating the new value
+     * @param _ev - The change event (unused)
+     * @param data - The change data containing the new value or display value
+     */
     return (_ev: SpinButtonChangeEvent, data: SpinButtonOnChangeData) => {
       if (data.value !== undefined) {
         setValue(data.value as number);
@@ -92,6 +119,7 @@ export default function ModelFormDrawer({
     };
   };
 
+  /** Resets all form fields to their default values and clears validation errors */
   const reset = () => {
     setName('');
     setLabel('');
@@ -108,6 +136,11 @@ export default function ModelFormDrawer({
     setNameError(null);
   };
 
+  /**
+   * Validates the form and saves the model configuration.
+   * Checks for required name field and duplicate names, then either creates a new model or updates the existing one.
+   * Capabilities are conditionally enabled based on provider settings and model type.
+   */
   const onSave = () => {
     let currentNameError = '';
     if (name.trim() === '') {
@@ -158,6 +191,10 @@ export default function ModelFormDrawer({
     setTimeout(() => reset(), 500);
   };
 
+  /**
+   * Deletes the current model from the provider store.
+   * Closes the drawer, resets the form, and displays a success notification.
+   */
   const onDelete = () => {
     if (model) {
       deleteModel(model.id as string);
@@ -190,6 +227,10 @@ export default function ModelFormDrawer({
     }
   }, [model, open]);
 
+  /**
+   * Renders the delete button section.
+   * Shows a disabled message for built-in models or an active delete button for custom models.
+   */
   const deleteButton = () => {
     if (!model) return null;
     return model.isBuiltIn ? (
