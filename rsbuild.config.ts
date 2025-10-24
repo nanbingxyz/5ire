@@ -19,9 +19,7 @@ const loadEnvironmentFile = () => {
   return result.parsed || {};
 };
 
-
-
-export default defineConfig(async ({command}): Promise<RsbuildConfig> => {
+export default defineConfig(async ({ command }): Promise<RsbuildConfig> => {
   const isCommandDev = command === "dev";
   const isCommandBuild = command === "build";
 
@@ -35,7 +33,7 @@ export default defineConfig(async ({command}): Promise<RsbuildConfig> => {
     {} as Record<string, string>,
   );
 
-  define["process.env.RENDERER_DEV_PORT"] = isCommandDev ? `"${port}"` : "undefined";
+  define["process.env.RENDERER_DEV_SERVER"] = isCommandDev ? `"http://localhost:${port}/renderer"` : "undefined";
   define["process.env.SOURCE_ROOT"] = isCommandDev ? `"${__dirname}"` : "undefined";
 
   const createMainEnvironment = () => {
@@ -172,12 +170,7 @@ export default defineConfig(async ({command}): Promise<RsbuildConfig> => {
     resolve: {
       alias: {
         "@": resolve(__dirname, "src"),
-        "utils": resolve(__dirname, "src/utils"),
-        // "@": resolve(__dirname, "src"),
-        // "@": resolve(__dirname, "src"),
-        // "@": resolve(__dirname, "src"),
-        // "@": resolve(__dirname, "src"),
-        // "@": resolve(__dirname, "src"),
+        utils: resolve(__dirname, "src/utils"),
       },
     },
     dev: {
@@ -194,17 +187,17 @@ export default defineConfig(async ({command}): Promise<RsbuildConfig> => {
         ignoreWarnings: [
           (error) => {
             if (error.file?.includes("/node_modules/")) {
-              return true
+              return true;
             }
 
             if (error.message?.includes("Critical dependency")) {
-              return true
+              return true;
             }
 
             return false;
           },
         ],
-      }
-    }
+      },
+    },
   };
 });
