@@ -107,11 +107,11 @@ export namespace Bridge {
     stop: () => Promise<void>;
   };
 
-  export type AsyncAction<A extends unknown[] = unknown[], O = unknown> = (...args: A) => Promise<O>;
+  export type AsyncAction<A extends any[] = any[], O = any> = (...args: A) => Promise<O>;
 
-  export type StreamAction<A extends unknown[] = unknown[], O = unknown> = (...args: A) => ReadableStream<O>;
+  export type StreamAction<A extends any[] = any[], O = any> = (...args: A) => ReadableStream<O>;
 
-  export type Action<A extends unknown[] = unknown[], O = unknown> = AsyncAction<A, O> | StreamAction<A, O>;
+  export type Action<A extends any[] = any[], O = any> = AsyncAction<A, O> | StreamAction<A, O>;
 
   export type Actions = {
     [key: string]: Action | Actions;
