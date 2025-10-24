@@ -1,6 +1,7 @@
 import { execSync as execute } from "node:child_process";
+import { lstat, readFile, symlink, writeFile } from "node:fs/promises";
+import { createRequire } from "node:module";
 import { join } from "node:path";
-import { writeFile, symlink, readFile, lstat } from "node:fs/promises";
 
 import type { Rspack } from "@rsbuild/core";
 
@@ -16,18 +17,30 @@ export class ProductionDependenciesInstallerPlugin implements Rspack.RspackPlugi
   constructor(private options: ProductionDependenciesInstallerPlugin.Options) {}
 
   apply(compiler: Rspack.Compiler) {
-    compiler.hooks.done.tapAsync("ElectronBundlePlugin", async (_, fn) => {
+    compiler.hooks.done.tapAsync("ProductionDependenciesInstallerPlugin", async (_, fn) => {
       const { output, context } = compiler.options;
 
       if (!context) {
         return fn(new Error("Unable to determine project root directory (context)."));
       }
 
-      const dist = output.path || join(process.cwd(), "output");
+      const require = createRequire(__dirname);
 
+      let electron = "";
+
+      try {
+        electron = require("electron");
+      } catch {}
+
+      if (!electron) {
+        return fn(new Error("Unable to determine Electron executable path."));
+      }
+
+      const dist = output.path || join(process.cwd(), "output");
       const packageJsonPath = join(context, "package.json");
 
       let packageJson: any;
+
       try {
         packageJson = require(packageJsonPath);
       } catch {
@@ -77,7 +90,7 @@ export class ProductionDependenciesInstallerPlugin implements Rspack.RspackPlugi
         }
 
         try {
-          const command = ["electron"];
+          const command = [electron];
 
           if (this.options.inspect) {
             command.push(`--inspect=${this.options.inspect.port}`);
@@ -128,9 +141,17 @@ export class ProductionDependenciesInstallerPlugin implements Rspack.RspackPlugi
           execute(`npm install ${external.join(" ")}`, {
             cwd: dist,
             encoding: "utf-8",
+            stdio: "inherit",
+          });
+
+          execute(`npx electron-builder install-app-deps`, {
+            cwd: dist,
+            encoding: "utf-8",
+            stdio: "inherit",
           });
         }
-        fn();
+
+        return fn();
       } catch (err) {
         return fn(new Error(`Failed to install external dependencies in output: ${err}`));
       }

@@ -14,11 +14,7 @@
   "scripts": {
     "postinstall": "node ./node_modules/electron/install.js && npm run install:deps",
     "install:deps": "electron-builder install-app-deps",
-    "build:main": "cross-env NODE_ENV=production webpack --config ./.erb/configs/webpack.config.main.prod.ts",
-    "build:renderer": "cross-env NODE_ENV=production  webpack --config ./.erb/configs/webpack.config.renderer.prod.ts",
     "lint": "biome check --write .",
-    "electron:build": "electron-builder build --publish never",
-    "rebuild": "electron-rebuild --parallel --types prod,dev,optional --module-dir release/app",
     "start": "tsx ./.erb/scripts/check-port-in-use.js && npm run start:renderer",
     "start:main": "cross-env NODE_ENV=development DEBUG=5ire:* NODE_OPTIONS=\"--import tsx\" electronmon .",
     "start:preload": "cross-env NODE_ENV=development DEBUG=5ire:* webpack --config ./.erb/configs/webpack.config.preload.dev.ts",
@@ -30,7 +26,7 @@
     "build": "npm run install:deps && rsbuild build",
     "build:watch": "npm run install:deps && rsbuild dev",
     "dev": "concurrently -n R,E -c cyan,magenta \"rsbuild dev\" \"npx wait-on http-get://127.0.0.1:33077 && cd ./output && npx nodemon\"",
-    "package": "tsx ./scripts/package.ts"
+    "package": "tsx ./scripts/package/index.ts"
   },
   "jest": {
     "preset": "ts-jest",
@@ -71,6 +67,7 @@
   },
   "dependencies": {
     "@lancedb/lancedb": "^0.14.1",
+    "@xenova/transformers": "^2.17.2",
     "better-sqlite3": "^12.4.1"
   },
   "devDependencies": {
@@ -84,9 +81,7 @@
     "@fluentui/react-components": "^9.58.3",
     "@fluentui/react-datepicker-compat": "^0.4.6",
     "@fluentui/react-icons": "^2.0.223",
-    "@herberttn/bytenode-webpack-plugin": "^2.3.1",
     "@modelcontextprotocol/sdk": "^1.17.1",
-    "@pmmmwh/react-refresh-webpack-plugin": "^0.5.10",
     "@postlight/parser": "^2.2.3",
     "@rsbuild/core": "^1.5.17",
     "@rsbuild/plugin-react": "^1.4.1",
@@ -95,8 +90,6 @@
     "@sentry/electron": "^4.7.0",
     "@sentry/react": "^7.74.0",
     "@supabase/supabase-js": "^2.38.5",
-    "@svgr/webpack": "^8.0.1",
-    "@teamsupercell/typings-for-css-modules-loader": "^2.5.2",
     "@testing-library/jest-dom": "^5.16.5",
     "@testing-library/react": "^14.0.0",
     "@types/better-sqlite3": "^7.6.11",
@@ -111,18 +104,13 @@
     "@types/react": "^18.2.8",
     "@types/react-dom": "^18.2.4",
     "@types/react-test-renderer": "^18.0.0",
-    "@types/terser-webpack-plugin": "^5.0.4",
     "@types/valid-url": "^1.0.4",
-    "@types/webpack-bundle-analyzer": "^4.6.0",
     "autoprefixer": "^10.4.14",
-    "browserslist-config-erb": "^0.0.3",
     "chalk": "^4.1.2",
     "clipboard": "^2.0.11",
     "concurrently": "^8.1.0",
     "core-js": "^3.30.2",
     "cross-env": "^7.0.3",
-    "css-loader": "^6.8.1",
-    "css-minimizer-webpack-plugin": "^5.0.0",
     "debug": "^4.3.4",
     "detect-port": "^1.5.1",
     "dompurify": "^3.2.5",
@@ -140,7 +128,6 @@
     "file-type": "16.5.3",
     "fix-path": "^4.0.0",
     "highlight.js": "^11.8.0",
-    "html-webpack-plugin": "^5.5.1",
     "https-proxy-agent": "^7.0.6",
     "husky": "^9.1.7",
     "i18next": "^23.2.3",
@@ -162,15 +149,12 @@
     "markdown-it-mathjax3": "^4.3.2",
     "markdown-it-mermaid": "^0.2.5",
     "markdown-it-texmath": "^1.0.0",
-    "mini-css-extract-plugin": "^2.7.6",
     "mitt": "^3.0.1",
     "mousetrap": "^1.6.5",
     "node-abi": "^3.65.0",
     "officeparser": "^5.1.1",
-    "pdf-parse": "^1.1.1",
+    "pdf-parse": "^2.4.5",
     "postcss": "^8.4.24",
-    "postcss-loader": "^7.3.3",
-    "prettier": "^3.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hotkeys-hook": "^4.4.1",
@@ -182,138 +166,18 @@
     "sass": "^1.62.1",
     "sass-loader": "^16.0.1",
     "split-pane-react": "^0.1.3",
-    "style-loader": "^3.3.3",
-    "stylelint": "^16.16.0",
-    "stylelint-config-standard": "^37.0.0",
     "swr": "^2.2.0",
     "tailwindcss": "^3.3.2",
-    "terser-webpack-plugin": "^5.3.9",
     "tiktoken": "^1.0.10",
     "ts-jest": "^29.1.0",
     "ts-key-enum": "^2.0.12",
-    "ts-loader": "^9.4.3",
-    "ts-node": "^10.9.2",
-    "tsconfig-paths-webpack-plugin": "^4.0.1",
     "tsx": "^4.19.2",
     "typeid-js": "^0.3.0",
     "typescript": "^5.1.3",
     "update-electron-app": "^3.0.0",
     "url-loader": "^4.1.1",
     "valid-url": "^1.0.9",
-    "webpack": "^5.85.0",
-    "webpack-bundle-analyzer": "^4.9.0",
-    "webpack-cli": "^5.1.1",
-    "webpack-dev-server": "^4.15.0",
-    "webpack-merge": "^5.9.0",
     "zustand": "^4.3.9"
-  },
-  "build": {
-    "productName": "5ire",
-    "appId": "app.5ire.desktop",
-    "compression": "maximum",
-    "asar": true,
-    "asarUnpack": [
-      "**/node_modules/**/*"
-    ],
-    "protocols": [
-      {
-        "name": "5ire-deep-linking",
-        "schemes": [
-          "app.5ire"
-        ]
-      }
-    ],
-    "electronLanguages": [
-      "zh_CN",
-      "en"
-    ],
-    "files": [
-      "dist",
-      "package.json",
-      "!**/node_modules/**/*.map",
-      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme,LICENSE,test.js}",
-      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
-      "!**/node_modules/*.d.ts",
-      "!**/node_modules/.bin",
-      "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj,md,txt}",
-      "!.editorconfig",
-      "!**/._*",
-      "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
-      "!**/{__pycache__,docs, thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
-      "!**/{appveyor.yml,.travis.yml,circle.yml}",
-      "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}",
-      "!**/src/**",
-      "!**/source/**",
-      "!**/node_modules/@xenova/transformers/dist/**",
-      "**/node_modules/@xenova/transformers/src/**",
-      "**/node_modules/textract/lib/extractors/**"
-    ],
-    "afterPack": ".erb/scripts/remove-useless.js",
-    "afterSign": ".erb/scripts/notarize.js",
-    "afterAllArtifactBuild": ".erb/scripts/sign.js",
-    "mac": {
-      "target": {
-        "target": "default",
-        "arch": [
-          "arm64"
-        ]
-      },
-      "notarize": false,
-      "type": "distribution",
-      "hardenedRuntime": true,
-      "entitlements": "assets/entitlements.mac.plist",
-      "entitlementsInherit": "assets/entitlements.mac.plist",
-      "gatekeeperAssess": false,
-      "electronLanguages": [
-        "zh_CN",
-        "en"
-      ]
-    },
-    "dmg": {
-      "contents": [
-        {
-          "x": 130,
-          "y": 220
-        },
-        {
-          "x": 410,
-          "y": 220,
-          "type": "link",
-          "path": "/Applications"
-        }
-      ]
-    },
-    "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "include": "installer.nsh",
-      "perMachine": true
-    },
-    "win": {
-      "target": [
-        "nsis"
-      ]
-    },
-    "linux": {
-      "target": [
-        "AppImage"
-      ],
-      "category": "Development",
-      "artifactName": "${productName}-${version}-${arch}.${ext}"
-    },
-    "directories": {
-      "buildResources": "assets",
-      "output": "release/build"
-    },
-    "extraResources": [
-      ".env",
-      "./assets/**",
-      "./public/locales/**",
-      {
-        "from": "./public/images",
-        "to": "./images"
-      }
-    ]
   },
   "engines": {
     "node": ">=16.x",
