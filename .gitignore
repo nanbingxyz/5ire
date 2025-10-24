@@ -32,3 +32,6 @@ npm-debug.log.*
 .env
 /.crush
 /.testdata
+
+
+output/

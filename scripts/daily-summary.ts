@@ -9,23 +9,20 @@
 //   - MODEL_NAME：指定模型名称（默认 gpt-4.1-mini）
 //   - REPO：owner/repo（Actions 内自动注入）
 
-import { execSync } from 'node:child_process';
-import https from 'node:https';
+import { execSync } from "node:child_process";
+import https from "node:https";
 
 // ------- 环境变量 -------
-const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL || 'https://api.openai.com';
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY || '';
-const LARK_WEBHOOK_URL = process.env.LARK_WEBHOOK_URL || '';
-const REPO = process.env.REPO || ''; // e.g. "org/repo"
-const MODEL_NAME = process.env.MODEL_NAME || 'gpt-4.1-mini';
-const PER_BRANCH_LIMIT = parseInt(process.env.PER_BRANCH_LIMIT || '200', 10);
-const DIFF_CHUNK_MAX_CHARS = parseInt(
-  process.env.DIFF_CHUNK_MAX_CHARS || '80000',
-  10,
-);
+const OPENAI_BASE_URL = process.env.OPENAI_BASE_URL || "https://api.openai.com";
+const OPENAI_API_KEY = process.env.OPENAI_API_KEY || "";
+const LARK_WEBHOOK_URL = process.env.LARK_WEBHOOK_URL || "";
+const REPO = process.env.REPO || ""; // e.g. "org/repo"
+const MODEL_NAME = process.env.MODEL_NAME || "gpt-4.1-mini";
+const PER_BRANCH_LIMIT = parseInt(process.env.PER_BRANCH_LIMIT || "200", 10);
+const DIFF_CHUNK_MAX_CHARS = parseInt(process.env.DIFF_CHUNK_MAX_CHARS || "80000", 10);
 
 if (!OPENAI_API_KEY) {
-  console.error('Missing OPENAI_API_KEY');
+  console.error("Missing OPENAI_API_KEY");
   process.exit(1);
 }
 
@@ -37,8 +34,8 @@ if (!OPENAI_API_KEY) {
  */
 function sh(cmd: string) {
   return execSync(cmd, {
-    stdio: ['ignore', 'pipe', 'pipe'],
-    encoding: 'utf8',
+    stdio: ["ignore", "pipe", "pipe"],
+    encoding: "utf8",
   }).trim();
 }
 
@@ -47,8 +44,8 @@ function sh(cmd: string) {
 // }
 
 // ------- 分支与提交收集（覆盖 origin/* 全分支）-------
-const since = 'midnight'; // 受 TZ=America/Los_Angeles 影响
-const until = 'now';
+const since = "midnight"; // 受 TZ=America/Los_Angeles 影响
+const until = "now";
 
 // 拉全远端（建议在 workflow 里执行：git fetch --all --prune --tags）
 // 这里再次保险 fetch 一次，避免本地调试遗漏
@@ -62,7 +59,7 @@ try {
 const remoteBranches = sh(
   `git for-each-ref --format="%(refname:short)" refs/remotes/origin | grep -v "^origin/HEAD$" || true`,
 )
-  .split('\n')
+  .split("\n")
   .map((s) => s.trim())
   .filter(Boolean);
 
@@ -90,7 +87,7 @@ for (const rb of remoteBranches) {
   const list = sh(
     `git log ${rb} --no-merges --since="${since}" --until="${until}" --pretty=format:%H --reverse || true`,
   )
-    .split('\n')
+    .split("\n")
     .map((s) => s.trim())
     .filter(Boolean);
   branchToCommits.set(rb, list.slice(-PER_BRANCH_LIMIT));
@@ -112,7 +109,7 @@ for (const [rb, shas] of branchToCommits) {
 const allShasOrdered = sh(
   `git log --no-merges --since="${since}" --until="${until}" --all --pretty=format:%H --reverse || true`,
 )
-  .split('\n')
+  .split("\n")
   .map((s) => s.trim())
   .filter(Boolean);
 
@@ -125,35 +122,33 @@ const commitShas = allShasOrdered.filter((sha) => {
 });
 
 if (commitShas.length === 0) {
-  console.log('📭 今天所有分支均无有效提交。结束。');
+  console.log("📭 今天所有分支均无有效提交。结束。");
   process.exit(0);
 }
 
-const serverUrl = 'https://github.com';
+const serverUrl = "https://github.com";
 
 const commitMetas: CommitMeta[] = commitShas.map((sha) => {
   const title = sh(`git show -s --format=%s ${sha}`);
   const author = sh(`git show -s --format=%an ${sha}`);
-  const url = REPO
-    ? `${serverUrl}/${REPO}/commit/${sha}`
-    : `${serverUrl}/commit/${sha}`;
+  const url = REPO ? `${serverUrl}/${REPO}/commit/${sha}` : `${serverUrl}/commit/${sha}`;
   const branches = Array.from(shaToBranches.get(sha) || []).sort();
   return { sha, title, author, url, branches };
 });
 
 // ------- diff 获取与分片 -------
 const FILE_EXCLUDES = [
-  ':!**/*.lock',
-  ':!**/dist/**',
-  ':!**/build/**',
-  ':!**/.next/**',
-  ':!**/.vite/**',
-  ':!**/out/**',
-  ':!**/coverage/**',
-  ':!package-lock.json',
-  ':!pnpm-lock.yaml',
-  ':!yarn.lock',
-  ':!**/*.min.*',
+  ":!**/*.lock",
+  ":!**/dist/**",
+  ":!**/build/**",
+  ":!**/.next/**",
+  ":!**/.vite/**",
+  ":!**/out/**",
+  ":!**/coverage/**",
+  ":!package-lock.json",
+  ":!pnpm-lock.yaml",
+  ":!yarn.lock",
+  ":!**/*.min.*",
 ];
 
 /**
@@ -163,7 +158,7 @@ const FILE_EXCLUDES = [
  */
 function getParentSha(sha: string) {
   const line = sh(`git rev-list --parents -n 1 ${sha} || true`);
-  const parts = line.split(' ').filter(Boolean);
+  const parts = line.split(" ").filter(Boolean);
   // 非 merge 情况 parent 通常只有一个；root commit 无 parent
   return parts[1];
 }
@@ -176,10 +171,8 @@ function getParentSha(sha: string) {
 function getDiff(sha: string) {
   const parent = getParentSha(sha);
   const base = parent || sh(`git hash-object -t tree /dev/null`);
-  const excludes = FILE_EXCLUDES.join(' ');
-  const diff = sh(
-    `git diff --unified=0 --minimal ${base} ${sha} -- . ${excludes} || true`,
-  );
+  const excludes = FILE_EXCLUDES.join(" ");
+  const diff = sh(`git diff --unified=0 --minimal ${base} ${sha} -- . ${excludes} || true`);
   return diff;
 }
 
@@ -202,7 +195,7 @@ function splitPatchByFile(patch: string): string[] {
  */
 function chunkBySize(parts: string[], limit = DIFF_CHUNK_MAX_CHARS): string[] {
   const out: string[] = [];
-  let buf = '';
+  let buf = "";
   // eslint-disable-next-line no-restricted-syntax
   for (const p of parts) {
     const candidate = buf ? `${buf}\n\n${p}` : p;
@@ -212,7 +205,7 @@ function chunkBySize(parts: string[], limit = DIFF_CHUNK_MAX_CHARS): string[] {
         for (let i = 0; i < p.length; i += limit) {
           out.push(p.slice(i, i + limit));
         }
-        buf = '';
+        buf = "";
       } else {
         buf = p;
       }
@@ -232,7 +225,7 @@ type ChatPayload = {
   /** The model name to use */
   model: string;
   /** Array of chat messages */
-  messages: { role: 'system' | 'user' | 'assistant'; content: string }[];
+  messages: { role: "system" | "user" | "assistant"; content: string }[];
   /** Temperature setting for response randomness */
   temperature?: number;
 };
@@ -245,7 +238,7 @@ type ChatPayload = {
 async function chat(prompt: string): Promise<string> {
   const payload: ChatPayload = {
     model: MODEL_NAME,
-    messages: [{ role: 'user', content: prompt }],
+    messages: [{ role: "user", content: prompt }],
     temperature: 0.2,
   };
   const body = JSON.stringify(payload);
@@ -256,27 +249,22 @@ async function chat(prompt: string): Promise<string> {
       {
         hostname: url.hostname,
         path: `/openai/deployments/${MODEL_NAME}/chat/completions?api-version=2024-12-01-preview`,
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${OPENAI_API_KEY}`,
-          'Content-Length': Buffer.byteLength(body),
+          "Content-Length": Buffer.byteLength(body),
         },
       },
       (res) => {
-        let data = '';
+        let data = "";
         // eslint-disable-next-line no-return-assign
-        res.on('data', (d) => (data += d));
-        res.on('end', () => {
+        res.on("data", (d) => `${data}${d}`);
+        res.on("end", () => {
           try {
-            if (
-              res.statusCode &&
-              res.statusCode >= 200 &&
-              res.statusCode < 300
-            ) {
+            if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
               const json = JSON.parse(data);
-              const content =
-                json?.choices?.[0]?.message?.content?.trim() || '';
+              const content = json?.choices?.[0]?.message?.content?.trim() || "";
               resolve(content);
             } else {
               reject(new Error(`OpenAI HTTP ${res.statusCode}: ${data}`));
@@ -287,7 +275,7 @@ async function chat(prompt: string): Promise<string> {
         });
       },
     );
-    req.on('error', reject);
+    req.on("error", reject);
     req.write(body);
     req.end();
   });
@@ -302,19 +290,14 @@ async function chat(prompt: string): Promise<string> {
  * @param {string} patch - The diff patch content
  * @returns {string} The formatted prompt
  */
-function commitChunkPrompt(
-  meta: CommitMeta,
-  partIdx: number,
-  total: number,
-  patch: string,
-) {
+function commitChunkPrompt(meta: CommitMeta, partIdx: number, total: number, patch: string) {
   return `你是一名资深工程师与发布经理。以下是提交 ${meta.sha.slice(0, 7)}（${meta.title}）的 diff 片段（第 ${partIdx}/${total} 段），请用中文输出结构化摘要：
 
 提交信息：
 - SHA: ${meta.sha}
 - 标题: ${meta.title}
 - 作者: ${meta.author}
-- 分支: ${meta.branches.join(', ')}
+- 分支: ${meta.branches.join(", ")}
 - 链接: ${meta.url}
 
 要求输出：
@@ -336,7 +319,7 @@ ${patch}
  * @returns {string} The formatted prompt
  */
 function commitMergePrompt(meta: CommitMeta, parts: string[]) {
-  const joined = parts.map((p, i) => `【片段${i + 1}】\n${p}`).join('\n\n');
+  const joined = parts.map((p, i) => `【片段${i + 1}】\n${p}`).join("\n\n");
   return `下面是提交 ${meta.sha.slice(0, 7)} 的各片段小结，请合并为**单条提交**的最终摘要（中文），输出以下小节：
 - 变更概述（不超过5条要点）
 - 影响范围（模块/接口/配置）
@@ -358,17 +341,13 @@ ${joined}
  * @param {string} repo - The repository name
  * @returns {string} The formatted prompt
  */
-function dailyMergePrompt(
-  dateLabel: string,
-  items: { meta: CommitMeta; summary: string }[],
-  repo: string,
-) {
+function dailyMergePrompt(dateLabel: string, items: { meta: CommitMeta; summary: string }[], repo: string) {
   const body = items
     .map(
       (it) =>
-        `[${it.meta.sha.slice(0, 7)}] ${it.meta.title} — ${it.meta.author} — ${it.meta.branches.join(', ')}\n${it.summary}`,
+        `[${it.meta.sha.slice(0, 7)}] ${it.meta.title} — ${it.meta.author} — ${it.meta.branches.join(", ")}\n${it.summary}`,
     )
-    .join('\n\n---\n\n');
+    .join("\n\n---\n\n");
 
   return `请将以下"当日各提交摘要"整合成**当日开发变更日报（中文）**，输出结构如下：
 # ${dateLabel} 开发变更日报（${repo})
@@ -394,22 +373,22 @@ async function postToLark(text: string) {
     console.log(`LARK_WEBHOOK_URL 未配置，以下为最终日报文本：\n\n${text}`);
     return;
   }
-  const payload = JSON.stringify({ msg_type: 'text', content: { text } });
+  const payload = JSON.stringify({ msg_type: "text", content: { text } });
   await new Promise<void>((resolve, reject) => {
     const url = new URL(LARK_WEBHOOK_URL);
     const req = https.request(
       {
         hostname: url.hostname,
         path: url.pathname + url.search,
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
       },
       (res) => {
-        res.on('data', () => {});
-        res.on('end', () => resolve());
+        res.on("data", () => {});
+        res.on("end", () => resolve());
       },
     );
-    req.on('error', reject);
+    req.on("error", reject);
     req.write(payload);
     req.end();
   });
@@ -449,40 +428,35 @@ async function postToLark(text: string) {
     }
 
     // 合并为"单提交摘要"
-    let merged = '';
+    let merged = "";
     try {
       // eslint-disable-next-line no-await-in-loop
       merged = await chat(commitMergePrompt(meta, partSummaries));
     } catch (e: any) {
-      merged = partSummaries.join('\n\n');
+      merged = partSummaries.join("\n\n");
     }
 
     perCommitFinal.push({ meta, summary: merged });
   }
 
   // 当地日期标签 YYYY-MM-DD
-  const todayLabel = new Date().toLocaleDateString('en-CA', {
-    timeZone: 'America/Los_Angeles',
+  const todayLabel = new Date().toLocaleDateString("en-CA", {
+    timeZone: "America/Los_Angeles",
   });
 
   // 汇总"当日总览"
-  let daily = '';
+  let daily = "";
   try {
-    daily = await chat(
-      dailyMergePrompt(todayLabel, perCommitFinal, REPO || 'repository'),
-    );
+    daily = await chat(dailyMergePrompt(todayLabel, perCommitFinal, REPO || "repository"));
   } catch (e: any) {
     daily = `（当日汇总失败，以下为逐提交原始小结拼接）\n\n${perCommitFinal
-      .map(
-        (it) =>
-          `[${it.meta.sha.slice(0, 7)}] ${it.meta.title} — ${it.meta.branches.join(', ')}\n${it.summary}`,
-      )
-      .join('\n\n---\n\n')}`;
+      .map((it) => `[${it.meta.sha.slice(0, 7)}] ${it.meta.title} — ${it.meta.branches.join(", ")}\n${it.summary}`)
+      .join("\n\n---\n\n")}`;
   }
 
   // 发送飞书
   await postToLark(daily);
-  console.log('✅ 已发送飞书日报。');
+  console.log("✅ 已发送飞书日报。");
 })().catch((err) => {
   console.error(err);
   process.exit(1);

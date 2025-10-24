@@ -12,12 +12,11 @@
   },
   "license": "Modified Apache-2.0",
   "scripts": {
-    "build": "concurrently \"npm run build:main\" \"npm run build:renderer\"",
+    "postinstall": "node ./node_modules/electron/install.js && npm run install:deps",
+    "install:deps": "electron-builder install-app-deps",
     "build:main": "cross-env NODE_ENV=production webpack --config ./.erb/configs/webpack.config.main.prod.ts",
     "build:renderer": "cross-env NODE_ENV=production  webpack --config ./.erb/configs/webpack.config.renderer.prod.ts",
-    "postinstall": "tsx .erb/scripts/check-native-dep.js && electron-builder install-app-deps && cross-env NODE_ENV=development webpack --config ./.erb/configs/webpack.config.renderer.dev.dll.ts",
     "lint": "biome check --write .",
-    "package": "tsx ./.erb/scripts/clean.js dist && npm run build && electron-builder build --publish never",
     "electron:build": "electron-builder build --publish never",
     "rebuild": "electron-rebuild --parallel --types prod,dev,optional --module-dir release/app",
     "start": "tsx ./.erb/scripts/check-port-in-use.js && npm run start:renderer",
@@ -27,9 +26,12 @@
     "test": "jest",
     "prepare": "husky",
     "format": "biome format --write .",
-    "check": "tsc --noEmit"
+    "check": "tsc --noEmit",
+    "build": "npm run install:deps && rsbuild build",
+    "build:watch": "npm run install:deps && rsbuild dev",
+    "dev": "concurrently -n R,E -c cyan,magenta \"rsbuild dev\" \"npx wait-on http-get://127.0.0.1:33077 && cd ./output && npx nodemon\"",
+    "package": "tsx ./scripts/package.ts"
   },
-  "browserslist": [],
   "jest": {
     "preset": "ts-jest",
     "moduleDirectories": [
@@ -68,7 +70,8 @@
     }
   },
   "dependencies": {
-    "@lancedb/lancedb": "^0.14.1"
+    "@lancedb/lancedb": "^0.14.1",
+    "better-sqlite3": "^12.4.1"
   },
   "devDependencies": {
     "@axiomhq/js": "^1.0.0-rc.1",
@@ -85,6 +88,9 @@
     "@modelcontextprotocol/sdk": "^1.17.1",
     "@pmmmwh/react-refresh-webpack-plugin": "^0.5.10",
     "@postlight/parser": "^2.2.3",
+    "@rsbuild/core": "^1.5.17",
+    "@rsbuild/plugin-react": "^1.4.1",
+    "@rsbuild/plugin-sass": "^1.4.0",
     "@rsdoctor/webpack-plugin": "^0.1.5",
     "@sentry/electron": "^4.7.0",
     "@sentry/react": "^7.74.0",
@@ -296,7 +302,6 @@
       "artifactName": "${productName}-${version}-${arch}.${ext}"
     },
     "directories": {
-      "app": "release/app",
       "buildResources": "assets",
       "output": "release/build"
     },

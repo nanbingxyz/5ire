@@ -983,13 +983,11 @@ const createWindow = async () => {
     webPreferences: {
       nodeIntegration: true,
       webSecurity: false,
-      preload: app.isPackaged
-        ? path.join(__dirname, 'preload.js')
-        : path.join(__dirname, '../../.erb/dll/preload.js'),
+      preload: path.join(__dirname, 'preload.js'),
     },
   });
 
-  mainWindow.loadURL(resolveHtmlPath('index.html'));
+  mainWindow.loadURL(`http://localhost:33077/renderer`);
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     openSafeExternal(url);
