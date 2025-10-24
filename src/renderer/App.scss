@@ -6,9 +6,7 @@
 @use 'sass:meta';
 @import url(./variables.scss);
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 [data-theme='light'] {
   @include meta.load-css('highlight.js/styles/atom-one-light');
@@ -41,8 +39,6 @@
 }
 
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
   -webkit-text-size-adjust: 100%;
   -ms-text-size-adjust: 100%;
@@ -197,12 +193,14 @@ main {
   justify-content: flex-start;
   align-items: center;
 }
+
 .tips {
   --tw-text-opacity: 1;
   line-height: 1.4;
   color: rgba(var(--color-text-secondary), var(--tw-text-opacity));
   opacity: 0.6;
 }
+
 .number {
   font-variant-numeric: tabular-nums;
 }
