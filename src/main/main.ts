@@ -19,6 +19,7 @@ import {
   shell,
 } from "electron";
 import Store from "electron-store";
+import { ensureDirSync } from "fs-extra";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import fetch from "node-fetch";
 import path from "path";
@@ -29,10 +30,12 @@ import axiom from "../vendors/axiom";
 import * as logging from "./logging";
 import { decodeBase64, getFileInfo, getFileType } from "./util";
 import "./sqlite";
+import { DownloaderBridge } from "@/main/bridge/downloader-bridge";
 import { EncryptorBridge } from "@/main/bridge/encryptor-bridge";
 import { UpdaterBridge } from "@/main/bridge/updater-bridge";
 import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
+import { Downloader } from "@/main/services/downloader";
 import { Encryptor } from "@/main/services/encryptor";
 import { Renderer } from "@/main/services/renderer";
 import { Updater } from "@/main/services/updater";
@@ -44,7 +47,6 @@ import {
   SUPPORTED_IMAGE_TYPES,
 } from "../consts";
 import { loadDocumentFromBuffer } from "./docloader";
-import type Downloader from "./downloader";
 import { Embedder } from "./embedder";
 import Knowledge from "./knowledge";
 import ModuleContext from "./mcp";
@@ -68,14 +70,16 @@ Container.singleton(Environment, () => {
 
   const env: Environment = {
     cryptoSecret: process.env.CRYPTO_SECRET || "",
-
     rendererDevServer: process.env.RENDERER_DEV_SERVER || "",
     rendererEntry: resolve(__dirname, "./renderer/index.html"),
-
     preloadEntry: resolve(__dirname, "./preload.js"),
-
     assetsFolder: resolve(__dirname, "./assets"),
+    embedderCacheFolder: resolve(userDataFolder, "Embedding/Cache"),
+    embedderModelsFolder: resolve(userDataFolder, "Embedding/Models"),
   };
+
+  ensureDirSync(env.embedderCacheFolder);
+  ensureDirSync(env.embedderModelsFolder);
 
   return env;
 });
@@ -85,6 +89,8 @@ Container.singleton(EncryptorBridge, () => new EncryptorBridge());
 Container.singleton(Renderer, () => new Renderer());
 Container.singleton(Updater, () => new Updater());
 Container.singleton(UpdaterBridge, () => new UpdaterBridge());
+Container.singleton(Downloader, () => new Downloader());
+Container.singleton(DownloaderBridge, () => new DownloaderBridge());
 
 logging.init();
 
@@ -118,7 +124,6 @@ const titleBarColor = {
 
 let rendererReady = false;
 let pendingInstallTool: any = null;
-let downloader: Downloader;
 let mainWindow: BrowserWindow | null = null;
 const protocol = app.isPackaged ? "app.5ire" : "dev.5ire";
 
@@ -249,6 +254,7 @@ if (!gotTheLock) {
     .then(async () => {
       Container.inject(EncryptorBridge).expose(ipcMain);
       Container.inject(UpdaterBridge).expose(ipcMain);
+      Container.inject(DownloaderBridge).expose(ipcMain);
 
       await Container.inject(Renderer).focus();
 

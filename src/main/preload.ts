@@ -5,6 +5,7 @@ import { contextBridge, type IpcRendererEvent, ipcRenderer } from "electron";
 import { platform } from "os";
 import type { ThemeType } from "types/appearance";
 import v8 from "v8";
+import type { DownloaderBridge } from "@/main/bridge/downloader-bridge";
 import type { EncryptorBridge } from "@/main/bridge/encryptor-bridge";
 import type { UpdaterBridge } from "@/main/bridge/updater-bridge";
 import { BridgeConnector } from "@/main/internal/bridge-connector";
@@ -28,6 +29,9 @@ const BRIDGE = {
   updater: connector.connect<UpdaterBridge>("updater", {
     check: "async",
     install: "async",
+    download: "stream",
+  }),
+  downloader: connector.connect<DownloaderBridge>("downloader", {
     download: "stream",
   }),
 };
