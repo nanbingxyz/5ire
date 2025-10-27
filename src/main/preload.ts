@@ -6,6 +6,7 @@ import { platform } from "os";
 import type { ThemeType } from "types/appearance";
 import v8 from "v8";
 import type { EncryptorBridge } from "@/main/bridge/encryptor-bridge";
+import type { UpdaterBridge } from "@/main/bridge/updater-bridge";
 import { BridgeConnector } from "@/main/internal/bridge-connector";
 import type { ContentPart as DocumentContentPart } from "./next/document-loader/DocumentLoader";
 
@@ -23,6 +24,11 @@ const BRIDGE = {
   encryptor: connector.connect<EncryptorBridge>("encryptor", {
     encrypt: "async",
     decrypt: "async",
+  }),
+  updater: connector.connect<UpdaterBridge>("updater", {
+    check: "async",
+    install: "async",
+    download: "stream",
   }),
 };
 

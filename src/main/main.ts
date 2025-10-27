@@ -3,13 +3,13 @@
 
 import fs from "node:fs";
 import os from "node:os";
-import { resolve } from "node:path";
+import { join, resolve } from "node:path";
 import type { Readable } from "node:stream";
 import crypto from "crypto";
 import dotenv from "dotenv";
 import {
   app,
-  BrowserWindow,
+  type BrowserWindow,
   dialog,
   ipcMain,
   Menu,
@@ -19,7 +19,6 @@ import {
   shell,
 } from "electron";
 import Store from "electron-store";
-import { autoUpdater } from "electron-updater";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import fetch from "node-fetch";
 import path from "path";
@@ -31,9 +30,12 @@ import * as logging from "./logging";
 import { decodeBase64, getFileInfo, getFileType } from "./util";
 import "./sqlite";
 import { EncryptorBridge } from "@/main/bridge/encryptor-bridge";
+import { UpdaterBridge } from "@/main/bridge/updater-bridge";
 import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
 import { Encryptor } from "@/main/services/encryptor";
+import { Renderer } from "@/main/services/renderer";
+import { Updater } from "@/main/services/updater";
 import initCrashReporter from "../CrashReporter";
 import {
   KNOWLEDGE_IMPORT_MAX_FILE_SIZE,
@@ -42,7 +44,7 @@ import {
   SUPPORTED_IMAGE_TYPES,
 } from "../consts";
 import { loadDocumentFromBuffer } from "./docloader";
-import Downloader from "./downloader";
+import type Downloader from "./downloader";
 import { Embedder } from "./embedder";
 import Knowledge from "./knowledge";
 import ModuleContext from "./mcp";
@@ -54,6 +56,16 @@ dotenv.config({
 });
 
 Container.singleton(Environment, () => {
+  let userDataFolder = app.getPath("userData");
+
+  if (!app.isPackaged) {
+    if (process.env.SOURCE_ROOT) {
+      userDataFolder = join(process.env.SOURCE_ROOT, ".data");
+    }
+  }
+
+  console.log(userDataFolder);
+
   const env: Environment = {
     cryptoSecret: process.env.CRYPTO_SECRET || "",
 
@@ -70,13 +82,15 @@ Container.singleton(Environment, () => {
 
 Container.singleton(Encryptor, () => new Encryptor());
 Container.singleton(EncryptorBridge, () => new EncryptorBridge());
+Container.singleton(Renderer, () => new Renderer());
+Container.singleton(Updater, () => new Updater());
+Container.singleton(UpdaterBridge, () => new UpdaterBridge());
 
 logging.init();
 
 logging.info("Main process start...");
 
 const isDarwin = process.platform === "darwin";
-const isWin32 = process.platform === "win32";
 
 const mcp = new ModuleContext();
 const store = new Store();
@@ -102,54 +116,6 @@ const titleBarColor = {
   },
 };
 
-class AppUpdater {
-  constructor() {
-    autoUpdater.forceDevUpdateConfig = true;
-    autoUpdater.setFeedURL({
-      provider: "generic",
-      url: "https://github.com/nanbingxyz/5ire/releases/latest/download/",
-    });
-
-    autoUpdater.on("update-available", (info: any) => {
-      store.set("updateInfo", {
-        version: info.version,
-        isDownloading: true,
-      });
-      if (mainWindow) {
-        mainWindow.webContents.send("app-upgrade-start", info);
-      }
-    });
-
-    autoUpdater.on("update-not-available", () => {
-      store.delete("updateInfo");
-      if (mainWindow) {
-        mainWindow.webContents.send("app-upgrade-not-available");
-      }
-    });
-
-    autoUpdater.on("update-downloaded" as any, (event: Event, releaseNotes: string, releaseName: string) => {
-      logging.info(event, releaseNotes, releaseName);
-      store.set("updateInfo", {
-        version: releaseName,
-        releaseNotes,
-        releaseName,
-        isDownloading: false,
-      });
-      if (mainWindow) {
-        mainWindow.webContents.send("app-upgrade-end");
-      }
-      axiom.ingest([{ app: "upgrade" }, { version: releaseName }]);
-    });
-
-    autoUpdater.on("error", (message) => {
-      if (mainWindow) {
-        mainWindow.webContents.send("app-upgrade-error");
-      }
-      logging.captureException(message);
-    });
-    autoUpdater.checkForUpdates();
-  }
-}
 let rendererReady = false;
 let pendingInstallTool: any = null;
 let downloader: Downloader;
@@ -267,17 +233,11 @@ if (!gotTheLock) {
   app.quit();
 } else {
   app.on("second-instance", (event, commandLine) => {
-    if (mainWindow) {
-      if (mainWindow.isMinimized()) {
-        mainWindow.restore();
-      }
-      if (!mainWindow.isVisible()) {
-        mainWindow.show();
-      }
-      mainWindow.focus();
-    } else {
-      createWindow();
-    }
+    Container.inject(Renderer)
+      .focus()
+      .catch(() => {
+        // ignore
+      });
     const link = commandLine.pop();
     if (link) {
       onDeepLink(link);
@@ -288,24 +248,16 @@ if (!gotTheLock) {
     .whenReady()
     .then(async () => {
       Container.inject(EncryptorBridge).expose(ipcMain);
+      Container.inject(UpdaterBridge).expose(ipcMain);
 
-      createWindow();
-
-      // eslint-disable-next-line
-      new AppUpdater();
+      await Container.inject(Renderer).focus();
 
       app.on("activate", () => {
-        // On macOS it's common to re-create a window in the app when the
-        // dock icon is clicked and there are no other windows open.
-        if (mainWindow === null || mainWindow.isDestroyed()) {
-          createWindow();
-        } else if (mainWindow.isMinimized()) {
-          mainWindow.restore();
-          mainWindow.focus();
-        } else {
-          mainWindow.show();
-          mainWindow.focus();
-        }
+        Container.inject(Renderer)
+          .focus()
+          .catch(() => {
+            // ignore
+          });
       });
 
       app.on("will-finish-launching", () => {
@@ -313,10 +265,6 @@ if (!gotTheLock) {
       });
 
       app.on("window-all-closed", () => {
-        if (mainWindow) {
-          mainWindow.destroy();
-          mainWindow = null;
-        }
         try {
           axiom.flush();
         } catch (error) {
@@ -336,11 +284,6 @@ if (!gotTheLock) {
           await mcp.close();
         } catch (error) {
           logging.error("Failed to close MCP:", error);
-        }
-        if (mainWindow && !mainWindow.isDestroyed()) {
-          mainWindow.removeAllListeners();
-          mainWindow.destroy();
-          mainWindow = null;
         }
         process.stdin.destroy();
       });
@@ -374,7 +317,7 @@ ipcMain.handle("request", async (event, options) => {
   const abortController = new AbortController();
   activeRequests.set(requestId, abortController);
   try {
-    let agent;
+    let agent: HttpsProxyAgent<string> | undefined;
     if (proxy) {
       try {
         agent = new HttpsProxyAgent(proxy);
@@ -501,10 +444,6 @@ ipcMain.on("close-app", () => {
     app.quit();
     process.exit(0);
   }
-});
-
-ipcMain.handle("quit-and-upgrade", () => {
-  autoUpdater.quitAndInstall();
 });
 
 ipcMain.handle("get-protocol", () => {
@@ -694,10 +633,10 @@ ipcMain.handle("get-knowledge-chunk", (_, chunkId: string) => {
 });
 
 ipcMain.handle("download", (_, fileName: string, url: string) => {
-  downloader.download(fileName, url);
+  // downloader.download(fileName, url);
 });
 ipcMain.handle("cancel-download", (_, fileName: string) => {
-  downloader.cancel(fileName);
+  // downloader.cancel(fileName);
 });
 
 ipcMain.on("theme-changed", (_, theme: ThemeType) => {
@@ -883,143 +822,6 @@ const isDebug = process.env.NODE_ENV === "development" || process.env.DEBUG_PROD
 if (isDebug) {
   require("electron-debug")();
 }
-
-// const installExtensions = async () => {
-//   const installer = require('electron-devtools-installer');
-//   const forceDownload = !!process.env.UPGRADE_EXTENSIONS;
-//   const extensions = ['REACT_DEVELOPER_TOOLS'];
-
-//   return installer
-//     .default(
-//       extensions.map((name) => installer[name]),
-//       forceDownload,
-//     )
-//     .catch(logging.info);
-// };
-
-const createWindow = async () => {
-  if (isDebug) {
-    // await installExtensions();
-  }
-  logging.debug("Creating main window...");
-  const RESOURCES_PATH = app.isPackaged
-    ? path.join(process.resourcesPath, "assets")
-    : path.join(__dirname, "../../assets");
-
-  const getAssetPath = (...paths: string[]): string => {
-    return path.join(RESOURCES_PATH, ...paths);
-  };
-  const theme = loadTheme();
-  mainWindow = new BrowserWindow({
-    show: false,
-    width: 1024,
-    height: 728,
-    minWidth: 468,
-    minHeight: 600,
-    frame: false,
-    ...(isDarwin
-      ? {
-          vibrancy: "sidebar",
-          visualEffectState: "active",
-          transparent: true,
-        }
-      : {
-          titleBarStyle: "hidden",
-          titleBarOverlay: titleBarColor[theme],
-          transparent: false,
-        }),
-    autoHideMenuBar: true,
-    // trafficLightPosition: { x: 15, y: 18 },
-    icon: getAssetPath("icon.png"),
-    webPreferences: {
-      nodeIntegration: true,
-      webSecurity: false,
-      preload: path.join(__dirname, "preload.js"),
-    },
-  });
-
-  mainWindow.loadURL(`http://localhost:33077/renderer`);
-
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    openSafeExternal(url);
-    return { action: "deny" };
-  });
-
-  mainWindow.webContents.on("will-navigate", (event, url) => {
-    if (mainWindow) {
-      const currentURL = mainWindow.webContents.getURL();
-      if (url !== currentURL) {
-        event.preventDefault();
-        openSafeExternal(url);
-      }
-    }
-  });
-
-  mainWindow.webContents.on("did-finish-load", () => {
-    if (isWin32) {
-      if (!mainWindow) {
-        throw new Error('"mainWindow" is not defined');
-      }
-      logging.debug("Main window finished loading");
-      mainWindow.show();
-      mainWindow.focus();
-    }
-  });
-
-  mainWindow.webContents.once("did-fail-load", () => {
-    setTimeout(() => {
-      mainWindow?.reload();
-    }, 1000);
-  });
-
-  mainWindow.on("ready-to-show", async () => {
-    if (!mainWindow) {
-      throw new Error('"mainWindow" is not defined');
-    }
-    logging.debug("Main window is ready to show");
-    mainWindow.show();
-    mainWindow.focus();
-    const fixPath = (await import("fix-path")).default;
-    fixPath();
-  });
-
-  mainWindow.on("closed", () => {
-    mainWindow = null;
-  });
-
-  nativeTheme.on("updated", () => {
-    if (mainWindow) {
-      mainWindow.webContents.send("native-theme-change", nativeTheme.shouldUseDarkColors ? "dark" : "light");
-      if (!isDarwin) {
-        mainWindow.setTitleBarOverlay!(titleBarColor[nativeTheme.shouldUseDarkColors ? "dark" : "light"]);
-      }
-    }
-  });
-
-  const menuBuilder = new MenuBuilder(mainWindow);
-  menuBuilder.buildMenu();
-
-  // Open urls in the user's browser
-  mainWindow.webContents.setWindowOpenHandler((evt: any) => {
-    shell.openExternal(evt.url);
-    return { action: "deny" };
-  });
-
-  downloader = new Downloader(mainWindow, {
-    onStart: (fileName: string) => {
-      mainWindow?.webContents.send("download-started", fileName);
-    },
-    onCompleted: (fileName: string, savePath: string) => {
-      mainWindow?.webContents.send("download-completed", fileName, savePath);
-    },
-    onFailed: (fileName: string, savePath: string, state: string) => {
-      mainWindow?.webContents.send("download-failed", fileName, savePath, state);
-    },
-    onProgress: (fileName: string, progress: number) => {
-      mainWindow?.webContents.send("download-progress", fileName, progress);
-    },
-  });
-};
 
 /**
  * Set Dock icon

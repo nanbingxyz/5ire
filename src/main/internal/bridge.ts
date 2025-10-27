@@ -50,7 +50,7 @@ export class Bridge<T extends Bridge.Actions = Bridge.Actions> {
 
     setup(prefix, this.build());
 
-    ipc.handle(`bridge:stream:next`, async (_, readerId: string) => {
+    ipc.handle(`bridge:stream:next::${this.prefix}`, async (_, readerId: string) => {
       const reader = this.#streams.get(readerId);
 
       if (!reader) {
@@ -60,7 +60,7 @@ export class Bridge<T extends Bridge.Actions = Bridge.Actions> {
       return reader.read();
     });
 
-    ipc.handle(`bridge:stream:stop`, async (_, readerId: string) => {
+    ipc.handle(`bridge:stream:stop::${this.prefix}`, async (_, readerId: string) => {
       const reader = this.#streams.get(readerId);
 
       if (!reader) {
