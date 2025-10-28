@@ -3,14 +3,14 @@ import type { Bridge } from "@/main/internal/bridge";
 export class BridgeConnector {
   constructor(private readonly ipc: Electron.IpcRenderer) {}
 
-  connect<T extends Bridge>(prefix: string, shape: BridgeConnector.Shape<T>) {
+  #connect<T extends Bridge>(namespace: string, prefix: string, shape: BridgeConnector.Shape<T>) {
     const proxy = {} as Record<string, unknown>;
 
     for (const key in shape) {
       const value = shape[key];
 
       if (typeof value === "object") {
-        proxy[key] = this.connect(key, value);
+        proxy[key] = this.#connect(namespace, `${prefix}::${key}`, value);
       } else {
         proxy[key] = async (...args: unknown[]) => {
           if (value === "async") {
@@ -33,7 +33,7 @@ export class BridgeConnector {
                     resolve({ done: true });
                   });
 
-                  this.ipc.invoke(`bridge:stream:next`, result.$$STREAM_READER_ID);
+                  this.ipc.invoke(`bridge:stream:next::${namespace}`, result.$$STREAM_READER_ID).then(resolve, reject);
                 });
               },
               stop: () => {
@@ -47,12 +47,11 @@ export class BridgeConnector {
                   });
 
                   this.ipc
-                    .invoke(`bridge:stream:stop`, result.$$STREAM_READER_ID)
+                    .invoke(`bridge:stream:stop::${namespace}`, result.$$STREAM_READER_ID)
                     .then(() => {
                       controller.abort();
                     })
-                    .then(resolve)
-                    .catch(reject);
+                    .then(resolve, reject);
                 });
               },
             };
@@ -66,6 +65,10 @@ export class BridgeConnector {
     }
 
     return proxy as Bridge.Proxy<BridgeConnector.Actions<T>>;
+  }
+
+  connect<T extends Bridge>(namespace: string, shape: BridgeConnector.Shape<T>) {
+    return this.#connect(namespace, namespace, shape);
   }
 }
 
