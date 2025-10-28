@@ -10,6 +10,7 @@ export class SettingsStore extends Store.Persistable<SettingsStore.State> {
       defaults: {
         language: "system",
         theme: "system",
+        fontSize: "base",
       },
     });
   }
@@ -27,6 +28,12 @@ export class SettingsStore extends Store.Persistable<SettingsStore.State> {
       draft.language = language;
     });
   }
+
+  updateFontSize(fontSize: SettingsStore.FontSize) {
+    this.update((draft) => {
+      draft.fontSize = fontSize;
+    });
+  }
 }
 
 export namespace SettingsStore {
@@ -34,10 +41,11 @@ export namespace SettingsStore {
 
   export type Theme = "light" | "dark" | "system";
 
-  export type FontSize = "small" | "medium" | "large";
+  export type FontSize = "base" | "large" | "xl";
 
   export type State = {
     language: Language;
     theme: Theme;
+    fontSize: FontSize;
   };
 }

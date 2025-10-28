@@ -12,6 +12,9 @@ export class SettingsStoreBridge extends Bridge.define("settings-store", () => {
     updateTheme: async (theme: SettingsStore.Theme) => {
       service.updateTheme(theme);
     },
+    updateFontSize: async (fontSize: SettingsStore.FontSize) => {
+      service.updateFontSize(fontSize);
+    },
     stream: () => {
       return service.stream();
     },

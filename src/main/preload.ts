@@ -38,6 +38,7 @@ const BRIDGE = {
   settingsStore: connector.connect<SettingsStoreBridge>("settings-store", {
     updateLanguage: "async",
     updateTheme: "async",
+    updateFontSize: "async",
     stream: "stream",
   }),
 };
