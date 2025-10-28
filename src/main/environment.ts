@@ -29,6 +29,8 @@ export type Environment = {
    * The folder where embedding cache is stored.
    */
   readonly embedderCacheFolder: string;
+
+  readonly storiesFolder: string;
 };
 
 export namespace Environment {}

@@ -76,10 +76,12 @@ Container.singleton(Environment, () => {
     assetsFolder: resolve(__dirname, "./assets"),
     embedderCacheFolder: resolve(userDataFolder, "Embedding/Cache"),
     embedderModelsFolder: resolve(userDataFolder, "Embedding/Models"),
+    storiesFolder: resolve(userDataFolder, "Stories"),
   };
 
   ensureDirSync(env.embedderCacheFolder);
   ensureDirSync(env.embedderModelsFolder);
+  ensureDirSync(env.storiesFolder);
 
   return env;
 });
