@@ -1,6 +1,8 @@
 import { default as ElectronStore } from "electron-store";
-import { applyPatches, type Draft, freeze, type Patch, produceWithPatches } from "immer";
+import { applyPatches, type Draft, enablePatches, freeze, type Patch, produceWithPatches } from "immer";
 import { pack, unpack } from "msgpackr";
+
+enablePatches();
 
 /**
  * A generic observable state container base class.
@@ -119,6 +121,32 @@ export abstract class Store<T extends Record<string, any>> {
       applyPatches(draft, patches);
     });
   }
+
+  stream() {
+    const abort = new AbortController();
+
+    return new ReadableStream<Store.StreamChunk<T>>({
+      cancel: () => {
+        abort.abort();
+      },
+      start: (controller) => {
+        console.log("enqueue", [this.state]);
+        controller.enqueue([this.state]);
+
+        const unsubscribe = this.subscribe((_, next, patches) => {
+          controller.enqueue([
+            next,
+            {
+              forward: patches[0],
+              inverse: patches[1],
+            },
+          ]);
+        });
+
+        abort.signal.addEventListener("abort", unsubscribe);
+      },
+    });
+  }
 }
 
 export namespace Store {
@@ -129,6 +157,14 @@ export namespace Store {
    * - `[1]`: inverse patches (used for rollback or undo)
    */
   export type Patches = [Patch[], Patch[]];
+
+  export type StreamChunk<T extends Record<string, any>> = [
+    state: T,
+    patches?: {
+      forward: Patch[];
+      inverse: Patch[];
+    },
+  ];
 
   /**
    * The signature of a state change subscriber function.
