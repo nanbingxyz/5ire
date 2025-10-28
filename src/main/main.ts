@@ -32,6 +32,7 @@ import { decodeBase64, getFileInfo, getFileType } from "./util";
 import "./sqlite";
 import { DownloaderBridge } from "@/main/bridge/downloader-bridge";
 import { EncryptorBridge } from "@/main/bridge/encryptor-bridge";
+import { SettingsStoreBridge } from "@/main/bridge/settings-store-bridge";
 import { UpdaterBridge } from "@/main/bridge/updater-bridge";
 import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
@@ -39,6 +40,7 @@ import { Downloader } from "@/main/services/downloader";
 import { Encryptor } from "@/main/services/encryptor";
 import { Renderer } from "@/main/services/renderer";
 import { Updater } from "@/main/services/updater";
+import { SettingsStore } from "@/main/stories/settings-store";
 import initCrashReporter from "../CrashReporter";
 import {
   KNOWLEDGE_IMPORT_MAX_FILE_SIZE,
@@ -50,7 +52,6 @@ import { loadDocumentFromBuffer } from "./docloader";
 import { Embedder } from "./embedder";
 import Knowledge from "./knowledge";
 import ModuleContext from "./mcp";
-import MenuBuilder from "./menu";
 import { DocumentLoader } from "./next/document-loader/DocumentLoader";
 
 dotenv.config({
@@ -65,8 +66,6 @@ Container.singleton(Environment, () => {
       userDataFolder = join(process.env.SOURCE_ROOT, "node_modules", ".data");
     }
   }
-
-  console.log(userDataFolder);
 
   const env: Environment = {
     cryptoSecret: process.env.CRYPTO_SECRET || "",
@@ -93,6 +92,8 @@ Container.singleton(Updater, () => new Updater());
 Container.singleton(UpdaterBridge, () => new UpdaterBridge());
 Container.singleton(Downloader, () => new Downloader());
 Container.singleton(DownloaderBridge, () => new DownloaderBridge());
+Container.singleton(SettingsStore, () => new SettingsStore());
+Container.singleton(SettingsStoreBridge, () => new SettingsStoreBridge());
 
 logging.init();
 
@@ -257,6 +258,7 @@ if (!gotTheLock) {
       Container.inject(EncryptorBridge).expose(ipcMain);
       Container.inject(UpdaterBridge).expose(ipcMain);
       Container.inject(DownloaderBridge).expose(ipcMain);
+      Container.inject(SettingsStoreBridge).expose(ipcMain);
 
       await Container.inject(Renderer).focus();
 
