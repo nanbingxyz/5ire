@@ -62,7 +62,7 @@ Container.singleton(Environment, () => {
 
   if (!app.isPackaged) {
     if (process.env.SOURCE_ROOT) {
-      userDataFolder = join(process.env.SOURCE_ROOT, ".data");
+      userDataFolder = join(process.env.SOURCE_ROOT, "node_modules", ".data");
     }
   }
 
