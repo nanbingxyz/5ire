@@ -1,5 +1,5 @@
 import { default as ElectronStore } from "electron-store";
-import { applyPatches, type Draft, enablePatches, freeze, type Patch, produceWithPatches } from "immer";
+import { applyPatches, type Draft, enablePatches, freeze, type Patch, produce, produceWithPatches } from "immer";
 import { pack, unpack } from "msgpackr";
 
 enablePatches();
@@ -67,6 +67,19 @@ export abstract class Store<T extends Record<string, any>> {
   protected update(producer: (draft: Draft<T>) => void) {
     const prev = this.state;
     const next = produceWithPatches(prev, producer);
+
+    this.#state = next[0];
+
+    for (const subscriber of this.#subscribers) {
+      subscriber(prev, next[0], [next[1], next[2]]);
+    }
+  }
+
+  protected replace(value: T) {
+    const prev = this.state;
+    const next = produceWithPatches(this.state, () => {
+      return value;
+    });
 
     this.#state = next[0];
 
