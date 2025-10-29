@@ -1,27 +1,53 @@
 import { join } from "node:path";
 import type { FeatureExtractionPipeline } from "@xenova/transformers/types/pipelines";
-import { existsSync, move, rm } from "fs-extra";
+import { move, rm, stat } from "fs-extra";
 import { DOCUMENT_EMBEDDING_MODEL_FILES, DOCUMENT_EMBEDDING_MODEL_NAME } from "@/main/constants";
 import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
+import { Store } from "@/main/internal/store";
 import { Downloader } from "@/main/services/downloader";
 
-export class Embedder {
+export class Embedder extends Store<Embedder.State> {
   #environment = Container.inject(Environment);
   #downloader = Container.inject(Downloader);
-  #inProgress = false;
-  #modelFiles = DOCUMENT_EMBEDDING_MODEL_FILES.map((item) => {
-    return {
-      ...item,
-      ...{
-        path: join(this.#environment.embedderModelsFolder, DOCUMENT_EMBEDDING_MODEL_NAME, item.path || item.name),
-      },
-    };
-  });
 
-  #extractor?: FeatureExtractionPipeline;
+  constructor() {
+    super(() => {
+      return {
+        status: "idle",
+      };
+    });
+  }
 
-  async #initExtractor() {
+  async init() {
+    if (this.state.status !== "idle") {
+      return;
+    }
+
+    this.replace({ status: "initializing" });
+
+    let missing = false;
+    let partially = false;
+
+    for (const file of DOCUMENT_EMBEDDING_MODEL_FILES) {
+      const folder = join(this.#environment.embedderModelsFolder, DOCUMENT_EMBEDDING_MODEL_NAME);
+      const path = join(folder, file.path || file.name);
+
+      const exists = await stat(path)
+        .then((s) => s.isFile())
+        .catch(() => false);
+
+      if (exists) {
+        partially = true;
+      } else {
+        missing = true;
+      }
+    }
+
+    if (missing) {
+      return this.replace({ status: "unavailable", reason: partially ? "model-partially-missing" : "model-missing" });
+    }
+
     const { env, pipeline } = await import("@xenova/transformers");
 
     env.allowRemoteModels = false;
@@ -31,49 +57,38 @@ export class Embedder {
       value: this.#environment.embedderModelsFolder,
     });
 
-    this.#extractor = await pipeline("feature-extraction", DOCUMENT_EMBEDDING_MODEL_NAME);
+    await pipeline("feature-extraction", DOCUMENT_EMBEDDING_MODEL_NAME)
+      .then((extractor) => {
+        this.replace({ status: "ready", extractor, running: 0 });
+      })
+      .catch(() => {
+        this.replace({ status: "unavailable", reason: "pipeline-init-failed" });
+      });
   }
 
-  get available() {
-    return !!this.#extractor;
-  }
-
-  async init() {
-    if (this.#extractor) {
-      return;
+  async remove() {
+    if (this.state.status !== "unavailable" && this.state.status !== "ready") {
+      throw new Error("Embedder is not unavailable or ready");
     }
 
-    for (const file of this.#modelFiles) {
-      if (!existsSync(file.path)) {
-        return;
-      }
+    if (this.state.status === "ready") {
+      await this.state.extractor.dispose();
     }
 
-    return this.#initExtractor();
-  }
+    await rm(this.#environment.embedderModelsFolder, { recursive: true });
 
-  async removeModel() {
-    if (this.#inProgress) {
-      throw new Error("Model is in progress");
-    }
-
-    this.#extractor?.dispose().catch(() => {
-      // ignore
-    });
-
-    this.#extractor = undefined;
-
-    await rm(this.#environment.embedderModelsFolder, {
-      recursive: true,
+    this.replace({
+      status: "unavailable",
+      reason: "model-missing",
     });
   }
 
-  async downloadModel(signal: AbortSignal, onProgress?: (name: string, total: number, received: number) => void) {
-    for (const file of this.#modelFiles) {
-      if (existsSync(file.path)) {
-        throw new Error(`Model file ${file.name} already exists. Please remove model after download.`);
-      }
+  async download(signal: AbortSignal, onProgress?: (name: string, received: number, total: number) => void) {
+    if (this.state.status !== "unavailable") {
+      throw new Error("Embedder is not unavailable");
     }
+
+    await rm(this.#environment.embedderModelsFolder, { recursive: true });
 
     const progress: Record<string, Record<"total" | "received", number>> = {};
 
@@ -84,41 +99,103 @@ export class Embedder {
       };
     }
 
-    const abort = new AbortController();
+    this.replace({
+      status: "downloading",
+      progress,
+    });
 
     await Promise.all(
-      this.#modelFiles.map(async (file) => {
+      DOCUMENT_EMBEDDING_MODEL_FILES.map(async (file) => {
         return this.#downloader
           .download({
-            signal: AbortSignal.any([signal, abort.signal]),
+            signal,
             url: file.url,
             onProgress: (received, total) => {
-              onProgress?.(file.name, total, received);
+              this.update((draft) => {
+                if (draft.status === "downloading") {
+                  draft.progress[file.name].total = total;
+                  draft.progress[file.name].received = received;
+                }
+              });
+              onProgress?.(file.name, received, total);
             },
           })
-          .then((it) => {
-            return move(it.dist, file.path);
+          .then((downloaded) => {
+            return {
+              file,
+              downloaded,
+            };
           })
           .catch((e) => {
             throw new Error(`Failed to download model file ${file.name}: ${e.message}`);
           });
       }),
-    ).then(() => {
-      return this.#initExtractor();
-    });
+    )
+      .then(async (downloaded) => {
+        const folder = join(this.#environment.embedderModelsFolder, DOCUMENT_EMBEDDING_MODEL_NAME);
+
+        return Promise.all(
+          downloaded.map((item) => {
+            return move(item.downloaded.dist, join(folder, item.file.path || item.file.name));
+          }),
+        );
+      })
+      .then(() => {
+        this.replace({ status: "idle" });
+        this.init().catch(() => {});
+      })
+      .catch((e) => {
+        this.replace({ status: "unavailable", reason: "model-missing" });
+
+        throw e;
+      });
   }
 
   async embed(text: string) {
-    if (!this.#extractor) {
-      throw new Error("Model is not available");
+    if (this.state.status !== "ready") {
+      throw new Error("Embedder is not ready");
     }
 
-    return this.#extractor(text, { pooling: "mean", normalize: true }).then((tensor) => {
-      if (tensor.data instanceof Float32Array) {
-        return [...tensor.data];
+    this.update((draft) => {
+      if (draft.status === "ready") {
+        draft.running++;
       }
-
-      throw new Error("Invalid tensor data");
     });
+
+    return this.state
+      .extractor(text, { pooling: "mean", normalize: true })
+      .then((tersor) => {
+        return tersor.tolist() as number[];
+      })
+      .finally(() => {
+        this.update((draft) => {
+          if (draft.status === "ready") {
+            draft.running--;
+          }
+        });
+      });
   }
+}
+
+export namespace Embedder {
+  export type State =
+    | {
+        status: "idle";
+      }
+    | {
+        status: "initializing";
+      }
+    | {
+        status: "ready";
+        extractor: FeatureExtractionPipeline;
+        running: number;
+      }
+    | {
+        status: "unavailable";
+        reason: "model-missing" | "model-partially-missing" | "pipeline-init-failed";
+      }
+    | {
+        status: "downloading";
+        progress: Record<string, Record<"total" | "received", number>>;
+      };
 }
