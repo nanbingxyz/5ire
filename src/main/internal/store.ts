@@ -122,25 +122,35 @@ export abstract class Store<T extends Record<string, any>> {
     });
   }
 
-  stream() {
+  stream(): ReadableStream<Store.StreamChunk<T>>;
+  stream<O>(transform: (state: T) => O): ReadableStream<O>;
+
+  stream<O>(transform?: (state: T) => O) {
     const abort = new AbortController();
 
-    return new ReadableStream<Store.StreamChunk<T>>({
+    return new ReadableStream<Store.StreamChunk<T> | O>({
       cancel: () => {
         abort.abort();
       },
       start: (controller) => {
-        console.log("enqueue", [this.state]);
-        controller.enqueue([this.state]);
+        if (transform) {
+          controller.enqueue(transform(this.state));
+        } else {
+          controller.enqueue([this.state]);
+        }
 
         const unsubscribe = this.subscribe((_, next, patches) => {
-          controller.enqueue([
-            next,
-            {
-              forward: patches[0],
-              inverse: patches[1],
-            },
-          ]);
+          if (transform) {
+            controller.enqueue(transform(next));
+          } else {
+            controller.enqueue([
+              next,
+              {
+                forward: patches[0],
+                inverse: patches[1],
+              },
+            ]);
+          }
         });
 
         abort.signal.addEventListener("abort", unsubscribe);
