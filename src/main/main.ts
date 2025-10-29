@@ -31,6 +31,7 @@ import * as logging from "./logging";
 import { decodeBase64, getFileInfo, getFileType } from "./util";
 import "./sqlite";
 import { DownloaderBridge } from "@/main/bridge/downloader-bridge";
+import { EmbedderBridge } from "@/main/bridge/embedder-bridge";
 import { EncryptorBridge } from "@/main/bridge/encryptor-bridge";
 import { SettingsStoreBridge } from "@/main/bridge/settings-store-bridge";
 import { UpdaterBridge } from "@/main/bridge/updater-bridge";
@@ -94,6 +95,8 @@ Container.singleton(Downloader, () => new Downloader());
 Container.singleton(DownloaderBridge, () => new DownloaderBridge());
 Container.singleton(SettingsStore, () => new SettingsStore());
 Container.singleton(SettingsStoreBridge, () => new SettingsStoreBridge());
+Container.singleton(Embedder, () => new Embedder());
+Container.singleton(EmbedderBridge, () => new EmbedderBridge());
 
 logging.init();
 
@@ -259,6 +262,7 @@ if (!gotTheLock) {
       Container.inject(UpdaterBridge).expose(ipcMain);
       Container.inject(DownloaderBridge).expose(ipcMain);
       Container.inject(SettingsStoreBridge).expose(ipcMain);
+      Container.inject(EmbedderBridge).expose(ipcMain);
 
       await Container.inject(Renderer).focus();
 
