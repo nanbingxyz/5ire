@@ -6,6 +6,7 @@ import { platform } from "os";
 import type { ThemeType } from "types/appearance";
 import v8 from "v8";
 import type { DownloaderBridge } from "@/main/bridge/downloader-bridge";
+import type { EmbedderBridge } from "@/main/bridge/embedder-bridge";
 import type { EncryptorBridge } from "@/main/bridge/encryptor-bridge";
 import type { SettingsStoreBridge } from "@/main/bridge/settings-store-bridge";
 import type { UpdaterBridge } from "@/main/bridge/updater-bridge";
@@ -34,6 +35,12 @@ const BRIDGE = {
   }),
   downloader: connector.connect<DownloaderBridge>("downloader", {
     download: "stream",
+  }),
+  embedder: connector.connect<EmbedderBridge>("embedder", {
+    embed: "async",
+    remove: "async",
+    download: "stream",
+    stream: "stream",
   }),
   settingsStore: connector.connect<SettingsStoreBridge>("settings-store", {
     updateLanguage: "async",
