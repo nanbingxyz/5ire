@@ -4,19 +4,8 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ensureFile } from "fs-extra";
 
-import { Container } from "@/main/internal/container";
-import { Renderer } from "@/main/services/renderer";
-
 export class Downloader {
-  #renderer = Container.inject(Renderer);
-
   async download(options: Downloader.DownloadOptions) {
-    const webContents = this.#renderer.window?.webContents;
-
-    if (!webContents) {
-      throw new Error("Renderer window not ready");
-    }
-
     const id = crypto.randomUUID();
     const dist = join(tmpdir(), id);
     const writer = createWriteStream(dist);
@@ -73,6 +62,10 @@ export class Downloader {
           const next = await reader.read();
 
           if (next.done) {
+            if (size < 0) {
+              options.onProgress?.(received, received);
+            }
+
             break;
           }
 
