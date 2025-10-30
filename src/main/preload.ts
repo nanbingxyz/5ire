@@ -8,6 +8,7 @@ import v8 from "v8";
 import type { DownloaderBridge } from "@/main/bridge/downloader-bridge";
 import type { EmbedderBridge } from "@/main/bridge/embedder-bridge";
 import type { EncryptorBridge } from "@/main/bridge/encryptor-bridge";
+import type { RendererBridge } from "@/main/bridge/renderer-bridge";
 import type { SettingsStoreBridge } from "@/main/bridge/settings-store-bridge";
 import type { UpdaterBridge } from "@/main/bridge/updater-bridge";
 import { BridgeConnector } from "@/main/internal/bridge-connector";
@@ -38,15 +39,20 @@ const BRIDGE = {
   }),
   embedder: connector.connect<EmbedderBridge>("embedder", {
     embed: "async",
-    remove: "async",
-    download: "stream",
-    stream: "stream",
+    removeModel: "async",
+    downloadModel: "async",
+    cancelDownloadModel: "async",
+    createStateStream: "stream",
+  }),
+  renderer: connector.connect<RendererBridge>("renderer", {
+    focus: "async",
+    createStateStream: "stream",
   }),
   settingsStore: connector.connect<SettingsStoreBridge>("settings-store", {
     updateLanguage: "async",
     updateTheme: "async",
     updateFontSize: "async",
-    stream: "stream",
+    createStateStream: "stream",
   }),
 };
 
@@ -60,7 +66,6 @@ export type Channels =
   | "app-upgrade-end"
   | "app-upgrade-error"
   | "app-upgrade-not-available"
-  | "native-theme-change"
   | "sign-in"
   | "install-tool"
   | "minimize-app"
@@ -180,7 +185,6 @@ const electronHandler = {
   getProtocol: () => ipcRenderer.invoke("get-protocol"),
   getDeviceInfo: () => ipcRenderer.invoke("get-device-info"),
   getAppVersion: () => ipcRenderer.invoke("get-app-version"),
-  getNativeTheme: () => ipcRenderer.invoke("get-native-theme"),
   getSystemLanguage: () => ipcRenderer.invoke("get-system-language"),
   selectImageWithBase64: () => ipcRenderer.invoke("select-image-with-base64"),
   setTheme: (theme: ThemeType) => ipcRenderer.send("theme-changed", theme),
@@ -217,7 +221,6 @@ const electronHandler = {
   },
   download: (fileName: string, url: string) => ipcRenderer.invoke("download", fileName, url),
   cancelDownload: (fileName: string) => ipcRenderer.invoke("cancel-download", fileName),
-  setNativeTheme: (theme: "light" | "dark" | "system") => ipcRenderer.invoke("set-native-theme", theme),
   ingestEvent: (data: any) => ipcRenderer.invoke("ingest-event", data),
   ipcRenderer: {
     sendMessage(channel: Channels, ...args: unknown[]) {
