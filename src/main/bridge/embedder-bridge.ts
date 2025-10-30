@@ -27,6 +27,13 @@ export class EmbedderBridge extends Bridge.define("embedder", () => {
           } as const;
         }
 
+        if (status.type === "downloading") {
+          return {
+            type: "downloading",
+            progress: status.progress,
+          } as const;
+        }
+
         return status;
       };
 
@@ -37,6 +44,9 @@ export class EmbedderBridge extends Bridge.define("embedder", () => {
           status: transformStatus(state.status),
         };
       });
+    },
+    createEventStream: () => {
+      return service.emitter.createStream();
     },
   };
 }) {}

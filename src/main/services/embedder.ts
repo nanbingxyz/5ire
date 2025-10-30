@@ -1,15 +1,22 @@
 import { join } from "node:path";
 import type { FeatureExtractionPipeline } from "@xenova/transformers/types/pipelines";
+import { asError } from "catch-unknown";
 import { ensureDir, move, rm, stat } from "fs-extra";
 import { DOCUMENT_EMBEDDING_MODEL_FILES, DOCUMENT_EMBEDDING_MODEL_NAME } from "@/main/constants";
 import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
+import { Emitter } from "@/main/internal/emitter";
 import { Store } from "@/main/internal/store";
 import { Downloader } from "@/main/services/downloader";
 
 export class Embedder extends Store<Embedder.State> {
   #environment = Container.inject(Environment);
   #downloader = Container.inject(Downloader);
+  #emitter = Emitter.create<Embedder.Events>();
+
+  get emitter() {
+    return this.#emitter;
+  }
 
   constructor() {
     super(() => {
@@ -179,6 +186,10 @@ export class Embedder extends Store<Embedder.State> {
         if (controller.signal.aborted) {
           return;
         }
+
+        this.emitter.emit("model-download-failed", {
+          message: asError(e).message,
+        });
       });
   }
 
@@ -243,5 +254,11 @@ export namespace Embedder {
     status: Status;
     model: string;
     files: string[];
+  };
+
+  export type Events = {
+    "model-download-failed": {
+      message: string;
+    };
   };
 }

@@ -43,6 +43,7 @@ const BRIDGE = {
     downloadModel: "async",
     cancelDownloadModel: "async",
     createStateStream: "stream",
+    createEventStream: "stream",
   }),
   renderer: connector.connect<RendererBridge>("renderer", {
     focus: "async",
