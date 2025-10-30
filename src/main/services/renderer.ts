@@ -1,13 +1,25 @@
-import { app, BrowserWindow, shell } from "electron";
+import { app, BrowserWindow, nativeTheme, shell } from "electron";
 import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
+import { Store } from "@/main/internal/store";
 
-export class Renderer {
+export class Renderer extends Store<Renderer.State> {
   #environment = Container.inject(Environment);
-  #window: Electron.BrowserWindow | null = null;
 
   constructor() {
-    this.#window = null;
+    super(() => {
+      return {
+        window: null,
+        shouldUseDarkColors: nativeTheme.shouldUseDarkColors,
+        locale: app.getLocale(),
+      };
+    });
+
+    nativeTheme.addListener("updated", () => {
+      this.update((draft) => {
+        draft.shouldUseDarkColors = nativeTheme.shouldUseDarkColors;
+      });
+    });
   }
 
   get #windowOptions() {
@@ -39,18 +51,18 @@ export class Renderer {
     return options;
   }
 
-  get window() {
-    return this.#window;
-  }
-
   async #init() {
-    if (this.#window && !this.#window.isDestroyed()) {
+    if (this.state.window && !this.state.window.isDestroyed()) {
       return;
     }
 
-    this.#window = new BrowserWindow(this.#windowOptions);
+    const window = new BrowserWindow(this.#windowOptions);
 
-    this.#window.webContents.setWindowOpenHandler(({ url }) => {
+    this.update((draft) => {
+      draft.window = window;
+    });
+
+    window.webContents.setWindowOpenHandler(({ url }) => {
       shell.openExternal(url).catch(() => {
         // ignore
       });
@@ -60,49 +72,59 @@ export class Renderer {
       };
     });
 
-    this.#window.webContents.on("will-navigate", (event) => {
-      if (!this.#window) {
+    window.webContents.on("will-navigate", (event) => {
+      if (!window) {
         return event.preventDefault();
       }
 
-      const url = new URL(this.#window.webContents.getURL());
+      const url = new URL(window.webContents.getURL());
 
       console.log(url, event.url);
 
       event.preventDefault();
     });
 
-    this.#window.webContents.on("did-finish-load", () => {
-      this.#window?.show();
-      this.#window?.focus();
+    window.webContents.on("did-finish-load", () => {
+      window?.show();
+      window?.focus();
     });
 
-    this.#window.webContents.once("did-fail-load", () => {
-      this.#window?.reload();
+    window.webContents.once("did-fail-load", () => {
+      window.reload();
     });
 
-    this.#window.on("closed", () => {
-      this.#window = null;
+    window.on("closed", () => {
+      this.update((draft) => {
+        draft.window = null;
+      });
     });
 
     if (!app.isPackaged && this.#environment.rendererDevServer) {
-      await this.#window.loadURL(this.#environment.rendererDevServer);
+      await window.loadURL(this.#environment.rendererDevServer);
     } else {
-      await this.#window.loadFile(this.#environment.rendererEntry);
+      await window.loadFile(this.#environment.rendererEntry);
     }
   }
 
   async focus() {
-    if (!this.#window || this.#window.isDestroyed()) {
+    if (!this.state.window || this.state.window.isDestroyed()) {
       await this.#init();
     }
 
-    if (this.#window) {
-      if (this.#window.isMinimized()) {
-        this.#window.restore();
+    if (this.state.window) {
+      if (this.state.window.isMinimized()) {
+        this.state.window.restore();
       }
 
-      this.#window.focus();
+      this.state.window.focus();
     }
   }
+}
+
+export namespace Renderer {
+  export type State = {
+    window: Electron.BrowserWindow | null;
+    shouldUseDarkColors: boolean;
+    locale: string;
+  };
 }
