@@ -10,7 +10,7 @@ export class RendererBridge extends Bridge.define("renderer", () => {
       return service.focus();
     },
 
-    stream: () => {
+    createStateStream: () => {
       return service.createStream((state) => {
         return {
           locale: state.locale,
