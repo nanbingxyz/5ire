@@ -8,10 +8,12 @@ import { Container } from "@/main/internal/container";
 import { Emitter } from "@/main/internal/emitter";
 import { Store } from "@/main/internal/store";
 import { Downloader } from "@/main/services/downloader";
+import { Logger } from "@/main/services/logger";
 
 export class Embedder extends Store<Embedder.State> {
   #environment = Container.inject(Environment);
   #downloader = Container.inject(Downloader);
+  #logger = Container.inject(Logger).scope("Embedder");
   #emitter = Emitter.create<Embedder.Events>();
 
   get emitter() {
@@ -31,8 +33,10 @@ export class Embedder extends Store<Embedder.State> {
   }
 
   async init() {
+    const logger = this.#logger.scope("Init");
+
     if (this.state.status.type !== "idle") {
-      return;
+      return logger.error("Cannot initialize embedder: embedder is already initialized");
     }
 
     this.update((draft) => {
@@ -60,6 +64,8 @@ export class Embedder extends Store<Embedder.State> {
     }
 
     if (missing) {
+      logger.warning("Model files are missing, cannot initialize embedder");
+
       return this.update((draft) => {
         draft.status = {
           type: "unavailable",
@@ -68,22 +74,24 @@ export class Embedder extends Store<Embedder.State> {
       });
     }
 
-    const { env, pipeline } = await import("@xenova/transformers");
+    await import("@xenova/transformers")
+      .then(({ env, pipeline }) => {
+        env.allowRemoteModels = false;
+        env.allowLocalModels = true;
 
-    env.allowRemoteModels = false;
-    env.allowLocalModels = true;
+        Object.defineProperty(env, "localModelPath", {
+          value: this.#environment.embedderModelsFolder,
+        });
 
-    Object.defineProperty(env, "localModelPath", {
-      value: this.#environment.embedderModelsFolder,
-    });
-
-    await pipeline("feature-extraction", DOCUMENT_EMBEDDING_MODEL_NAME)
+        return pipeline("feature-extraction", DOCUMENT_EMBEDDING_MODEL_NAME);
+      })
       .then((extractor) => {
         this.update((draft) => {
           draft.status = { type: "ready", extractor, running: 0 };
         });
       })
-      .catch(() => {
+      .catch((error) => {
+        logger.capture(error, "Failed to initialize feature extraction pipeline");
         this.update((draft) => {
           draft.status = { type: "unavailable", reason: "pipeline-init-failed" };
         });
@@ -91,15 +99,21 @@ export class Embedder extends Store<Embedder.State> {
   }
 
   async removeModel() {
+    const logger = this.#logger.scope("RemoveModel");
+
     if (this.state.status.type !== "unavailable" && this.state.status.type !== "ready") {
-      throw new Error("Embedder is not unavailable or ready");
+      return logger.error("Cannot remove model: embedder is not in unavailable or ready state");
     }
 
     if (this.state.status.type === "ready") {
-      await this.state.status.extractor.dispose().catch(() => {});
+      await this.state.status.extractor.dispose().catch((error) => {
+        logger.capture(error, "Failed to dispose feature extraction pipeline");
+      });
     }
 
-    await rm(this.#environment.embedderModelsFolder, { recursive: true }).catch(() => {});
+    await rm(this.#environment.embedderModelsFolder, { recursive: true }).catch((error) => {
+      logger.capture(error, "Failed to remove embedder model folder");
+    });
 
     this.update((draft) => {
       draft.status = { type: "unavailable", reason: "model-missing" };
@@ -107,12 +121,18 @@ export class Embedder extends Store<Embedder.State> {
   }
 
   async downloadModel() {
+    const logger = this.#logger.scope("DownloadModel");
+
     if (this.state.status.type !== "unavailable") {
-      throw new Error("Embedder is not unavailable");
+      return logger.error("Cannot download model: embedder is not in unavailable state");
     }
 
-    await rm(this.#environment.embedderModelsFolder, { recursive: true, force: true });
-    await ensureDir(this.#environment.embedderModelsFolder);
+    await rm(this.#environment.embedderModelsFolder, { recursive: true, force: true }).catch((error) => {
+      logger.capture(error, "Failed to remove embedder model folder");
+    });
+    await ensureDir(this.#environment.embedderModelsFolder).catch((error) => {
+      logger.capture(error, "Failed to create embedder model folder");
+    });
 
     const progress: Record<string, Record<"total" | "received", number>> = {};
     const controller = new AbortController();
@@ -175,7 +195,7 @@ export class Embedder extends Store<Embedder.State> {
         });
         this.init().catch(() => {});
       })
-      .catch((e) => {
+      .catch((error) => {
         this.update((draft) => {
           draft.status = {
             type: "unavailable",
@@ -187,22 +207,29 @@ export class Embedder extends Store<Embedder.State> {
           return;
         }
 
+        logger.capture(error, "Failed to download model");
+
         this.emitter.emit("model-download-failed", {
-          message: asError(e).message,
+          message: asError(error).message,
         });
       });
   }
 
   async cancelDownloadModel() {
+    const logger = this.#logger.scope("CancelDownloadModel");
+
     if (this.state.status.type !== "downloading") {
-      throw new Error("Embedder is not downloading");
+      return logger.error("Cannot cancel download model: embedder is not in downloading state");
     }
 
     this.state.status.controller.abort();
   }
 
   async embed(text: string) {
+    const logger = this.#logger.scope("Embed");
+
     if (this.state.status.type !== "ready") {
+      logger.error("Cannot embed text: embedder is not ready");
       throw new Error("Embedder is not ready");
     }
 
@@ -216,6 +243,10 @@ export class Embedder extends Store<Embedder.State> {
       .extractor(text, { pooling: "mean", normalize: true })
       .then((tersor) => {
         return tersor.tolist() as number[];
+      })
+      .catch((error) => {
+        logger.capture(error, "Failed to embed text");
+        throw error;
       })
       .finally(() => {
         this.update((draft) => {
@@ -251,13 +282,28 @@ export namespace Embedder {
       };
 
   export type State = {
+    /**
+     * The status of the embedder service.
+     */
     status: Status;
+    /**
+     * The name of the embedder model.
+     */
     model: string;
+    /**
+     * The files required to initialize the embedder model.
+     */
     files: string[];
   };
 
   export type Events = {
+    /**
+     * Emitted when the model download fails.
+     */
     "model-download-failed": {
+      /**
+       * The error message.
+       */
       message: string;
     };
   };

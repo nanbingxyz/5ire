@@ -2,9 +2,11 @@ import { app, BrowserWindow, nativeTheme, shell } from "electron";
 import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
 import { Store } from "@/main/internal/store";
+import { Logger } from "@/main/services/logger";
 
 export class Renderer extends Store<Renderer.State> {
   #environment = Container.inject(Environment);
+  #logger = Container.inject(Logger).scope("Renderer");
 
   constructor() {
     super(() => {
@@ -52,8 +54,10 @@ export class Renderer extends Store<Renderer.State> {
   }
 
   async #init() {
+    const logger = this.#logger.scope("Init");
+
     if (this.state.window && !this.state.window.isDestroyed()) {
-      return;
+      return logger.error("Cannot init renderer: renderer is already initialized");
     }
 
     const window = new BrowserWindow(this.#windowOptions);
@@ -63,8 +67,8 @@ export class Renderer extends Store<Renderer.State> {
     });
 
     window.webContents.setWindowOpenHandler(({ url }) => {
-      shell.openExternal(url).catch(() => {
-        // ignore
+      shell.openExternal(url).catch((error) => {
+        logger.capture(error, `Failed to open external link: ${url}`);
       });
 
       return {
@@ -76,10 +80,6 @@ export class Renderer extends Store<Renderer.State> {
       if (!window) {
         return event.preventDefault();
       }
-
-      const url = new URL(window.webContents.getURL());
-
-      console.log(url, event.url);
 
       event.preventDefault();
     });

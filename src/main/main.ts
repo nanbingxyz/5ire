@@ -40,6 +40,7 @@ import { Container } from "@/main/internal/container";
 import { Downloader } from "@/main/services/downloader";
 import { Embedder } from "@/main/services/embedder";
 import { Encryptor } from "@/main/services/encryptor";
+import { Logger } from "@/main/services/logger";
 import { Renderer } from "@/main/services/renderer";
 import { Updater } from "@/main/services/updater";
 import { SettingsStore } from "@/main/stories/settings-store";
@@ -86,6 +87,7 @@ Container.singleton(Environment, () => {
   return env;
 });
 
+Container.singleton(Logger, () => new Logger());
 Container.singleton(Encryptor, () => new Encryptor());
 Container.singleton(EncryptorBridge, () => new EncryptorBridge());
 Container.singleton(Renderer, () => new Renderer());

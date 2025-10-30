@@ -6,10 +6,10 @@ import { Container } from "@/main/internal/container";
 const ALGORITHM = "aes-256-cbc";
 
 export class Encryptor {
-  private environment = Container.inject(Environment);
+  #environment = Container.inject(Environment);
 
   #makeKey(key: string) {
-    return createHash("sha256").update(`${this.environment.cryptoSecret}.${key}`).digest("base64").substring(0, 32);
+    return createHash("sha256").update(`${this.#environment.cryptoSecret}.${key}`).digest("base64").substring(0, 32);
   }
 
   encrypt(text: string, key: string) {

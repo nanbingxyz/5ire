@@ -3,9 +3,17 @@ import { createWriteStream } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { ensureFile } from "fs-extra";
+import { Container } from "@/main/internal/container";
+import { Logger } from "@/main/services/logger";
 
 export class Downloader {
+  #logger = Container.inject(Logger).scope("Downloader");
+
   async download(options: Downloader.DownloadOptions) {
+    const logger = this.#logger.scope("Download");
+
+    logger.info(`Downloading ${options.url}`);
+
     const id = crypto.randomUUID();
     const dist = join(tmpdir(), id);
     const writer = createWriteStream(dist);
@@ -77,11 +85,18 @@ export class Downloader {
           options.onProgress?.(received, size);
         }
 
+        logger.info(`Downloaded ${options.url}`);
+
         return {
           id,
           dist,
           hash: hash.digest("hex"),
         };
+      })
+      .catch((error) => {
+        logger.capture(error, `Failed to download file: ${options.url}`);
+
+        throw error;
       })
       .finally(() => {
         writer.close();
