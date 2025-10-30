@@ -48,7 +48,7 @@ export default defineConfig(async ({ command }): Promise<RsbuildConfig> => {
       // },
     ];
 
-    const externals: string[] = ["@xenova/transformers", "@lancedb/lancedb", "better-sqlite3", "pdf-parse"];
+    const externals: string[] = ["onnxruntime-node", "sharp", "@lancedb/lancedb", "better-sqlite3", "pdf-parse"];
 
     const config: EnvironmentConfig = {
       source: {
