@@ -15,8 +15,8 @@ export class SettingsStoreBridge extends Bridge.define("settings-store", () => {
     updateFontSize: async (fontSize: SettingsStore.FontSize) => {
       service.updateFontSize(fontSize);
     },
-    stream: () => {
-      return service.stream();
+    createStateStream: () => {
+      return service.createStream((state) => state);
     },
   };
 }) {}

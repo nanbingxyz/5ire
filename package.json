@@ -81,6 +81,7 @@
     "@supabase/supabase-js": "^2.38.5",
     "@xenova/transformers": "^2.17.2",
     "better-sqlite3": "^12.4.1",
+    "classnames": "^2.5.1",
     "clipboard": "^2.0.11",
     "clsx": "^2.1.1",
     "dompurify": "^3.2.5",
