@@ -1,3 +1,4 @@
+import { nativeTheme } from "electron";
 import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
 import { Store } from "@/main/internal/store";
@@ -13,14 +14,16 @@ export class SettingsStore extends Store.Persistable<SettingsStore.State> {
         fontSize: "base",
       },
     });
+
+    nativeTheme.themeSource = this.state.theme;
   }
 
   updateTheme(theme: SettingsStore.Theme) {
-    console.log("updateTheme", theme);
-
     this.update((draft) => {
       draft.theme = theme;
     });
+
+    nativeTheme.themeSource = this.state.theme;
   }
 
   updateLanguage(language: SettingsStore.Language) {
