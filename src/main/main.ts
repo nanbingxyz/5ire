@@ -33,6 +33,7 @@ import "./sqlite";
 import { DownloaderBridge } from "@/main/bridge/downloader-bridge";
 import { EmbedderBridge } from "@/main/bridge/embedder-bridge";
 import { EncryptorBridge } from "@/main/bridge/encryptor-bridge";
+import { RendererBridge } from "@/main/bridge/renderer-bridge";
 import { SettingsStoreBridge } from "@/main/bridge/settings-store-bridge";
 import { UpdaterBridge } from "@/main/bridge/updater-bridge";
 import { Environment } from "@/main/environment";
@@ -89,6 +90,7 @@ Container.singleton(Environment, () => {
 Container.singleton(Encryptor, () => new Encryptor());
 Container.singleton(EncryptorBridge, () => new EncryptorBridge());
 Container.singleton(Renderer, () => new Renderer());
+Container.singleton(RendererBridge, () => new RendererBridge());
 Container.singleton(Updater, () => new Updater());
 Container.singleton(UpdaterBridge, () => new UpdaterBridge());
 Container.singleton(Downloader, () => new Downloader());
@@ -260,6 +262,7 @@ if (!gotTheLock) {
     .then(async () => {
       Container.inject(EncryptorBridge).expose(ipcMain);
       Container.inject(UpdaterBridge).expose(ipcMain);
+      Container.inject(RendererBridge).expose(ipcMain);
       Container.inject(DownloaderBridge).expose(ipcMain);
       Container.inject(SettingsStoreBridge).expose(ipcMain);
       Container.inject(EmbedderBridge).expose(ipcMain);
