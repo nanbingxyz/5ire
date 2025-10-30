@@ -2,7 +2,7 @@ import { suspend } from "suspend-react";
 import { useStore } from "zustand";
 import { createStore } from "zustand/vanilla";
 
-const store = window.bridge.settingsStore.createStateStream().then(async (reader) => {
+const store = window.bridge.embedder.createStateStream().then(async (reader) => {
   const initial = await reader.next();
 
   if (initial.done) {
@@ -32,4 +32,4 @@ const store = window.bridge.settingsStore.createStateStream().then(async (reader
   return instance;
 });
 
-export const useSettings = () => useStore(suspend(() => store, ["settings"]));
+export const useEmbedder = () => useStore(suspend(() => store, ["embedder"]));

@@ -75,6 +75,15 @@ export abstract class Store<T extends Record<string, any>> {
     }
   }
 
+  /**
+   * Replaces the entire state with a new value.
+   *
+   * @param value The new state value.
+   * @example
+   * ```ts
+   * store.replace({ count: 0 });
+   * ```
+   */
   protected replace(value: T) {
     const prev = this.state;
     const next = produceWithPatches(this.state, () => {
@@ -135,10 +144,15 @@ export abstract class Store<T extends Record<string, any>> {
     });
   }
 
-  stream(): ReadableStream<Store.StreamChunk<T>>;
-  stream<O>(transform: (state: T) => O): ReadableStream<O>;
+  createStream(): ReadableStream<Store.StreamChunk<T>>;
+  createStream<O>(transform: (state: T) => O): ReadableStream<O>;
 
-  stream<O>(transform?: (state: T) => O) {
+  /**
+   * Creates a ReadableStream that emits state changes.
+   *
+   * @param transform A function to transform the state before emitting.
+   */
+  createStream<O>(transform?: (state: T) => O) {
     const abort = new AbortController();
 
     return new ReadableStream<Store.StreamChunk<T> | O>({

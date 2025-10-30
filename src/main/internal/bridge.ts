@@ -32,6 +32,14 @@ export class Bridge<T extends Bridge.Actions = Bridge.Actions> {
 
                 this.#streams.set(id, reader);
 
+                event.sender.once("destroyed", () => {
+                  const reader = this.#streams.get(id);
+
+                  if (reader) {
+                    reader.cancel().catch(() => {});
+                  }
+                });
+
                 return {
                   $$STREAM_READER_ID: id,
                 };

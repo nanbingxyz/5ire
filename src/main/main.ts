@@ -23,7 +23,6 @@ import { ensureDirSync } from "fs-extra";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import fetch from "node-fetch";
 import path from "path";
-import type { ThemeType } from "types/appearance";
 import type { IMCPServer } from "types/mcp";
 import { isValidMCPServer, isValidMCPServerKey } from "utils/validators";
 import axiom from "../vendors/axiom";
@@ -39,6 +38,7 @@ import { UpdaterBridge } from "@/main/bridge/updater-bridge";
 import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
 import { Downloader } from "@/main/services/downloader";
+import { Embedder } from "@/main/services/embedder";
 import { Encryptor } from "@/main/services/encryptor";
 import { Renderer } from "@/main/services/renderer";
 import { Updater } from "@/main/services/updater";
@@ -51,7 +51,6 @@ import {
   SUPPORTED_IMAGE_TYPES,
 } from "../consts";
 import { loadDocumentFromBuffer } from "./docloader";
-import { Embedder } from "./embedder";
 import Knowledge from "./knowledge";
 import ModuleContext from "./mcp";
 import { DocumentLoader } from "./next/document-loader/DocumentLoader";
@@ -104,31 +103,8 @@ logging.init();
 
 logging.info("Main process start...");
 
-const isDarwin = process.platform === "darwin";
-
 const mcp = new ModuleContext();
 const store = new Store();
-const loadTheme = (theme?: ThemeType) => {
-  const $theme = theme || (store.get("settings.theme", "system") as ThemeType);
-  if ($theme === "dark" || $theme === "light") {
-    nativeTheme.themeSource = $theme;
-    return $theme;
-  }
-  nativeTheme.themeSource = "system";
-  return nativeTheme.shouldUseDarkColors ? "dark" : "light";
-};
-const titleBarColor = {
-  light: {
-    color: "rgba(227, 227, 227, 1)",
-    height: 30,
-    symbolColor: "black",
-  },
-  dark: {
-    color: "rgba(44, 42, 43, 1)",
-    height: 30,
-    symbolColor: "white",
-  },
-};
 
 let rendererReady = false;
 let pendingInstallTool: any = null;
@@ -268,6 +244,8 @@ if (!gotTheLock) {
       Container.inject(EmbedderBridge).expose(ipcMain);
 
       await Container.inject(Renderer).focus();
+
+      Container.inject(Embedder).init().catch(console.log);
 
       app.on("activate", () => {
         Container.inject(Renderer)
@@ -498,27 +476,19 @@ ipcMain.handle("get-user-data-path", (_, paths) => {
   return app.getPath("userData");
 });
 
-ipcMain.handle("set-native-theme", (_, theme: "light" | "dark" | "system") => {
-  nativeTheme.themeSource = theme;
-});
-
-ipcMain.handle("get-native-theme", () => {
-  return loadTheme();
-});
-
 ipcMain.handle("get-system-language", () => {
   return app.getLocale();
 });
 
-ipcMain.handle("get-embedding-model-file-status", () => {
-  return Embedder.getFileStatus();
-});
-ipcMain.handle("remove-embedding-model", () => {
-  Embedder.removeModel();
-});
-ipcMain.handle("save-embedding-model-file", (_, fileName: string, filePath: string) => {
-  Embedder.saveModelFile(fileName, filePath);
-});
+// ipcMain.handle("get-embedding-model-file-status", () => {
+//   return Embedder.getFileStatus();
+// });
+// ipcMain.handle("remove-embedding-model", () => {
+//   Embedder.removeModel();
+// });
+// ipcMain.handle("save-embedding-model-file", (_, fileName: string, filePath: string) => {
+//   Embedder.saveModelFile(fileName, filePath);
+// });
 
 ipcMain.handle(
   "import-knowledge-file",
@@ -647,20 +617,6 @@ ipcMain.handle("remove-knowledge-collection", (_, collectionId: string) => {
 });
 ipcMain.handle("get-knowledge-chunk", (_, chunkId: string) => {
   return Knowledge.getChunk(chunkId);
-});
-
-ipcMain.handle("download", (_, fileName: string, url: string) => {
-  // downloader.download(fileName, url);
-});
-ipcMain.handle("cancel-download", (_, fileName: string) => {
-  // downloader.cancel(fileName);
-});
-
-ipcMain.on("theme-changed", (_, theme: ThemeType) => {
-  if (!isDarwin) {
-    mainWindow?.setTitleBarOverlay!(titleBarColor[loadTheme(theme)]);
-  }
-  nativeTheme.themeSource = theme;
 });
 
 /** mcp */
