@@ -2,7 +2,7 @@ import { suspend } from "suspend-react";
 import { useStore } from "zustand";
 import { createStore } from "zustand/vanilla";
 
-const store = window.bridge.documentsManager.liveCollections().then(async (reader) => {
+const store = window.bridge.documentManager.liveCollections().then(async (reader) => {
   const initial = await reader.next();
 
   if (initial.done) {

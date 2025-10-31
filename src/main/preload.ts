@@ -5,7 +5,7 @@ import { contextBridge, type IpcRendererEvent, ipcRenderer } from "electron";
 import { platform } from "os";
 import type { ThemeType } from "types/appearance";
 import v8 from "v8";
-import type { DocumentsManagerBridge } from "@/main/bridge/documents-manager-bridge";
+import type { DocumentManagerBridge } from "@/main/bridge/document-manager-bridge";
 import type { DownloaderBridge } from "@/main/bridge/downloader-bridge";
 import type { EmbedderBridge } from "@/main/bridge/embedder-bridge";
 import type { EncryptorBridge } from "@/main/bridge/encryptor-bridge";
@@ -58,10 +58,12 @@ const BRIDGE = {
     updateFontSize: "async",
     createStateStream: "stream",
   }),
-  documentsManager: connector.connect<DocumentsManagerBridge>("documents-manager", {
+  documentManager: connector.connect<DocumentManagerBridge>("document-manager", {
     createCollection: "async",
     deleteCollection: "async",
     updateCollection: "async",
+    importDocuments: "async",
+    deleteDocument: "async",
     liveCollections: "stream",
   }),
 };

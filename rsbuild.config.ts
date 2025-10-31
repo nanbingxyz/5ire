@@ -204,6 +204,10 @@ export default defineConfig(async ({ command }): Promise<RsbuildConfig> => {
             return false;
           },
         ],
+        watchOptions: {
+          ignored: ["**/output"],
+          aggregateTimeout: 1000,
+        },
       },
     },
   };

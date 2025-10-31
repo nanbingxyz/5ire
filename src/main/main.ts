@@ -29,7 +29,7 @@ import axiom from "../vendors/axiom";
 import * as logging from "./logging";
 import { decodeBase64, getFileInfo, getFileType } from "./util";
 import "./sqlite";
-import { DocumentsManagerBridge } from "@/main/bridge/documents-manager-bridge";
+import { DocumentManagerBridge } from "@/main/bridge/document-manager-bridge";
 import { DownloaderBridge } from "@/main/bridge/downloader-bridge";
 import { EmbedderBridge } from "@/main/bridge/embedder-bridge";
 import { EncryptorBridge } from "@/main/bridge/encryptor-bridge";
@@ -39,7 +39,9 @@ import { UpdaterBridge } from "@/main/bridge/updater-bridge";
 import { Database } from "@/main/database";
 import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
-import { DocumentsManager } from "@/main/services/documents-manager";
+import { DocumentEmbedder } from "@/main/services/document-embedder";
+import { DocumentExtractor } from "@/main/services/document-extractor";
+import { DocumentManager } from "@/main/services/document-manager";
 import { Downloader } from "@/main/services/downloader";
 import { Embedder } from "@/main/services/embedder";
 import { Encryptor } from "@/main/services/encryptor";
@@ -68,7 +70,7 @@ Container.singleton(Environment, () => {
 
   if (!app.isPackaged) {
     if (process.env.SOURCE_ROOT) {
-      userDataFolder = join(process.env.SOURCE_ROOT, "node_modules", ".data");
+      userDataFolder = join(app.getPath("userData"), "__DEV__");
     }
   }
 
@@ -106,8 +108,10 @@ Container.singleton(SettingsStoreBridge, () => new SettingsStoreBridge());
 Container.singleton(Embedder, () => new Embedder());
 Container.singleton(EmbedderBridge, () => new EmbedderBridge());
 Container.singleton(Database, () => new Database());
-Container.singleton(DocumentsManager, () => new DocumentsManager());
-Container.singleton(DocumentsManagerBridge, () => new DocumentsManagerBridge());
+Container.singleton(DocumentManager, () => new DocumentManager());
+Container.singleton(DocumentManagerBridge, () => new DocumentManagerBridge());
+Container.singleton(DocumentExtractor, () => new DocumentExtractor());
+Container.singleton(DocumentEmbedder, () => new DocumentEmbedder());
 
 logging.init();
 
@@ -252,13 +256,16 @@ if (!gotTheLock) {
       Container.inject(DownloaderBridge).expose(ipcMain);
       Container.inject(SettingsStoreBridge).expose(ipcMain);
       Container.inject(EmbedderBridge).expose(ipcMain);
-      Container.inject(DocumentsManagerBridge).expose(ipcMain);
+      Container.inject(DocumentManagerBridge).expose(ipcMain);
 
       Container.inject(Embedder)
         .init()
         .catch(() => {});
       Container.inject(Updater)
         .checkForUpdates()
+        .catch(() => {});
+      Container.inject(DocumentEmbedder)
+        .init()
         .catch(() => {});
 
       await Container.inject(Database).ready;
