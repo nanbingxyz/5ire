@@ -6,35 +6,35 @@ export class UpdaterBridge extends Bridge.define("updater", () => {
   const service = Container.inject(Updater);
 
   return {
-    check: async () => {
+    checkForUpdates: async () => {
       return service.checkForUpdates();
     },
-    install: async () => {
-      return service.quitAndInstall();
+    installNow: async () => {
+      return service.installNow();
     },
-    download: () => {
-      const abort = new AbortController();
+    downloadUpdates: async () => {
+      return service.downloadUpdates();
+    },
+    cancelDownloadUpdates: async () => {
+      return service.cancelDownloadUpdates();
+    },
+    createStateStream: () => {
+      const transformStatus = (status: Updater.Status) => {
+        if (status.type === "downloading") {
+          return {
+            type: "downloading",
+            progress: status.progress,
+          } as const;
+        }
 
-      return new ReadableStream({
-        cancel: () => {
-          abort.abort();
-        },
-        start: (controller) => {
-          if (abort.signal.aborted) {
-            return controller.close();
-          }
+        return status;
+      };
 
-          service
-            .downloadUpdates(abort.signal, (info) => {
-              controller.enqueue(info);
-            })
-            .then(() => {
-              controller.close();
-            })
-            .catch((error) => {
-              controller.error(error);
-            });
-        },
+      return service.createStream(({ status, version }) => {
+        return {
+          version,
+          status: transformStatus(status),
+        };
       });
     },
   };

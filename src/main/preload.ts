@@ -30,9 +30,11 @@ const BRIDGE = {
     decrypt: "async",
   }),
   updater: connector.connect<UpdaterBridge>("updater", {
-    check: "async",
-    install: "async",
-    download: "stream",
+    checkForUpdates: "async",
+    installNow: "async",
+    downloadUpdates: "async",
+    cancelDownloadUpdates: "async",
+    createStateStream: "stream",
   }),
   downloader: connector.connect<DownloaderBridge>("downloader", {
     download: "stream",

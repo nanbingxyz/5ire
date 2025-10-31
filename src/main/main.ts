@@ -248,6 +248,7 @@ if (!gotTheLock) {
       await Container.inject(Renderer).focus();
 
       Container.inject(Embedder).init().catch(console.log);
+      Container.inject(Updater).checkForUpdates().catch(console.log);
 
       app.on("activate", () => {
         Container.inject(Renderer)

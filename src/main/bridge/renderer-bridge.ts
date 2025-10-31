@@ -15,6 +15,13 @@ export class RendererBridge extends Bridge.define("renderer", () => {
         return {
           locale: state.locale,
           shouldUseDarkColors: state.shouldUseDarkColors,
+          shouldUseHighContrastColors: state.shouldUseHighContrastColors,
+          shouldUseInvertedColorScheme: state.shouldUseInvertedColorScheme,
+          inForcedColorsMode: state.inForcedColorsMode,
+          prefersReducedTransparency: state.prefersReducedTransparency,
+          preferredSystemLanguages: state.preferredSystemLanguages,
+          localeCountryCode: state.localeCountryCode,
+          systemLocale: state.systemLocale,
         };
       });
     },

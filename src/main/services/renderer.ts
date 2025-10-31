@@ -13,13 +13,24 @@ export class Renderer extends Store<Renderer.State> {
       return {
         window: null,
         shouldUseDarkColors: nativeTheme.shouldUseDarkColors,
+        shouldUseHighContrastColors: nativeTheme.shouldUseHighContrastColors,
+        shouldUseInvertedColorScheme: nativeTheme.shouldUseInvertedColorScheme,
+        inForcedColorsMode: nativeTheme.inForcedColorsMode,
+        prefersReducedTransparency: nativeTheme.prefersReducedTransparency,
+        preferredSystemLanguages: app.getPreferredSystemLanguages(),
         locale: app.getLocale(),
+        localeCountryCode: app.getLocaleCountryCode(),
+        systemLocale: app.getSystemLocale(),
       };
     });
 
     nativeTheme.addListener("updated", () => {
       this.update((draft) => {
         draft.shouldUseDarkColors = nativeTheme.shouldUseDarkColors;
+        draft.shouldUseHighContrastColors = nativeTheme.shouldUseHighContrastColors;
+        draft.shouldUseInvertedColorScheme = nativeTheme.shouldUseInvertedColorScheme;
+        draft.inForcedColorsMode = nativeTheme.inForcedColorsMode;
+        draft.prefersReducedTransparency = nativeTheme.prefersReducedTransparency;
       });
     });
   }
@@ -77,10 +88,6 @@ export class Renderer extends Store<Renderer.State> {
     });
 
     window.webContents.on("will-navigate", (event) => {
-      if (!window) {
-        return event.preventDefault();
-      }
-
       event.preventDefault();
     });
 
@@ -125,6 +132,13 @@ export namespace Renderer {
   export type State = {
     window: Electron.BrowserWindow | null;
     shouldUseDarkColors: boolean;
+    shouldUseHighContrastColors: boolean;
+    shouldUseInvertedColorScheme: boolean;
+    inForcedColorsMode: boolean;
+    prefersReducedTransparency: boolean;
     locale: string;
+    localeCountryCode: string;
+    preferredSystemLanguages: string[];
+    systemLocale: string;
   };
 }
