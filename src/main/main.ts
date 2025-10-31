@@ -29,14 +29,17 @@ import axiom from "../vendors/axiom";
 import * as logging from "./logging";
 import { decodeBase64, getFileInfo, getFileType } from "./util";
 import "./sqlite";
+import { DocumentsManagerBridge } from "@/main/bridge/documents-manager-bridge";
 import { DownloaderBridge } from "@/main/bridge/downloader-bridge";
 import { EmbedderBridge } from "@/main/bridge/embedder-bridge";
 import { EncryptorBridge } from "@/main/bridge/encryptor-bridge";
 import { RendererBridge } from "@/main/bridge/renderer-bridge";
 import { SettingsStoreBridge } from "@/main/bridge/settings-store-bridge";
 import { UpdaterBridge } from "@/main/bridge/updater-bridge";
+import { Database } from "@/main/database";
 import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
+import { DocumentsManager } from "@/main/services/documents-manager";
 import { Downloader } from "@/main/services/downloader";
 import { Embedder } from "@/main/services/embedder";
 import { Encryptor } from "@/main/services/encryptor";
@@ -78,6 +81,8 @@ Container.singleton(Environment, () => {
     embedderCacheFolder: resolve(userDataFolder, "Embedding/Cache"),
     embedderModelsFolder: resolve(userDataFolder, "Embedding/Models"),
     storiesFolder: resolve(userDataFolder, "Stories"),
+    databaseDataFolder: resolve(userDataFolder, "Database"),
+    databaseMigrationsFolder: resolve(__dirname, "./migrations"),
   };
 
   ensureDirSync(env.embedderCacheFolder);
@@ -100,6 +105,9 @@ Container.singleton(SettingsStore, () => new SettingsStore());
 Container.singleton(SettingsStoreBridge, () => new SettingsStoreBridge());
 Container.singleton(Embedder, () => new Embedder());
 Container.singleton(EmbedderBridge, () => new EmbedderBridge());
+Container.singleton(Database, () => new Database());
+Container.singleton(DocumentsManager, () => new DocumentsManager());
+Container.singleton(DocumentsManagerBridge, () => new DocumentsManagerBridge());
 
 logging.init();
 
@@ -244,11 +252,17 @@ if (!gotTheLock) {
       Container.inject(DownloaderBridge).expose(ipcMain);
       Container.inject(SettingsStoreBridge).expose(ipcMain);
       Container.inject(EmbedderBridge).expose(ipcMain);
+      Container.inject(DocumentsManagerBridge).expose(ipcMain);
 
+      Container.inject(Embedder)
+        .init()
+        .catch(() => {});
+      Container.inject(Updater)
+        .checkForUpdates()
+        .catch(() => {});
+
+      await Container.inject(Database).ready;
       await Container.inject(Renderer).focus();
-
-      Container.inject(Embedder).init().catch(console.log);
-      Container.inject(Updater).checkForUpdates().catch(console.log);
 
       app.on("activate", () => {
         Container.inject(Renderer)

@@ -42,13 +42,20 @@ export default defineConfig(async ({ command }): Promise<RsbuildConfig> => {
       //   from: "build",
       //   to: "build",
       // },
-      // {
-      //   from: "drizzle/migrations",
-      //   to: "migrations",
-      // },
+      {
+        from: "drizzle/migrations",
+        to: "migrations",
+      },
     ];
 
-    const externals: string[] = ["onnxruntime-node", "sharp", "@lancedb/lancedb", "better-sqlite3", "pdf-parse"];
+    const externals: string[] = [
+      "onnxruntime-node",
+      "sharp",
+      "@lancedb/lancedb",
+      "better-sqlite3",
+      "pdf-parse",
+      "@electric-sql/pglite",
+    ];
 
     const config: EnvironmentConfig = {
       source: {

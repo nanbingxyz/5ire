@@ -26,7 +26,8 @@
     "build": "npm run install:deps && rsbuild build",
     "build:watch": "npm run install:deps && rsbuild dev",
     "dev": "concurrently -n R,E -c cyan,magenta \"rsbuild dev\" \"npx wait-on http-get://127.0.0.1:33077 && cd ./output && npx nodemon\"",
-    "package": "tsx ./scripts/package/index.ts"
+    "package": "tsx ./scripts/package/index.ts",
+    "generate:drizzle": "drizzle-kit generate"
   },
   "jest": {
     "preset": "ts-jest",
@@ -69,6 +70,7 @@
     "@axiomhq/js": "^1.0.0-rc.1",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/modifiers": "^9.0.0",
+    "@electric-sql/pglite": "^0.3.11",
     "@fluentui-contrib/react-data-grid-react-window": "^1.0.2",
     "@fluentui/react-components": "^9.58.3",
     "@fluentui/react-datepicker-compat": "^0.4.6",
@@ -86,6 +88,7 @@
     "clipboard": "^2.0.11",
     "clsx": "^2.1.1",
     "dompurify": "^3.2.5",
+    "drizzle-orm": "^0.44.7",
     "echarts": "^5.4.2",
     "electron-debug": "^3.2.0",
     "electron-devtools-installer": "^3.2.0",
@@ -164,6 +167,7 @@
     "debug": "^4.3.4",
     "detect-port": "^1.5.1",
     "dotenv": "^16.4.5",
+    "drizzle-kit": "^0.31.6",
     "electron": "31.7.1",
     "electron-builder": "^24.6.3",
     "husky": "^9.1.7",

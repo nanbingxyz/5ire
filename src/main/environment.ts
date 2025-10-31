@@ -31,6 +31,9 @@ export type Environment = {
   readonly embedderCacheFolder: string;
 
   readonly storiesFolder: string;
+
+  readonly databaseMigrationsFolder: string;
+  readonly databaseDataFolder: string;
 };
 
 export namespace Environment {}

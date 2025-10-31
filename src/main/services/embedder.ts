@@ -225,7 +225,7 @@ export class Embedder extends Store<Embedder.State> {
     this.state.status.controller.abort();
   }
 
-  async embed(text: string) {
+  async embed(text: string[]) {
     const logger = this.#logger.scope("Embed");
 
     if (this.state.status.type !== "ready") {
@@ -242,7 +242,7 @@ export class Embedder extends Store<Embedder.State> {
     return this.state.status
       .extractor(text, { pooling: "mean", normalize: true })
       .then((tersor) => {
-        return tersor.tolist() as number[];
+        return tersor.tolist() as number[][];
       })
       .catch((error) => {
         logger.capture(error, "Failed to embed text");
