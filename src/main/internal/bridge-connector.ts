@@ -1,8 +1,24 @@
 import type { Bridge } from "@/main/internal/bridge";
 
+/**
+ * Bridge connector class used to create proxy calls to Bridge services in the main process from the renderer process
+ */
 export class BridgeConnector {
+  /**
+   * Create a BridgeConnector instance
+   * @param ipc - Electron renderer process IPC object
+   */
   constructor(private readonly ipc: Electron.IpcRenderer) {}
 
+  /**
+   * Internal connection method that recursively builds proxy objects for Bridge services
+   * @template T Bridge type
+   * @param namespace - Bridge namespace
+   * @param prefix - Current level path prefix
+   * @param shape - Bridge shape descriptor object
+   * @returns Proxy object that can be used to call remote services
+   * @private
+   */
   #connect<T extends Bridge>(namespace: string, prefix: string, shape: BridgeConnector.Shape<T>) {
     const proxy = {} as Record<string, unknown>;
 
@@ -67,13 +83,31 @@ export class BridgeConnector {
     return proxy as Bridge.Proxy<BridgeConnector.Actions<T>>;
   }
 
+  /**
+   * Connect to Bridge service and create a proxy object for calling remote services
+   * @template T Bridge type
+   * @param namespace - Bridge namespace
+   * @param shape - Bridge shape descriptor object
+   * @returns Proxy object that can be used to call remote services
+   */
   connect<T extends Bridge>(namespace: string, shape: BridgeConnector.Shape<T>) {
     return this.#connect(namespace, namespace, shape);
   }
 }
 
+/**
+ * BridgeConnector namespace containing related type definitions
+ */
 export namespace BridgeConnector {
+  /**
+   * Extract Bridge action types
+   * @template T Bridge type
+   */
   export type Actions<T extends Bridge> = T extends Bridge<infer A> ? A : never;
 
+  /**
+   * Extract Bridge shape types
+   * @template T Bridge type
+   */
   export type Shape<T extends Bridge> = T extends Bridge<infer A> ? Bridge.Shape<A> : never;
 }
