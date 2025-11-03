@@ -11,6 +11,59 @@ export class DocumentManagerBridge extends Bridge.define("document-manager", () 
     updateCollection: service.updateCollection.bind(service),
     importDocuments: service.importDocuments.bind(service),
     deleteDocument: service.deleteDocument.bind(service),
-    liveCollections: service.liveCollections.bind(service),
+    liveCollections: () => {
+      const abort = new AbortController();
+
+      return new ReadableStream<Awaited<ReturnType<typeof service.liveCollections>>["initialResults"]>({
+        cancel: () => {
+          abort.abort();
+        },
+        start: (controller) => {
+          service
+            .liveCollections()
+            .then((live) => {
+              if (abort.signal.aborted) {
+                return;
+              }
+
+              live.subscribe(controller.enqueue);
+
+              abort.signal.addEventListener("abort", () => {
+                live.unsubscribe(controller.enqueue).catch(() => {});
+              });
+            })
+            .catch((error) => {
+              controller.error(error);
+            });
+        },
+      });
+    },
+    liveDocuments: (collection: string) => {
+      const abort = new AbortController();
+
+      return new ReadableStream<Awaited<ReturnType<typeof service.liveDocuments>>["initialResults"]>({
+        cancel: () => {
+          abort.abort();
+        },
+        start: (controller) => {
+          service
+            .liveDocuments(collection)
+            .then((live) => {
+              if (abort.signal.aborted) {
+                return;
+              }
+
+              live.subscribe(controller.enqueue);
+
+              abort.signal.addEventListener("abort", () => {
+                live.unsubscribe(controller.enqueue).catch(() => {});
+              });
+            })
+            .catch((error) => {
+              controller.error(error);
+            });
+        },
+      });
+    },
   };
 }) {}

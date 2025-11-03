@@ -5,6 +5,7 @@ import { contextBridge, type IpcRendererEvent, ipcRenderer } from "electron";
 import { platform } from "os";
 import type { ThemeType } from "types/appearance";
 import v8 from "v8";
+import type { DocumentEmbedderBridge } from "@/main/bridge/document-embedder-bridge";
 import type { DocumentManagerBridge } from "@/main/bridge/document-manager-bridge";
 import type { DownloaderBridge } from "@/main/bridge/downloader-bridge";
 import type { EmbedderBridge } from "@/main/bridge/embedder-bridge";
@@ -65,6 +66,10 @@ const BRIDGE = {
     importDocuments: "async",
     deleteDocument: "async",
     liveCollections: "stream",
+    liveDocuments: "stream",
+  }),
+  documentEmbedder: connector.connect<DocumentEmbedderBridge>("document-embedder", {
+    createStateStream: "stream",
   }),
 };
 

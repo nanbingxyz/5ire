@@ -198,7 +198,7 @@ export class DocumentManager {
   /**
    * Listen to collection changes in real-time
    * Returns a readable stream that continuously pushes updates of collections and their document counts
-   * @returns ReadableStream<Results<QueryResultRow>> Real-time data stream
+   * @returns Real-time data stream
    */
   liveCollections() {
     const schema = this.#database.schema;
@@ -220,26 +220,46 @@ export class DocumentManager {
     const sql = query.toSQL();
     const abort = new AbortController();
 
-    type QueryResultRow = Awaited<ReturnType<(typeof query)["execute"]>>[number];
+    return driver.live.query<Awaited<ReturnType<(typeof query)["execute"]>>[number]>({
+      query: sql.sql,
+      params: sql.params,
+      signal: abort.signal,
+    });
+  }
 
-    return new ReadableStream<Results<QueryResultRow>>({
-      cancel: () => {
-        abort.abort();
-      },
-      start: (controller) => {
-        driver.live
-          .query<QueryResultRow>({
-            query: sql.sql,
-            params: sql.params,
-            callback: (results) => {
-              controller.enqueue(results);
-            },
-            signal: abort.signal,
-          })
-          .catch((error) => {
-            controller.error(error);
-          });
-      },
+  /**
+   * Listen to document changes in real-time for a specific collection
+   * Returns a readable stream that continuously pushes updates of documents in the collection
+   * @param collection Collection ID
+   * @returns Real-time data stream
+   */
+  liveDocuments(collection: string) {
+    const schema = this.#database.schema;
+    const client = this.#database.client;
+    const driver = this.#database.driver;
+
+    const query = client
+      .select({
+        id: schema.document.id,
+        name: schema.document.name,
+        url: schema.document.url,
+        status: schema.document.status,
+        error: schema.document.error,
+        createTime: schema.document.createTime,
+        updateTime: schema.document.updateTime,
+        chunks: client
+          .$count(schema.documentChunk, eq(schema.documentChunk.documentId, schema.document.id))
+          .as("chunks"),
+      })
+      .from(schema.document)
+      .where(eq(schema.document.collectionId, collection));
+    const sql = query.toSQL();
+    const abort = new AbortController();
+
+    return driver.live.query<Awaited<ReturnType<(typeof query)["execute"]>>[number]>({
+      query: sql.sql,
+      params: sql.params,
+      signal: abort.signal,
     });
   }
 }

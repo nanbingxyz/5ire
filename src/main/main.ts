@@ -29,6 +29,7 @@ import axiom from "../vendors/axiom";
 import * as logging from "./logging";
 import { decodeBase64, getFileInfo, getFileType } from "./util";
 import "./sqlite";
+import { DocumentEmbedderBridge } from "@/main/bridge/document-embedder-bridge";
 import { DocumentManagerBridge } from "@/main/bridge/document-manager-bridge";
 import { DownloaderBridge } from "@/main/bridge/downloader-bridge";
 import { EmbedderBridge } from "@/main/bridge/embedder-bridge";
@@ -112,6 +113,7 @@ Container.singleton(DocumentManager, () => new DocumentManager());
 Container.singleton(DocumentManagerBridge, () => new DocumentManagerBridge());
 Container.singleton(DocumentExtractor, () => new DocumentExtractor());
 Container.singleton(DocumentEmbedder, () => new DocumentEmbedder());
+Container.singleton(DocumentEmbedderBridge, () => new DocumentEmbedderBridge());
 
 logging.init();
 
@@ -257,6 +259,7 @@ if (!gotTheLock) {
       Container.inject(SettingsStoreBridge).expose(ipcMain);
       Container.inject(EmbedderBridge).expose(ipcMain);
       Container.inject(DocumentManagerBridge).expose(ipcMain);
+      Container.inject(DocumentEmbedderBridge).expose(ipcMain);
 
       Container.inject(Embedder)
         .init()
