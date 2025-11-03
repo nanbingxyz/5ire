@@ -4,9 +4,18 @@ import { Container } from "@/main/internal/container";
 import { Store } from "@/main/internal/store";
 import { Logger } from "@/main/services/logger";
 
+/**
+ * Updater class is used to handle application update functions
+ * Includes checking for updates, downloading updates, canceling downloads and installing updates
+ * @extends Store<Updater.State>
+ */
 export class Updater extends Store<Updater.State> {
   #logger = Container.inject(Logger).scope("Updater");
 
+  /**
+   * Create Updater instance
+   * Initialize automatic update configuration and initial state
+   */
   constructor() {
     super(() => {
       return {
@@ -27,6 +36,10 @@ export class Updater extends Store<Updater.State> {
     autoUpdater.autoInstallOnAppQuit = true;
   }
 
+  /**
+   * Check for available updates
+   * @returns Promise<void>
+   */
   async checkForUpdates() {
     const logger = this.#logger.scope("CheckForUpdates");
 
@@ -70,6 +83,10 @@ export class Updater extends Store<Updater.State> {
       });
   }
 
+  /**
+   * Download available updates
+   * @returns Promise<void>
+   */
   async downloadUpdates() {
     const logger = this.#logger.scope("DownloadUpdates");
 
@@ -138,6 +155,9 @@ export class Updater extends Store<Updater.State> {
       });
   }
 
+  /**
+   * Cancel ongoing update download
+   */
   cancelDownloadUpdates() {
     const logger = this.#logger.scope("CancelDownloadUpdates");
 
@@ -155,6 +175,10 @@ export class Updater extends Store<Updater.State> {
     });
   }
 
+  /**
+   * Install downloaded updates immediately
+   * Will exit the application and install updates
+   */
   installNow() {
     const logger = this.#logger.scope("InstallNow");
 
@@ -167,43 +191,115 @@ export class Updater extends Store<Updater.State> {
 }
 
 export namespace Updater {
+  /**
+   * Updater status types
+   * Represents the updater's status at different stages
+   */
   export type Status =
     | {
+        /**
+         * Idle status, checking status or no update status
+         * - idle: Idle status, no operations performed
+         * - checking: Checking for updates
+         * - not-available: No updates available
+         */
         type: "idle" | "checking" | "not-available";
       }
     | {
+        /**
+         * Update available status
+         * Found available updates, but download has not started yet
+         */
         type: "available";
+        /**
+         * Update information
+         * Contains detailed information about the available update
+         */
         updateInfo: UpdateInfo;
       }
     | {
+        /**
+         * Downloading status
+         * Downloading update files
+         */
         type: "downloading";
+        /**
+         * Update information
+         * Contains detailed information about the update being downloaded
+         */
         updateInfo: UpdateInfo;
+        /**
+         * Download progress information (optional)
+         * Contains detailed download progress information
+         */
         progress?: ProgressInfo;
+        /**
+         * Download cancellation token
+         * Used to cancel ongoing download operations
+         */
         cancellationToken: CancellationToken;
       }
     | {
+        /**
+         * Download completed status
+         * Update files have been downloaded and are waiting for installation
+         */
         type: "downloaded";
+        /**
+         * Update information
+         * Contains detailed information about the downloaded update
+         */
         updateInfo: UpdateInfo;
       }
     | {
+        /**
+         * Error status
+         * Error occurred during update checking or downloading
+         */
         type: "error";
+        /**
+         * Error message
+         * Describes the reason for the error
+         */
         message: string;
+        /**
+         * Update information (optional)
+         * Contains related update information if an error occurred during download
+         */
         updateInfo?: UpdateInfo;
       };
 
+  /**
+   * Updater complete state definition
+   * Contains current version and updater service status
+   */
   export type State = {
     /**
-     * The current version.
+     * Current version number
+     * Current version string of the application
      */
     version: string;
     /**
-     * The updater service status.
+     * Updater service status
+     * Represents the current operational stage of the updater
      */
     status: Status;
   };
 
+  /**
+   * Updater event definitions
+   * Defines various events that the updater may trigger
+   */
   export type Events = {
-    UPDATES_DOWNLOAD_FAILED: {
+    /**
+     * Update download failed event
+     * Triggered when an error occurs during update file download
+     */
+    "updates-download-failed": {
+      /**
+       * Error message
+       * Contains specific reason description for download failure
+       */
       message: string;
     };
   };

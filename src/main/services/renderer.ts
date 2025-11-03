@@ -4,10 +4,19 @@ import { Container } from "@/main/internal/container";
 import { Store } from "@/main/internal/store";
 import { Logger } from "@/main/services/logger";
 
+/**
+ * Renderer class is used to manage the application's rendering process and browser window
+ * Responsible for creating, configuring and managing Electron's BrowserWindow instances
+ * @extends Store<Renderer.State>
+ */
 export class Renderer extends Store<Renderer.State> {
   #environment = Container.inject(Environment);
   #logger = Container.inject(Logger).scope("Renderer");
 
+  /**
+   * Create Renderer instance
+   * Initialize window state and system theme listeners
+   */
   constructor() {
     super(() => {
       return {
@@ -35,6 +44,11 @@ export class Renderer extends Store<Renderer.State> {
     });
   }
 
+  /**
+   * Get browser window configuration options
+   * Set specific window styles and behaviors based on different platforms
+   * @returns Electron.BrowserWindowConstructorOptions Browser window configuration options
+   */
   get #windowOptions() {
     const options: Electron.BrowserWindowConstructorOptions = {
       width: 1024,
@@ -64,6 +78,11 @@ export class Renderer extends Store<Renderer.State> {
     return options;
   }
 
+  /**
+   * Initialize browser window
+   * Create a new BrowserWindow instance and configure related event handling
+   * @returns Promise<void>
+   */
   async #init() {
     const logger = this.#logger.scope("Init");
 
@@ -113,6 +132,11 @@ export class Renderer extends Store<Renderer.State> {
     }
   }
 
+  /**
+   * Focus on the browser window
+   * If the window does not exist or has been destroyed, initialize the window first
+   * @returns Promise<void>
+   */
   async focus() {
     if (!this.state.window || this.state.window.isDestroyed()) {
       await this.#init();
@@ -129,16 +153,60 @@ export class Renderer extends Store<Renderer.State> {
 }
 
 export namespace Renderer {
+  /**
+   * Renderer state definition
+   * Contains window instance and system theme related information
+   */
   export type State = {
+    /**
+     * Browser window instance
+     * Null if window is not created or has been closed
+     */
     window: Electron.BrowserWindow | null;
+    /**
+     * Whether dark theme should be used
+     * Determined based on system theme settings
+     */
     shouldUseDarkColors: boolean;
+    /**
+     * Whether high contrast theme should be used
+     * Determined based on system theme settings
+     */
     shouldUseHighContrastColors: boolean;
+    /**
+     * Whether inverted color scheme should be used
+     * Determined based on system theme settings
+     */
     shouldUseInvertedColorScheme: boolean;
+    /**
+     * Whether in forced colors mode
+     * Determined based on system theme settings
+     */
     inForcedColorsMode: boolean;
+    /**
+     * Whether reduced transparency is preferred
+     * Determined based on system theme settings
+     */
     prefersReducedTransparency: boolean;
+    /**
+     * System preferred language list
+     * Array of language codes sorted by priority
+     */
     locale: string;
+    /**
+     * Localization country code
+     * Represents the country/region part of the current locale setting
+     */
     localeCountryCode: string;
+    /**
+     * System preferred language list
+     * Array of language codes sorted by priority
+     */
     preferredSystemLanguages: string[];
+    /**
+     * System localization settings
+     * Represents the complete localization information of the system
+     */
     systemLocale: string;
   };
 }

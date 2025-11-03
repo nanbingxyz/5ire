@@ -10,16 +10,29 @@ import { Store } from "@/main/internal/store";
 import { Downloader } from "@/main/services/downloader";
 import { Logger } from "@/main/services/logger";
 
+/**
+ * Embedder class handles generation of text embedding vectors
+ * Responsible for model downloading, initialization, removal, and text embedding functions
+ * @extends Store<Embedder.State>
+ */
 export class Embedder extends Store<Embedder.State> {
   #environment = Container.inject(Environment);
   #downloader = Container.inject(Downloader);
   #logger = Container.inject(Logger).scope("Embedder");
   #emitter = Emitter.create<Embedder.Events>();
 
+  /**
+   * Get event emitter instance
+   * @returns Event emitter instance
+   */
   get emitter() {
     return this.#emitter;
   }
 
+  /**
+   * Create Embedder instance
+   * Initialize state, model name, and required file list
+   */
   constructor() {
     super(() => {
       return {
@@ -32,6 +45,11 @@ export class Embedder extends Store<Embedder.State> {
     });
   }
 
+  /**
+   * Initialize embedding model
+   * Check if model files exist, and load the model if they do
+   * @returns Promise<void>
+   */
   async init() {
     const logger = this.#logger.scope("Init");
 
@@ -98,6 +116,11 @@ export class Embedder extends Store<Embedder.State> {
       });
   }
 
+  /**
+   * Remove downloaded model
+   * If the model is in ready state, release resources first then delete the folder
+   * @returns Promise<void>
+   */
   async removeModel() {
     const logger = this.#logger.scope("RemoveModel");
 
@@ -120,6 +143,11 @@ export class Embedder extends Store<Embedder.State> {
     });
   }
 
+  /**
+   * Download embedding model files
+   * Delete old model files and re-download all required model files
+   * @returns Promise<void>
+   */
   async downloadModel() {
     const logger = this.#logger.scope("DownloadModel");
 
@@ -215,6 +243,11 @@ export class Embedder extends Store<Embedder.State> {
       });
   }
 
+  /**
+   * Cancel model download
+   * Cancel ongoing downloads by calling the abort method of AbortController
+   * @returns Promise<void>
+   */
   async cancelDownloadModel() {
     const logger = this.#logger.scope("CancelDownloadModel");
 
@@ -225,6 +258,12 @@ export class Embedder extends Store<Embedder.State> {
     this.state.status.controller.abort();
   }
 
+  /**
+   * Process text embedding
+   * Convert text to vector representation using the loaded model
+   * @param text Array of text to be embedded
+   * @returns Promise<number[][]> Embedding vector array
+   */
   async embed(text: string[]) {
     const logger = this.#logger.scope("Embed");
 
@@ -241,8 +280,8 @@ export class Embedder extends Store<Embedder.State> {
 
     return this.state.status
       .extractor(text, { pooling: "mean", normalize: true })
-      .then((tersor) => {
-        return tersor.tolist() as number[][];
+      .then((tensor) => {
+        return tensor.tolist() as number[][];
       })
       .catch((error) => {
         logger.capture(error, "Failed to embed text");
@@ -259,50 +298,109 @@ export class Embedder extends Store<Embedder.State> {
 }
 
 export namespace Embedder {
+  /**
+   * Embedder service status types
+   * Represents the status of the embedder service at different stages
+   */
   export type Status =
     | {
+        /**
+         * Idle state
+         * Embedder service has not been initialized or has completed operations
+         */
         type: "idle";
       }
     | {
+        /**
+         * Initializing state
+         * Embedder service is undergoing initialization process
+         */
         type: "initializing";
       }
     | {
+        /**
+         * Ready state
+         * Embedder service has been successfully initialized and is ready to handle embedding requests
+         */
         type: "ready";
+        /**
+         * Feature extraction pipeline instance
+         * Used to perform actual text embedding operations
+         */
         extractor: FeatureExtractionPipeline;
+        /**
+         * Number of running tasks
+         * Records the current number of embedding requests being processed
+         */
         running: number;
       }
     | {
+        /**
+         * Unavailable state
+         * Embedder service is unavailable for some reason
+         */
         type: "unavailable";
+        /**
+         * Reason for unavailability
+         * - model-missing: Model files missing
+         * - model-partially-missing: Model files partially missing
+         * - pipeline-init-failed: Pipeline initialization failed
+         */
         reason: "model-missing" | "model-partially-missing" | "pipeline-init-failed";
       }
     | {
+        /**
+         * Downloading state
+         * Embedder service is downloading model files
+         */
         type: "downloading";
+        /**
+         * Download progress record
+         * Keyed by filename, records total size and received size for each file
+         */
         progress: Record<string, Record<"total" | "received", number>>;
+        /**
+         * Download controller
+         * Used to cancel ongoing download operations
+         */
         controller: AbortController;
       };
 
+  /**
+   * Complete state definition of the embedder
+   * Includes service status, model name, and required file list
+   */
   export type State = {
     /**
-     * The status of the embedder service.
+     * Status of the embedder service
+     * Represents the current operational stage of the service
      */
     status: Status;
     /**
-     * The name of the embedder model.
+     * Name of the embedder model
+     * Used to identify the currently used embedding model
      */
     model: string;
     /**
-     * The files required to initialize the embedder model.
+     * Required file list for initializing the embedder model
+     * Lists all model filenames that must exist
      */
     files: string[];
   };
 
+  /**
+   * Event definitions for the embedder service
+   * Defines various events that the service may trigger
+   */
   export type Events = {
     /**
-     * Emitted when the model download fails.
+     * Event triggered when model download fails
+     * Emitted when an error occurs during model file download
      */
     "model-download-failed": {
       /**
-       * The error message.
+       * Error message
+       * Contains specific description of download failure reason
        */
       message: string;
     };

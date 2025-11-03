@@ -7,10 +7,20 @@ import { Database } from "@/main/database";
 import { Container } from "@/main/internal/container";
 import { Logger } from "@/main/services/logger";
 
+/**
+ * DocumentManager class is used to manage document collections and documents
+ * Provides functions to create, delete, update collections and import, delete documents
+ */
 export class DocumentManager {
   #database = Container.inject(Database);
   #logger = Container.inject(Logger).scope("DocumentsManager");
 
+  /**
+   * Create a new document collection
+   * @param options Options for creating a collection, including name and description
+   * @returns Promise<Collection> The created collection object
+   * @throws Error when the number of collections reaches the limit
+   */
   async createCollection(options: DocumentManager.CreateCollectionOptions) {
     const client = this.#database.client;
     const schema = this.#database.schema;
@@ -36,6 +46,12 @@ export class DocumentManager {
     });
   }
 
+  /**
+   * Delete the specified document collection
+   * @param options Options containing the ID of the collection to delete
+   * @returns Promise<void>
+   * @throws Error when the collection does not exist
+   */
   async deleteCollection(options: DocumentManager.DeleteCollectionOptions) {
     const client = this.#database.client;
     const schema = this.#database.schema;
@@ -53,6 +69,12 @@ export class DocumentManager {
     });
   }
 
+  /**
+   * Update the specified document collection
+   * @param options Options containing the collection ID, new name and new description
+   * @returns Promise<void>
+   * @throws Error when the collection does not exist
+   */
   async updateCollection(options: DocumentManager.UpdateCollectionOptions) {
     const client = this.#database.client;
     const schema = this.#database.schema;
@@ -77,6 +99,12 @@ export class DocumentManager {
     });
   }
 
+  /**
+   * Import documents into the specified collection
+   * @param options Options containing the target collection ID and document URL list
+   * @returns Promise<void>
+   * @throws Error when the collection does not exist, URL is invalid, or document already exists
+   */
   async importDocuments(options: DocumentManager.ImportDocumentsOptions) {
     const client = this.#database.client;
     const schema = this.#database.schema;
@@ -146,6 +174,12 @@ export class DocumentManager {
     });
   }
 
+  /**
+   * Delete the specified document
+   * @param options Options containing the ID of the document to delete
+   * @returns Promise<void>
+   * @throws Error when the document does not exist
+   */
   async deleteDocument(options: DocumentManager.DeleteDocumentOptions) {
     const client = this.#database.client;
     const schema = this.#database.schema;
@@ -161,6 +195,11 @@ export class DocumentManager {
     });
   }
 
+  /**
+   * Listen to collection changes in real-time
+   * Returns a readable stream that continuously pushes updates of collections and their document counts
+   * @returns ReadableStream<Results<QueryResultRow>> Real-time data stream
+   */
   liveCollections() {
     const schema = this.#database.schema;
     const client = this.#database.client;
@@ -206,27 +245,74 @@ export class DocumentManager {
 }
 
 export namespace DocumentManager {
+  /**
+   * Create collection options
+   * Defines parameters required for creating a new collection
+   */
   export type CreateCollectionOptions = {
+    /**
+     * Collection name
+     */
     name: string;
+    /**
+     * Collection description
+     */
     description: string;
   };
 
+  /**
+   * Update collection options
+   * Defines parameters required for updating a collection
+   */
   export type UpdateCollectionOptions = {
+    /**
+     * Collection ID
+     */
     id: string;
+    /**
+     * New collection name
+     */
     name: string;
+    /**
+     * New collection description
+     */
     description: string;
   };
 
+  /**
+   * Delete collection options
+   * Defines parameters required for deleting a collection
+   */
   export type DeleteCollectionOptions = {
+    /**
+     * ID of the collection to delete
+     */
     id: string;
   };
 
+  /**
+   * Import documents options
+   * Defines parameters required for importing documents
+   */
   export type ImportDocumentsOptions = {
+    /**
+     * Target collection ID
+     */
     collection: string;
+    /**
+     * Document URL list
+     */
     urls: string[];
   };
 
+  /**
+   * Delete document options
+   * Defines parameters required for deleting a document
+   */
   export type DeleteDocumentOptions = {
+    /**
+     * ID of the document to delete
+     */
     id: string;
   };
 }

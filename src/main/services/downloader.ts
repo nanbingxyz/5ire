@@ -6,9 +6,19 @@ import { ensureFile } from "fs-extra";
 import { Container } from "@/main/internal/container";
 import { Logger } from "@/main/services/logger";
 
+/**
+ * Downloader class handles file downloading functionality
+ * Supports progress tracking, interruption control, and file integrity verification
+ */
 export class Downloader {
   #logger = Container.inject(Logger).scope("Downloader");
 
+  /**
+   * Downloads a file from the specified URL
+   * @param options Download options including URL, interrupt signal, and progress callback
+   * @returns Promise<Downloader.DownloadedFile> Information about the downloaded file
+   * @throws Error when download fails or is interrupted
+   */
   async download(options: Downloader.DownloadOptions) {
     const logger = this.#logger.scope("Download");
 
@@ -105,20 +115,26 @@ export class Downloader {
 }
 
 export namespace Downloader {
+  /**
+   * Download options configuration
+   * Defines various configurable parameters in the download process
+   */
   export type DownloadOptions = {
     /**
-     * Abort signal
+     * Interrupt signal
+     * Used to cancel ongoing download operations
      */
     signal?: AbortSignal;
     /**
      * Download URL
+     * The complete URL address of the file to be downloaded
      */
     url: string;
     /**
-     * Download progress callback
-     *
-     * @param received - Received bytes
-     * @param total - Total bytes, if unknown, set to -1
+     * Download progress callback function
+     * Called periodically during the download process to report progress
+     * @param received - Number of bytes received
+     * @param total - Total number of bytes, or -1 if unknown
      */
     onProgress?: (received: number, total: number) => void;
   };
