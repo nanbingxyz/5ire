@@ -1,28 +1,73 @@
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { createInterface } from "node:readline";
+import { asError } from "catch-unknown";
 import { asc, eq } from "drizzle-orm";
+import { createReadStream, createWriteStream } from "fs-extra";
 import { Database } from "@/main/database";
 import { Container } from "@/main/internal/container";
+import { Emitter } from "@/main/internal/emitter";
 import { Mutex } from "@/main/internal/mutex";
+import { Store } from "@/main/internal/store";
 import { DocumentExtractor } from "@/main/services/document-extractor";
 import { Embedder } from "@/main/services/embedder";
 import { Logger } from "@/main/services/logger";
 
-export class DocumentEmbedder {
+/**
+ * DocumentEmbedder class is used to handle document embedding vector generation
+ * Responsible for fetching pending documents from the database, extracting text content and generating embedding vectors
+ * @extends Store<DocumentEmbedder.State>
+ */
+export class DocumentEmbedder extends Store<DocumentEmbedder.State> {
   #database = Container.inject(Database);
   #embedder = Container.inject(Embedder);
   #extractor = Container.inject(DocumentExtractor);
   #logger = Container.inject(Logger).scope("DocumentEmbedder");
+  #emitter = Emitter.create<DocumentEmbedder.Events>();
 
-  #metadata = new Map<
-    string,
-    {
-      controller: AbortController;
-    }
-  >();
-
+  /**
+   * Number of worker threads
+   * Controls the number of concurrent document processing to avoid exhausting system resources
+   */
   #workers = 5;
+
+  /**
+   * Empty state flag
+   * Set to true when there are no pending documents to avoid unnecessary polling
+   */
   #empty = false;
+
+  /**
+   * Mutex instance
+   * Used to ensure thread safety for database operations with multiple concurrent requests
+   */
   #mutex = Mutex.create();
 
+  /**
+   * Get the event emitter instance
+   * @returns Event emitter instance
+   */
+  get emitter() {
+    return this.#emitter;
+  }
+
+  /**
+   * Create DocumentEmbedder instance
+   * Initialize the state of documents being processed
+   */
+  constructor() {
+    super(() => {
+      return {
+        processingDocuments: {},
+      };
+    });
+  }
+
+  /**
+   * Lock and fetch a pending document
+   * Use mutex to ensure concurrency safety and update document status to processing
+   * @returns Promise<{id: string, url: string} | undefined> Document information or undefined
+   */
   async #lock() {
     const client = this.#database.client;
     const schema = this.#database.schema;
@@ -64,76 +109,215 @@ export class DocumentEmbedder {
       });
   }
 
+  /**
+   * Process embedding vector generation for the specified document
+   * Includes three stages: document extraction, vector embedding, and result persistence
+   *
+   * Processing flow:
+   * 1. Extraction stage: Use DocumentExtractor to extract document text content from URL
+   * 2. Embedding stage: Use Embedder to generate vector representations for each text block
+   * 3. Saving stage: Save the generated vectors and corresponding text to the database
+   *
+   * Progress status is updated in real-time during processing, and events are triggered when errors occur
+   *
+   * @param id Document ID
+   * @param url Document URL
+   * @returns Promise<void>
+   */
   async #process(id: string, url: string) {
+    const logger = this.#logger.scope("Process");
     const controller = new AbortController();
 
     const client = this.#database.client;
     const schema = this.#database.schema;
 
-    this.#metadata.set(id, { controller });
+    this.update((draft) => {
+      draft.processingDocuments[id] = {
+        controller: controller,
+        status: "extracting",
+        progress: 0,
+      };
+    });
+
     this.#extractor
       .extract(url)
+      // Embedding
       .then(async (texts) => {
         controller.signal.throwIfAborted();
 
-        const chunks: string[][] = [];
-        const embeddings: number[][] = [];
+        this.update((draft) => {
+          draft.processingDocuments[id] = {
+            controller: controller,
+            status: "embedding",
+            progress: 0,
+          };
+        });
 
-        for (let i = 0; i < texts.length; i += 2) {
-          chunks.push(texts.slice(i, i + 2));
-        }
+        const file = join(tmpdir(), crypto.randomUUID());
+        const stream = createWriteStream(file);
 
-        while (true) {
+        let processed = 0;
+
+        for (const text of texts) {
           controller.signal.throwIfAborted();
 
-          const chunk = chunks.shift();
+          await this.#embedder.embed([text]).then(([vector]) => {
+            stream.write(`${JSON.stringify({ text, vector })}\n`);
+          });
 
-          if (!chunk) {
-            break;
-          }
+          processed += 1;
 
-          await this.#embedder.embed(chunk).then((embeddings) => {
-            embeddings.push(...embeddings);
+          this.update((draft) => {
+            draft.processingDocuments[id] = {
+              controller: controller,
+              status: "embedding",
+              progress: processed / texts.length,
+            };
           });
         }
 
-        return embeddings;
+        stream.end();
+
+        await new Promise<void>((resolve, reject) => {
+          stream.on("finish", resolve);
+          stream.on("error", reject);
+        });
+
+        return {
+          readline: createInterface({ input: createReadStream(file), crlfDelay: Infinity }),
+          length: texts.length,
+        };
       })
-      .then((embeddings) => {
+      // Persistence
+      .then(async (result) => {
         controller.signal.throwIfAborted();
 
-        return client.transaction(async (tx) => {
-          const document = await tx
-            .update(schema.document)
-            .set({
-              status: "completed",
-            })
-            .where(eq(schema.document.id, id))
-            .returning()
-            .execute()
-            .then((result) => {
-              return result[0];
-            });
-
-          if (!document) {
-            return;
-          }
-
-          // return tx.insert(schema.documentChunk).values(embeddings.map((embedding, index) => {
-          //   return {
-          //     documentId: document.id,
-          //     text: chunk[index][index],
-          //     embedding: embedding,
-          //   }
-          // }))
+        this.update((draft) => {
+          draft.processingDocuments[id] = {
+            controller: controller,
+            status: "saving",
+            progress: 0,
+          };
         });
-        // client.update(schema.document).set({})
+
+        return client
+          .transaction(async (tx) => {
+            const document = await tx
+              .update(schema.document)
+              .set({
+                status: "completed",
+              })
+              .where(eq(schema.document.id, id))
+              .returning()
+              .execute()
+              .then((result) => {
+                if (!result.length) {
+                  return null;
+                }
+
+                return result[0];
+              });
+
+            if (!document) {
+              return;
+            }
+
+            let inserted = 0;
+
+            const batch: { text: string; vector: number[] }[] = [];
+            const insert = async () => {
+              const values = batch.map(({ text, vector }, index) => {
+                return {
+                  documentId: id,
+                  text,
+                  embedding: vector,
+                  index: inserted + index,
+                } as const;
+              });
+
+              if (values.length === 0) {
+                return;
+              }
+
+              return tx
+                .insert(schema.documentChunk)
+                .values(values)
+                .execute()
+                .then(() => {
+                  inserted += values.length;
+                  // Clear the batch after inserting
+                  batch.length = 0;
+                  // Update the progress
+                  this.update((draft) => {
+                    draft.processingDocuments[id] = {
+                      controller: controller,
+                      status: "saving",
+                      progress: inserted / result.length,
+                    };
+                  });
+                });
+            };
+
+            for await (const line of result.readline) {
+              controller.signal.throwIfAborted();
+              batch.push(JSON.parse(line));
+
+              if (batch.length >= 100) {
+                await insert();
+              }
+            }
+
+            await insert();
+          })
+          .finally(() => {
+            result.readline.close();
+          });
       })
+      // Error handling
+      .catch(async (error) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        logger.error("Failed to process document:", error);
+
+        this.#emitter.emit("document-embed-failed", {
+          id,
+          url,
+          message: asError(error).message,
+        });
+
+        return client
+          .update(schema.document)
+          .set({
+            status: "failed",
+            error: asError(error).message,
+          })
+          .where(eq(schema.document.id, id))
+          .execute()
+          .catch(() => {
+            logger.error("Failed to update document status after processing failure:", error);
+          });
+      })
+      // Reset processing state
       .finally(() => {
-        this.#metadata.delete(id);
+        this.update((draft) => {
+          delete draft.processingDocuments[id];
+        });
       });
   }
 
+  /**
+   * Pull and process pending documents
+   * Concurrently process documents based on the number of available worker threads
+   *
+   * Workflow:
+   * 1. Check if the embedder is ready
+   * 2. Check if there are pending documents
+   * 3. Check if there are available worker threads
+   * 4. Loop to process documents using worker threads
+   * 5. Release worker threads after processing and recursively call to continue processing
+   */
   #pull() {
     if (this.#embedder.state.status.type !== "ready") {
       return;
@@ -165,12 +349,25 @@ export class DocumentEmbedder {
     }
   }
 
+  /**
+   * Initialize the document embedder
+   * Set up database listeners and embedder status change listeners
+   * @returns Promise<void>
+   */
   async init() {
     await this.#database.ready;
 
     const client = this.#database.client;
     const schema = this.#database.schema;
     const driver = this.#database.driver;
+
+    await client
+      .update(schema.document)
+      .set({
+        status: "pending",
+      })
+      .where(eq(schema.document.status, "processing"))
+      .execute();
 
     const query = client
       .select({
@@ -194,20 +391,94 @@ export class DocumentEmbedder {
           this.#empty = false;
           this.#pull();
         } else {
-          this.#metadata.get(change.id)?.controller.abort();
+          this.update((draft) => {
+            const it = draft.processingDocuments[change.id];
+            if (it) {
+              it.controller.abort();
+              delete draft.processingDocuments[change.id];
+            }
+          });
         }
       }
     });
 
     this.#embedder.subscribe((prev, next) => {
       if (prev.status.type === "ready" && next.status.type !== "ready") {
-        for (const { controller } of this.#metadata.values()) {
-          controller.abort();
-        }
+        this.update((draft) => {
+          for (const [_, it] of Object.entries(draft.processingDocuments)) {
+            it.controller.abort();
+          }
+
+          draft.processingDocuments = {};
+        });
       }
       if (prev.status.type !== "ready" && next.status.type === "ready") {
         this.#pull();
       }
     });
+
+    if (this.#embedder.state.status.type === "ready") {
+      this.#pull();
+    }
   }
+}
+
+export namespace DocumentEmbedder {
+  /**
+   * Document embedder event definitions
+   * Defines events that may be triggered during document embedding
+   */
+  export type Events = {
+    /**
+     * Document embedding failed event
+     * Triggered when an error occurs during document embedding
+     */
+    "document-embed-failed": {
+      /**
+       * Document ID
+       */
+      id: string;
+      /**
+       * Document URL
+       */
+      url: string;
+      /**
+       * Error message
+       */
+      message: string;
+    };
+  };
+
+  /**
+   * Document embedder state definition
+   * Contains information about documents being processed
+   */
+  export type State = {
+    /**
+     * Records of documents being processed
+     * Keyed by document ID, storing processing controller, status and progress information
+     */
+    processingDocuments: Record<
+      string,
+      {
+        /**
+         * Abort controller
+         * Used to cancel ongoing document processing operations
+         */
+        controller: AbortController;
+        /**
+         * Processing status
+         * - extracting: Extracting document content
+         * - embedding: Generating embedding vectors
+         * - saving: Saving results
+         */
+        status: "embedding" | "extracting" | "saving";
+        /**
+         * Processing progress
+         * A value between 0 and 1, representing the percentage of completion
+         */
+        progress: number;
+      }
+    >;
+  };
 }
