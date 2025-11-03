@@ -1,0 +1,1 @@
+ALTER TABLE "collections" ADD COLUMN "pined_time" timestamp;

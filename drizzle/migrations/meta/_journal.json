@@ -8,6 +8,27 @@
       "when": 1761884989100,
       "tag": "0000_fast_nightmare",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1762154874814,
+      "tag": "0001_rare_hercules",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1762160081230,
+      "tag": "0002_easy_jimmy_woo",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1762161014398,
+      "tag": "0003_careless_thunderbolt_ross",
+      "breakpoints": true
     }
   ]
 }

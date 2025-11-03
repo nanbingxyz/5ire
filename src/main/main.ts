@@ -25,10 +25,7 @@ import fetch from "node-fetch";
 import path from "path";
 import type { IMCPServer } from "types/mcp";
 import { isValidMCPServer, isValidMCPServerKey } from "utils/validators";
-import axiom from "../vendors/axiom";
-import * as logging from "./logging";
-import { decodeBase64, getFileInfo, getFileType } from "./util";
-import "./sqlite";
+import { DatabaseMigratorBridge } from "@/main/bridge/database-migrator-bridge";
 import { DocumentEmbedderBridge } from "@/main/bridge/document-embedder-bridge";
 import { DocumentManagerBridge } from "@/main/bridge/document-manager-bridge";
 import { DownloaderBridge } from "@/main/bridge/downloader-bridge";
@@ -40,6 +37,7 @@ import { UpdaterBridge } from "@/main/bridge/updater-bridge";
 import { Database } from "@/main/database";
 import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
+import { DatabaseMigrator } from "@/main/services/database-migrator";
 import { DocumentEmbedder } from "@/main/services/document-embedder";
 import { DocumentExtractor } from "@/main/services/document-extractor";
 import { DocumentManager } from "@/main/services/document-manager";
@@ -57,10 +55,14 @@ import {
   SUPPORTED_FILE_TYPES,
   SUPPORTED_IMAGE_TYPES,
 } from "../consts";
+import axiom from "../vendors/axiom";
 import { loadDocumentFromBuffer } from "./docloader";
 import Knowledge from "./knowledge";
+import * as logging from "./logging";
 import ModuleContext from "./mcp";
 import { DocumentLoader } from "./next/document-loader/DocumentLoader";
+import { legacySqliteDatabase } from "./sqlite";
+import { decodeBase64, getFileInfo, getFileType } from "./util";
 
 dotenv.config({
   path: app.isPackaged ? path.join(process.resourcesPath, ".env") : path.resolve(process.cwd(), ".env"),
@@ -109,6 +111,8 @@ Container.singleton(SettingsStoreBridge, () => new SettingsStoreBridge());
 Container.singleton(Embedder, () => new Embedder());
 Container.singleton(EmbedderBridge, () => new EmbedderBridge());
 Container.singleton(Database, () => new Database());
+Container.singleton(DatabaseMigrator, () => new DatabaseMigrator());
+Container.singleton(DatabaseMigratorBridge, () => new DatabaseMigratorBridge());
 Container.singleton(DocumentManager, () => new DocumentManager());
 Container.singleton(DocumentManagerBridge, () => new DocumentManagerBridge());
 Container.singleton(DocumentExtractor, () => new DocumentExtractor());
@@ -260,6 +264,7 @@ if (!gotTheLock) {
       Container.inject(EmbedderBridge).expose(ipcMain);
       Container.inject(DocumentManagerBridge).expose(ipcMain);
       Container.inject(DocumentEmbedderBridge).expose(ipcMain);
+      Container.inject(DatabaseMigratorBridge).expose(ipcMain);
 
       Container.inject(Embedder)
         .init()
@@ -273,6 +278,7 @@ if (!gotTheLock) {
 
       await Container.inject(Database).ready;
       await Container.inject(Renderer).focus();
+      await Container.inject(DatabaseMigrator).migrate(legacySqliteDatabase, await Knowledge.getDatabase());
 
       app.on("activate", () => {
         Container.inject(Renderer)

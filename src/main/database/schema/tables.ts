@@ -43,6 +43,10 @@ const collectionColumns = {
    * The description of the collection.
    */
   description: varchar().notNull(),
+  /**
+   * The pinned time of the collection.
+   */
+  pinedTime: timestamp("pined_time"),
 };
 
 /**
@@ -103,6 +107,10 @@ const documentColumns = {
    * The MIME type of the document.
    */
   mimetype: varchar().notNull(),
+  /**
+   * The size of the document.
+   */
+  size: integer().default(0).notNull(),
 };
 
 /**
@@ -168,4 +176,42 @@ export const documentChunk = pgTable("document_chunks", documentChunkColumns, (t
     // Duplicate chunk indexes are not allowed for the same document
     uniqueIndex().on(table.documentId, table.index),
   ];
+});
+
+/**
+ * Schema definition for the `conversation_collections` table.
+ */
+export const conversationCollectionColumns = {
+  /**
+   * The unique identifier for the record.
+   */
+  id: uuid().primaryKey().defaultRandom(),
+  /**
+   * The creation time of the record.
+   */
+  createTime: makeCreateTime(),
+  /**
+   * The last update time of the record.
+   */
+  updateTime: makeUpdateTime(),
+  /**
+   * The conversation identifier.
+   */
+  conversationId: varchar().notNull(),
+  /**
+   * Associates with the knowledge collection it belongs to.
+   */
+  collectionId: uuid()
+    .notNull()
+    .references(() => collection.id, {
+      onDelete: "cascade",
+      onUpdate: "cascade",
+    }),
+};
+
+/**
+ * The `conversation_collections` table is used to store the relationship between conversations and knowledge collections.
+ */
+export const conversationCollection = pgTable("conversation_collections", conversationCollectionColumns, (table) => {
+  return [index().on(table.createTime), index().on(table.conversationId)];
 });

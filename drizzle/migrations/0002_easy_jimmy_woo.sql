@@ -1,0 +1,1 @@
+ALTER TABLE "documents" ADD COLUMN "size" integer DEFAULT 0 NOT NULL;

@@ -1,11 +1,11 @@
 /* eslint-disable no-console */
-import Database, { Statement } from 'better-sqlite3';
-import { app, ipcMain } from 'electron';
-import path from 'path';
-import * as logging from './logging';
-import { isOneDimensionalArray } from '../utils/util';
+import Database, { type Statement } from "better-sqlite3";
+import { app, ipcMain } from "electron";
+import path from "path";
+import { isOneDimensionalArray } from "../utils/util";
+import * as logging from "./logging";
 
-const dbPath = path.join(app.getPath('userData'), '5ire.db');
+const dbPath = path.join(app.getPath("userData"), "5ire.db");
 const database = new Database(dbPath);
 
 function createTableFolders() {
@@ -198,108 +198,90 @@ function createTableChatKnowledgeRels() {
 
 function alertTableChats() {
   const columns = database.prepare(`PRAGMA table_info(chats)`).all();
-  const hasPromptColumn = columns.some(
-    (column: any) => column.name === 'prompt',
-  );
+  const hasPromptColumn = columns.some((column: any) => column.name === "prompt");
   if (!hasPromptColumn) {
     database.prepare(`ALTER TABLE chats ADD COLUMN prompt TEXT`).run();
-    logging.debug('Added [prompt] column to [chats] table');
+    logging.debug("Added [prompt] column to [chats] table");
   } else {
-    logging.debug('[prompt】 column already exists in [chats] table');
+    logging.debug("[prompt】 column already exists in [chats] table");
   }
-  const hasInputColumn = columns.some((column: any) => column.name === 'input');
+  const hasInputColumn = columns.some((column: any) => column.name === "input");
   if (!hasInputColumn) {
     database.prepare(`ALTER TABLE chats ADD COLUMN input TEXT`).run();
-    logging.debug('Added [input] column to [chats] table');
+    logging.debug("Added [input] column to [chats] table");
   } else {
-    logging.debug('[input] column already exists in [chats] table');
+    logging.debug("[input] column already exists in [chats] table");
   }
-  const hasFolderIdColumn = columns.some(
-    (column: any) => column.name === 'folderId',
-  );
+  const hasFolderIdColumn = columns.some((column: any) => column.name === "folderId");
   if (!hasFolderIdColumn) {
     database.prepare(`ALTER TABLE chats ADD COLUMN folderId TEXT`).run();
-    logging.debug('Added [folderId] column to [chats] table');
+    logging.debug("Added [folderId] column to [chats] table");
   } else {
-    logging.debug('[folderId] column already exists in [chats] table');
+    logging.debug("[folderId] column already exists in [chats] table");
   }
-  const hasProviderColumn = columns.some(
-    (column: any) => column.name === 'provider',
-  );
+  const hasProviderColumn = columns.some((column: any) => column.name === "provider");
   if (!hasProviderColumn) {
     database.prepare(`ALTER TABLE chats ADD COLUMN provider TEXT`).run();
-    logging.debug('Added [provider] column to [chats] table');
+    logging.debug("Added [provider] column to [chats] table");
   } else {
-    logging.debug('[provider column already exists in [chats] table');
+    logging.debug("[provider column already exists in [chats] table");
   }
-  const hasNameColumn = columns.some((column: any) => column.name === 'name');
+  const hasNameColumn = columns.some((column: any) => column.name === "name");
   if (!hasNameColumn) {
     database.prepare(`ALTER TABLE chats ADD COLUMN name TEXT`).run();
-    logging.debug('Added [name] column to [chats] table');
+    logging.debug("Added [name] column to [chats] table");
   } else {
-    logging.debug('[name] column already exists in [chats] table');
+    logging.debug("[name] column already exists in [chats] table");
   }
 }
 
 function alertTableMessages() {
   const columns = database.prepare(`PRAGMA table_info(messages)`).all();
-  const hasReasoningColumn = columns.some(
-    (column: any) => column.name === 'reasoning',
-  );
+  const hasReasoningColumn = columns.some((column: any) => column.name === "reasoning");
   if (!hasReasoningColumn) {
     database.prepare(`ALTER TABLE messages ADD COLUMN reasoning TEXT`).run();
-    logging.debug('Added [reasoning] column to  [messages] table');
+    logging.debug("Added [reasoning] column to  [messages] table");
   } else {
-    logging.debug('[reasoning] column already exists in [Messages] table');
+    logging.debug("[reasoning] column already exists in [Messages] table");
   }
 
   // 2025-08-07
   // Add 'structuredPrompts' column to 'messages' table.
-  const hasStructuredPromptsColumn = columns.some(
-    (column: any) => column.name === 'structuredPrompts',
-  );
+  const hasStructuredPromptsColumn = columns.some((column: any) => column.name === "structuredPrompts");
   if (!hasStructuredPromptsColumn) {
-    database
-      .prepare(`ALTER TABLE messages ADD COLUMN structuredPrompts TEXT`)
-      .run();
-    logging.debug('Added [structuredPrompts] column to [messages] table');
+    database.prepare(`ALTER TABLE messages ADD COLUMN structuredPrompts TEXT`).run();
+    logging.debug("Added [structuredPrompts] column to [messages] table");
   } else {
-    logging.debug(
-      '[structuredPrompts] column already exists in [messages] table',
-    );
+    logging.debug("[structuredPrompts] column already exists in [messages] table");
   }
 }
 
 function alertTableBookmarks() {
   const columns = database.prepare(`PRAGMA table_info(bookmarks)`).all();
-  const hasReasoningColumn = columns.some(
-    (column: any) => column.name === 'reasoning',
-  );
+  const hasReasoningColumn = columns.some((column: any) => column.name === "reasoning");
   if (!hasReasoningColumn) {
     database.prepare(`ALTER TABLE bookmarks ADD COLUMN reasoning TEXT`).run();
-    logging.debug('Added [reasoning] column to [bookmarks] table');
+    logging.debug("Added [reasoning] column to [bookmarks] table");
   } else {
-    logging.debug('[reasoning] column already exists in [bookmarks] table');
+    logging.debug("[reasoning] column already exists in [bookmarks] table");
   }
 }
 
 function alertTableFolders() {
   const columns = database.prepare(`PRAGMA table_info(folders)`).all();
-  const hasProviderColumn = columns.some(
-    (column: any) => column.name === 'provider',
-  );
+  const hasProviderColumn = columns.some((column: any) => column.name === "provider");
   if (!hasProviderColumn) {
     database.prepare(`ALTER TABLE folders ADD COLUMN provider TEXT`).run();
-    logging.debug('Added [provider] column to [folders] table');
+    logging.debug("Added [provider] column to [folders] table");
   } else {
-    logging.debug('[provider] column already exists in [folders] table');
+    logging.debug("[provider] column already exists in [folders] table");
   }
 }
 
 const initDatabase = database.transaction(() => {
-  logging.debug('Init database...');
+  logging.debug("Init database...");
 
-  database.pragma('foreign_keys = ON');
+  database.pragma("foreign_keys = ON");
   createTableFolders();
   createTableChats();
   createTableMessages();
@@ -317,15 +299,15 @@ const initDatabase = database.transaction(() => {
   // v1.0.0
   alertTableFolders();
 
-  logging.info('Database initialized.');
+  logging.info("Database initialized.");
 });
 
-database.pragma('journal_mode = WAL'); // performance reason
+database.pragma("journal_mode = WAL"); // performance reason
 initDatabase();
 
-ipcMain.handle('db-all', (event, data) => {
+ipcMain.handle("db-all", (event, data) => {
   const { sql, params } = data;
-  logging.debug('db-all', sql, params);
+  logging.debug("db-all", sql, params);
   try {
     return database.prepare(sql).all(params);
   } catch (err: any) {
@@ -334,9 +316,9 @@ ipcMain.handle('db-all', (event, data) => {
   }
 });
 
-ipcMain.handle('db-run', (_, data) => {
+ipcMain.handle("db-run", (_, data) => {
   const { sql, params } = data;
-  logging.debug('db-run', sql, params);
+  logging.debug("db-run", sql, params);
   try {
     database.prepare(sql).run(params);
     return true;
@@ -346,8 +328,8 @@ ipcMain.handle('db-run', (_, data) => {
   }
 });
 
-ipcMain.handle('db-transaction', (_, data: any[]) => {
-  logging.debug('db-transaction', JSON.stringify(data, null, 2));
+ipcMain.handle("db-transaction", (_, data: any[]) => {
+  logging.debug("db-transaction", JSON.stringify(data, null, 2));
   const tasks: { statement: Statement; params: any[] }[] = [];
   data.forEach(({ sql, params }) => {
     tasks.push({
@@ -376,9 +358,9 @@ ipcMain.handle('db-transaction', (_, data: any[]) => {
   });
 });
 
-ipcMain.handle('db-get', (_, data) => {
+ipcMain.handle("db-get", (_, data) => {
   const { sql, id } = data;
-  logging.debug('db-get', sql, id);
+  logging.debug("db-get", sql, id);
   try {
     return database.prepare(sql).get(id);
   } catch (err: any) {
@@ -386,3 +368,5 @@ ipcMain.handle('db-get', (_, data) => {
     return null;
   }
 });
+
+export const legacySqliteDatabase = database;
