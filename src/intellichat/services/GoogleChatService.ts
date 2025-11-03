@@ -174,7 +174,7 @@ export default class GoogleChatService
         ],
       },
       {
-        role: 'user',
+        role: 'function',
         parts: parts as any,
       },
     ];
@@ -355,21 +355,8 @@ export default class GoogleChatService
       }),
     );
 
-    await Promise.all(
-      messages.map(async (msg) => {
-        if (typeof msg.content === 'string') {
-          result.push({
-            role: msg.role,
-            parts: await this.convertPromptContent(msg.content),
-          });
-        } else {
-          result.push({
-            role: msg.role,
-            parts: msg.parts,
-          });
-        }
-      }),
-    );
+    const newMessages = await this.processNewMessages(messages);
+    result.push(...newMessages);
 
     return result;
   }
@@ -434,5 +421,24 @@ export default class GoogleChatService
     };
 
     return this.makeHttpRequest(url, headers, payload, isStream);
+  }
+
+  private async processNewMessages(
+    messages: IChatRequestMessage[],
+  ): Promise<IChatRequestMessage[]> {
+    return Promise.all(
+      messages.map(async (msg) => {
+        if (typeof msg.content === 'string') {
+          return {
+            role: msg.role,
+            parts: await this.convertPromptContent(msg.content),
+          };
+        }
+        return {
+          role: msg.role,
+          parts: msg.parts,
+        };
+      }),
+    );
   }
 }
