@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import ConfirmDialog from "renderer/components/ConfirmDialog";
 import { useStore } from "zustand";
-import { useEmbedder } from "@/renderer/next/hooks/stories/use-embedder";
+import { useEmbedder } from "@/renderer/next/hooks/remote/use-embedder";
 
 /**
  * React component for managing embedding model settings.

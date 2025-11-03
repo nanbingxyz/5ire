@@ -1,7 +1,7 @@
 import { Radio, RadioGroup, type RadioGroupOnChangeData } from "@fluentui/react-components";
 import type { FormEvent } from "react";
 import { useTranslation } from "react-i18next";
-import { useSettings } from "@/renderer/next/hooks/stories/use-settings";
+import { useSettings } from "@/renderer/next/hooks/remote/use-settings";
 
 export default function LanguageSettings() {
   const { t } = useTranslation();

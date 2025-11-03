@@ -1,6 +1,7 @@
 import { asError } from "catch-unknown";
 import { autoUpdater, CancellationToken, type ProgressInfo, type UpdateInfo } from "electron-updater";
 import { Container } from "@/main/internal/container";
+import { Emitter } from "@/main/internal/emitter";
 import { Store } from "@/main/internal/store";
 import { Logger } from "@/main/services/logger";
 
@@ -11,6 +12,15 @@ import { Logger } from "@/main/services/logger";
  */
 export class Updater extends Store<Updater.State> {
   #logger = Container.inject(Logger).scope("Updater");
+  #emitter = Emitter.create<Updater.Events>();
+
+  /**
+   * Get event emitter instance
+   * @returns Event emitter instance
+   */
+  get emitter() {
+    return this.#emitter;
+  }
 
   /**
    * Create Updater instance
@@ -141,6 +151,9 @@ export class Updater extends Store<Updater.State> {
       .downloadUpdate(cancellationToken)
       .catch((error) => {
         logger.capture(error, "Failed to download updates");
+        this.emitter.emit("updates-download-failed", {
+          message: asError(error).message,
+        });
         this.update((draft) => {
           draft.status = {
             type: "error",

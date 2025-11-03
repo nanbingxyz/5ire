@@ -37,5 +37,8 @@ export class UpdaterBridge extends Bridge.define("updater", () => {
         };
       });
     },
+    createEventStream: () => {
+      return service.emitter.createStream();
+    },
   };
 }) {}

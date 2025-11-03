@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { suspend } from "suspend-react";
 import { useStore } from "zustand";
-import { createStreamStore } from "@/renderer/next/hooks/stories/utils";
+import { createStateStreamStore } from "@/renderer/next/hooks/remote/utils";
 
 export const useDocuments = (collectionId: string) => {
   const controller = useRef(new AbortController());
@@ -14,7 +14,7 @@ export const useDocuments = (collectionId: string) => {
 
   return useStore(
     suspend(() => {
-      return createStreamStore({
+      return createStateStreamStore({
         streamLoader: () => window.bridge.documentManager.liveDocuments(collectionId),
         signal: controller.current.signal,
       });

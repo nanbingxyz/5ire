@@ -38,12 +38,12 @@ const BRIDGE = {
     downloadUpdates: "async",
     cancelDownloadUpdates: "async",
     createStateStream: "stream",
+    createEventStream: "stream",
   }),
   downloader: connector.connect<DownloaderBridge>("downloader", {
     download: "stream",
   }),
   embedder: connector.connect<EmbedderBridge>("embedder", {
-    embed: "async",
     removeModel: "async",
     downloadModel: "async",
     cancelDownloadModel: "async",
@@ -71,6 +71,7 @@ const BRIDGE = {
   }),
   documentEmbedder: connector.connect<DocumentEmbedderBridge>("document-embedder", {
     createStateStream: "stream",
+    createEventStream: "stream",
   }),
   databaseMigrator: connector.connect<DatabaseMigratorBridge>("database-migrator", {
     createStateStream: "stream",

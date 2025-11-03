@@ -11,7 +11,6 @@ import * as logging from "./logging";
 
 import "./App.scss";
 import "./fluentui.scss";
-import { EmbedderEventsHandler } from "@/renderer/next/components/embedder-events-handler";
 import { ContextMenuProvider } from "./components/ContextMenuProvider";
 
 if (window.envVars.NODE_ENV === "development") {
@@ -91,8 +90,6 @@ export default function App() {
   return (
     <ContextMenuProvider>
       <FluentApp />
-
-      <EmbedderEventsHandler />
     </ContextMenuProvider>
   );
 }

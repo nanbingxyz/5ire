@@ -6,9 +6,6 @@ export class EmbedderBridge extends Bridge.define("embedder", () => {
   const service = Container.inject(Embedder);
 
   return {
-    embed: async (text: string) => {
-      return service.embed(text);
-    },
     removeModel: async () => {
       return service.removeModel();
     },

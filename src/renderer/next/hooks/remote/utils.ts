@@ -6,7 +6,7 @@ export type StreamStoreOptions<T> = {
   signal?: AbortSignal;
 };
 
-export const createStreamStore = async <T>(options: StreamStoreOptions<T>) => {
+export const createStateStreamStore = async <T>(options: StreamStoreOptions<T>) => {
   const stream = await options.streamLoader();
   const initial = await stream.next();
 
