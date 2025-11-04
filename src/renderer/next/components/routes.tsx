@@ -8,6 +8,7 @@ import Bookmark from "@/renderer/pages/bookmark/Bookmark";
 import Chat from "@/renderer/pages/chat";
 import Knowledge from "@/renderer/pages/knowledge";
 import KnowledgeCollectionForm from "@/renderer/pages/knowledge/CollectionForm";
+import KnowledgeFiles from "@/renderer/pages/knowledge-files";
 import Prompts from "@/renderer/pages/prompt";
 import PromptForm from "@/renderer/pages/prompt/Form";
 import Providers from "@/renderer/pages/providers";
@@ -19,7 +20,7 @@ import Login from "@/renderer/pages/user/Login";
 import Register from "@/renderer/pages/user/Register";
 
 const RouteSuspense = (props: React.PropsWithChildren) => {
-  return <Suspense>{props.children}</Suspense>;
+  return <Suspense fallback={<div>Loading...</div>}>{props.children}</Suspense>;
 };
 
 const RouteErrorBoundary = (props: React.PropsWithChildren) => {
@@ -40,6 +41,7 @@ export const Routes = () => {
       <Route index element={wrap(<Chat />)} />
       <Route path="/chats/:id?/:anchor?" element={wrap(<Chat />)} />
       <Route path="/knowledge" element={wrap(<Knowledge />)} />
+      <Route path="/knowledge-files/:id" element={wrap(<KnowledgeFiles />)} />
       <Route path="/knowledge/collection-form/:id?" element={wrap(<KnowledgeCollectionForm />)} />
       <Route path="/tool" element={wrap(<Tools />)} />
       <Route path="/apps/:key" element={wrap(<AppLoader />)} />

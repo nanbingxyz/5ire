@@ -352,5 +352,15 @@
   "Tools.ApprovalPolicy.Once.Hint": "Requires one-time approval for each session",
   "Tools.ApprovalMessage": "Allow executing the tool from \"{{tool}}\" ({{type}})?",
   "Common.Allow": "Allow",
-  "Common.Deny": "Deny"
+  "Common.Deny": "Deny",
+  "Common.Import": "Import",
+  "Common.ImportTime": "Import time",
+  "Common.Status": "Status",
+  "Document.Status.Pending": "Pending",
+  "Document.Status.Processing": "Processing",
+  "Document.Status.Failed": "Failed",
+  "Document.Status.Completed": "Completed",
+  "Document.ProcessStatus.Extracting": "Extracting",
+  "Document.ProcessStatus.Embedding": "Embedding",
+  "Document.ProcessStatus.Saving": "Indexing"
 }

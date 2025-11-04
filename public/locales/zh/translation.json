@@ -341,5 +341,15 @@
   "Tools.ApprovalPolicy.Once.Hint": "每个会话都需一次性审批",
   "Tools.ApprovalMessage": "允许执行来自“{{tool}}”（{{type}}）的工具吗？",
   "Common.Allow": "允许",
-  "Common.Deny": "拒绝"
+  "Common.Deny": "拒绝",
+  "Common.Import": "导入",
+  "Common.ImportTime": "导入时间",
+  "Common.Status": "状态",
+  "Document.Status.Pending": "待处理",
+  "Document.Status.Processing": "处理中",
+  "Document.Status.Failed": "处理失败",
+  "Document.Status.Completed": "处理完成",
+  "Document.ProcessStatus.Extracting": "正在提取内容",
+  "Document.ProcessStatus.Embedding": "正在向量化",
+  "Document.ProcessStatus.Saving": "正在索引"
 }

@@ -274,7 +274,9 @@ if (!gotTheLock) {
         .catch(() => {});
       Container.inject(DocumentEmbedder)
         .init()
-        .catch(() => {});
+        .catch((err) => {
+          console.log(err);
+        });
 
       await Container.inject(Database).ready;
       await Container.inject(Renderer).focus();

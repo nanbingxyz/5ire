@@ -12,7 +12,6 @@ import {
   TableCellActions,
   TableCellLayout,
   type TableColumnDefinition,
-  Tooltip,
   useFluent,
   useScrollbarWidth,
 } from "@fluentui/react-components";
@@ -20,17 +19,8 @@ import {
   bundleIcon,
   DeleteFilled,
   DeleteRegular,
-  DocumentFolderFilled,
-  DocumentFolderRegular,
-  EditFilled,
-  EditRegular,
-  Info16Regular,
   MoreHorizontalFilled,
   MoreHorizontalRegular,
-  PinFilled,
-  PinOffFilled,
-  PinOffRegular,
-  PinRegular,
 } from "@fluentui/react-icons";
 import {
   DataGrid,
@@ -41,19 +31,16 @@ import {
   DataGridRow,
   type RowRenderer,
 } from "@fluentui-contrib/react-data-grid-react-window";
-import useNav from "hooks/useNav";
 import useToast from "hooks/useToast";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useNavigate, useParams } from "react-router-dom";
 import ConfirmDialog from "renderer/components/ConfirmDialog";
 import { fmtDateTime } from "utils/util";
-import { useLiveCollections } from "@/renderer/next/hooks/remote/use-live-collections";
+import { useDocumentEmbedder } from "@/renderer/next/hooks/remote/use-document-embedder";
+import { useLiveDocuments } from "@/renderer/next/hooks/remote/use-live-documents";
 
-const EditIcon = bundleIcon(EditFilled, EditRegular);
 const DeleteIcon = bundleIcon(DeleteFilled, DeleteRegular);
-const PinIcon = bundleIcon(PinFilled, PinRegular);
-const PinOffIcon = bundleIcon(PinOffFilled, PinOffRegular);
-const DocumentFolderIcon = bundleIcon(DocumentFolderFilled, DocumentFolderRegular);
 
 const MoreHorizontalIcon = bundleIcon(MoreHorizontalFilled, MoreHorizontalRegular);
 
@@ -64,16 +51,18 @@ const MoreHorizontalIcon = bundleIcon(MoreHorizontalFilled, MoreHorizontalRegula
  * @returns {JSX.Element} The rendered grid component
  */
 export default function Grid() {
+  const { id } = useParams();
   const { t } = useTranslation();
+  const { notifySuccess } = useToast();
 
-  const navigate = useNav();
-  const collections = useLiveCollections();
-  const items = useMemo(() => collections.rows, [collections]);
+  const documents = useLiveDocuments(id || "");
+  const embedder = useDocumentEmbedder();
+
+  const items = useMemo(() => documents.rows, [documents]);
 
   const [deletingCollectionId, setDeletingCollectionId] = useState<string | null>(null);
 
   const [innerHeight, setInnerHeight] = useState(window.innerHeight);
-  const { notifySuccess } = useToast();
 
   useEffect(() => {
     const handleResize = () => {
@@ -85,15 +74,6 @@ export default function Grid() {
     };
   }, []);
 
-  const handleTogglePin = (id: string) => {
-    window.bridge.documentManager
-      .toggleCollectionPin({ id })
-      .then(() => {
-        notifySuccess(t("Knowledge.Notification.CollectionDeleted"));
-      })
-      .catch(console.error);
-  };
-
   const handleDelete = (id: string) => {
     setDeletingCollectionId(id);
   };
@@ -101,20 +81,12 @@ export default function Grid() {
   const handleConfirmDelete = () => {
     if (deletingCollectionId) {
       window.bridge.documentManager
-        .deleteCollection({ id: deletingCollectionId })
+        .deleteDocument({ id: deletingCollectionId })
         .then(() => {
           notifySuccess(t("Knowledge.Notification.CollectionDeleted"));
         })
         .catch(console.error);
     }
-  };
-
-  const handleEdit = (id: string) => {
-    navigate(`/knowledge/collection-form/${id}`);
-  };
-
-  const handleManageFiles = (id: string) => {
-    navigate(`/knowledge-files/${id}`);
   };
 
   /**
@@ -137,41 +109,23 @@ export default function Grid() {
           <TableCell>
             <TableCellLayout truncate style={{ width: "40vw" }}>
               <div className="flex flex-start items-center gap-1 pr-6">
-                <div className="-mt-0.5 flex-1 min-w-0 max-w-max truncate">{item.name}</div>
-                {item.description && (
-                  <Tooltip content={item.description} relationship="label" withArrow appearance="inverted">
-                    <Button icon={<Info16Regular />} size="small" appearance="subtle" />
-                  </Tooltip>
-                )}
-                {item.pinedTime ? <PinFilled className="ml-1" /> : null}
+                <div className="-mt-0.5 flex-1 min-w-0 max-w-max truncate">
+                  <span className={item.status === "completed" ? "" : "text-gray-300"}>
+                    {item.name} ({item.size}B)
+                  </span>
+                </div>
               </div>
             </TableCellLayout>
-            <TableCellActions
-              onClick={(e) => {
-                e.stopPropagation();
-              }}
-            >
+            <TableCellActions>
               <Menu>
                 <MenuTrigger disableButtonEnhancement>
                   <Button icon={<MoreHorizontalIcon />} appearance="subtle" />
                 </MenuTrigger>
                 <MenuPopover>
                   <MenuList>
-                    <MenuItem icon={<EditIcon />} onClick={() => handleEdit(item.id)}>
-                      {t("Common.Edit")}
-                    </MenuItem>
                     <MenuItem icon={<DeleteIcon />} onClick={() => handleDelete(item.id)}>
                       {t("Common.Delete")}{" "}
                     </MenuItem>
-                    {item.pinedTime ? (
-                      <MenuItem icon={<PinOffIcon />} onClick={() => handleTogglePin(item.id)}>
-                        {t("Common.Unpin")}{" "}
-                      </MenuItem>
-                    ) : (
-                      <MenuItem icon={<PinIcon />} onClick={() => handleTogglePin(item.id)}>
-                        {t("Common.Pin")}{" "}
-                      </MenuItem>
-                    )}
                   </MenuList>
                 </MenuPopover>
               </Menu>
@@ -181,38 +135,101 @@ export default function Grid() {
       },
     }),
     createTableColumn({
-      columnId: "updatedAt",
+      columnId: "importTime",
       compare: (a, b) => {
-        return b.updateTime.getTime() - a.updateTime.getTime();
+        return b.createTime.getTime() - a.createTime.getTime();
       },
       renderHeaderCell: () => {
-        return t("Common.LastUpdated");
-      },
-      renderCell: (item) => {
-        return <TableCellLayout>{<span className="latin">{fmtDateTime(item.updateTime)}</span>}</TableCellLayout>;
-      },
-    }),
-    createTableColumn({
-      columnId: "numOfFiles",
-      compare: (a, b) => {
-        return b.documents - a.documents;
-      },
-      renderHeaderCell: () => {
-        return t("Common.NumberOfFiles");
+        return t("Common.ImportTime");
       },
       renderCell: (item) => {
         return (
           <TableCellLayout>
-            <span className="latin">{item.documents}</span>
+            <span className="latin">{fmtDateTime(item.createTime)}</span>
           </TableCellLayout>
         );
+      },
+    }),
+    createTableColumn({
+      columnId: "status",
+      renderHeaderCell: () => {
+        return t("Common.Status");
+      },
+      renderCell: (item) => {
+        if (item.status === "completed") {
+          return (
+            <TableCellLayout>
+              <span>{t("Document.Status.Completed")}</span>
+            </TableCellLayout>
+          );
+        }
+
+        if (item.status === "processing") {
+          const processing = embedder.processingDocuments[item.id];
+
+          if (processing) {
+            if (processing.status === "extracting") {
+              return (
+                <TableCellLayout>
+                  <span>
+                    {t("Document.ProcessStatus.Extracting")} {processing.progress * 100}%
+                  </span>
+                </TableCellLayout>
+              );
+            }
+
+            if (processing.status === "embedding") {
+              return (
+                <TableCellLayout>
+                  <span>
+                    {t("Document.ProcessStatus.Embedding")} {processing.progress * 100}%
+                  </span>
+                </TableCellLayout>
+              );
+            }
+
+            if (processing.status === "saving") {
+              return (
+                <TableCellLayout>
+                  <span>
+                    {t("Document.ProcessStatus.Saving")} {processing.progress * 100}%
+                  </span>
+                </TableCellLayout>
+              );
+            }
+          }
+
+          return (
+            <TableCellLayout>
+              <span>{t("Document.Status.Processing")}</span>
+            </TableCellLayout>
+          );
+        }
+
+        if (item.status === "failed") {
+          return (
+            <TableCellLayout>
+              <span>{t("Document.Status.Failed")}</span>
+            </TableCellLayout>
+          );
+        }
+
+        if (item.status === "pending") {
+          return (
+            <TableCellLayout>
+              <span>{t("Document.Status.Pending")}</span>
+            </TableCellLayout>
+          );
+        }
+
+        const renderProcessStatus = () => {};
       },
     }),
   ];
 
   const renderRow: RowRenderer<(typeof items)[number]> = ({ item, rowId }, style) => (
     <DataGridRow<(typeof items)[number]> key={rowId} style={style}>
-      {({ renderCell }) => <DataGridCell onClick={() => handleManageFiles(item.id)}>{renderCell(item)}</DataGridCell>}
+      {({ renderCell }) => <DataGridCell>{renderCell(item)}</DataGridCell>}
     </DataGridRow>
   );
   const { targetDocument } = useFluent();
