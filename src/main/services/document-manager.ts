@@ -140,7 +140,7 @@ export class DocumentManager {
 
       for (const url of stringifiedUrls) {
         await tx
-          .$count(schema.collection, eq(schema.document.url, url))
+          .$count(schema.document, eq(schema.document.url, url))
           .then((count) => count > 0)
           .then((exists) => {
             if (exists) {
@@ -184,7 +184,7 @@ export class DocumentManager {
     const schema = this.#database.schema;
 
     return client.transaction(async (tx) => {
-      const exists = await tx.$count(schema.collection, eq(schema.document.id, options.id)).then((count) => count > 0);
+      const exists = await tx.$count(schema.document, eq(schema.document.id, options.id)).then((count) => count > 0);
 
       if (!exists) {
         throw new Error("Document does not exist.");
@@ -250,18 +250,23 @@ export class DocumentManager {
 
     const query = client
       .select({
-        id: schema.collection.id,
-        name: schema.collection.name,
-        description: schema.collection.description,
-        createTime: schema.collection.createTime,
-        updateTime: schema.collection.updateTime,
-        pinedTime: schema.collection.pinedTime,
-        documents: client
-          .$count(schema.document, eq(schema.document.collectionId, schema.collection.id))
-          .as("documents"),
+        ...Database.utils.aliasedColumns({
+          id: schema.collection.id,
+          name: schema.collection.name,
+          description: schema.collection.description,
+          createTime: schema.collection.createTime,
+          updateTime: schema.collection.updateTime,
+          pinedTime: schema.collection.pinedTime,
+        }),
+        ...{
+          documents: client
+            .$count(schema.document, eq(schema.document.collectionId, schema.collection.id))
+            .as("documents"),
+        },
       })
       .from(schema.collection)
       .orderBy(schema.collection.pinedTime, schema.collection.createTime);
+
     const sql = query.toSQL();
     const abort = new AbortController();
 
@@ -269,6 +274,9 @@ export class DocumentManager {
       query: sql.sql,
       params: sql.params,
       signal: abort.signal,
+      callback: () => {
+        console.log("collections changed");
+      },
     });
   }
 
@@ -285,16 +293,21 @@ export class DocumentManager {
 
     const query = client
       .select({
-        id: schema.document.id,
-        name: schema.document.name,
-        url: schema.document.url,
-        status: schema.document.status,
-        error: schema.document.error,
-        createTime: schema.document.createTime,
-        updateTime: schema.document.updateTime,
-        chunks: client
-          .$count(schema.documentChunk, eq(schema.documentChunk.documentId, schema.document.id))
-          .as("chunks"),
+        ...Database.utils.aliasedColumns({
+          id: schema.document.id,
+          name: schema.document.name,
+          url: schema.document.url,
+          status: schema.document.status,
+          error: schema.document.error,
+          createTime: schema.document.createTime,
+          updateTime: schema.document.updateTime,
+          size: schema.document.size,
+        }),
+        ...{
+          chunks: client
+            .$count(schema.documentChunk, eq(schema.documentChunk.documentId, schema.document.id))
+            .as("chunks"),
+        },
       })
       .from(schema.document)
       .where(eq(schema.document.collectionId, collection));

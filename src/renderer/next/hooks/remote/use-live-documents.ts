@@ -3,7 +3,7 @@ import { suspend } from "suspend-react";
 import { useStore } from "zustand";
 import { createStateStreamStore } from "@/renderer/next/hooks/remote/utils";
 
-export const useDocuments = (collectionId: string) => {
+export const useLiveDocuments = (collectionId: string) => {
   const controller = useRef(new AbortController());
 
   useEffect(() => {

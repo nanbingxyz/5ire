@@ -2,7 +2,7 @@ import { fileURLToPath } from "node:url";
 import { fromBuffer } from "file-type";
 import { readFile, stat } from "fs-extra";
 import { parseOffice } from "officeparser";
-import { default as parsePDF } from "pdf-parse";
+import { PDFParse } from "pdf-parse";
 import { MAX_DOCUMENT_SIZE, SUPPORTED_DOCUMENT_MIMETYPES } from "@/main/constants";
 import { smartChunk } from "@/main/util";
 
@@ -41,12 +41,12 @@ export class DocumentExtractor {
     }
 
     // @ts-expect-error
-    if (!SUPPORTED_DOCUMENT_MIMETYPES.includes(type)) {
-      throw new Error(`Unsupported file type: ${type}`);
+    if (!SUPPORTED_DOCUMENT_MIMETYPES.includes(type.mime)) {
+      throw new Error(`Unsupported file type: ${type.mime}`);
     }
 
     return {
-      mimetype: type as unknown as DocumentExtractor.Mimetype,
+      mimetype: type.mime as unknown as DocumentExtractor.Mimetype,
       buffer,
     };
   }
@@ -62,8 +62,7 @@ export class DocumentExtractor {
       case "text":
         return buffer.toString("utf8");
       case "application/pdf":
-        // @ts-expect-error
-        return parsePDF(buffer, {}).then((result) => result.text);
+        return new PDFParse({ data: buffer }).getText().then(({ text }) => text);
       default:
         return new Promise<string>((resolve, reject) => {
           parseOffice(buffer, (text: string, error: unknown) => {

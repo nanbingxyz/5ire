@@ -128,6 +128,10 @@ export class DocumentEmbedder extends Store<DocumentEmbedder.State> {
     const logger = this.#logger.scope("Process");
     const controller = new AbortController();
 
+    controller.signal.addEventListener("abort", () => {
+      console.log("Aborted", url);
+    });
+
     const client = this.#database.client;
     const schema = this.#database.schema;
 
@@ -139,11 +143,15 @@ export class DocumentEmbedder extends Store<DocumentEmbedder.State> {
       };
     });
 
+    logger.info(`Processing document "${url}"`);
+
     this.#extractor
       .extract(url)
       // Embedding
       .then(async (texts) => {
         controller.signal.throwIfAborted();
+
+        logger.info(`Embedding ${texts.length} text blocks`);
 
         this.update((draft) => {
           draft.processingDocuments[id] = {
@@ -275,6 +283,7 @@ export class DocumentEmbedder extends Store<DocumentEmbedder.State> {
       })
       // Error handling
       .catch(async (error) => {
+        console.log(error, controller.signal.aborted);
         if (controller.signal.aborted) {
           return;
         }
@@ -371,10 +380,10 @@ export class DocumentEmbedder extends Store<DocumentEmbedder.State> {
 
     const query = client
       .select({
-        id: schema.collection.id,
+        id: schema.document.id,
+        status: schema.document.status,
       })
-      .from(schema.document)
-      .where(eq(schema.document.status, "pending"));
+      .from(schema.document);
     const sql = query.toSQL();
     const abort = new AbortController();
 
@@ -390,7 +399,7 @@ export class DocumentEmbedder extends Store<DocumentEmbedder.State> {
         if (change.__op__ === "INSERT") {
           this.#empty = false;
           this.#pull();
-        } else {
+        } else if (change.__op__ === "DELETE") {
           this.update((draft) => {
             const it = draft.processingDocuments[change.id];
             if (it) {
