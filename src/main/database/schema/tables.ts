@@ -181,7 +181,7 @@ export const documentChunk = pgTable("document_chunks", documentChunkColumns, (t
 /**
  * Schema definition for the `conversation_collections` table.
  */
-export const conversationCollectionColumns = {
+const conversationCollectionColumns = {
   /**
    * The unique identifier for the record.
    */
