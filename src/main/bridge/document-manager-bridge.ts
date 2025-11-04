@@ -9,6 +9,7 @@ export class DocumentManagerBridge extends Bridge.define("document-manager", () 
     createCollection: service.createCollection.bind(service),
     deleteCollection: service.deleteCollection.bind(service),
     updateCollection: service.updateCollection.bind(service),
+    toggleCollectionPin: service.toggleCollectionPin.bind(service),
     importDocuments: service.importDocuments.bind(service),
     deleteDocument: service.deleteDocument.bind(service),
     liveCollections: () => {

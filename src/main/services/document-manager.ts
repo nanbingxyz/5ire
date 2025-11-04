@@ -1,6 +1,5 @@
 import { basename } from "node:path";
 import { fileURLToPath } from "node:url";
-import type { Results } from "@electric-sql/pglite";
 import { eq } from "drizzle-orm";
 import { MAX_COLLECTIONS, SUPPORTED_DOCUMENT_URL_SCHEMAS } from "@/main/constants";
 import { Database } from "@/main/database";
@@ -196,6 +195,50 @@ export class DocumentManager {
   }
 
   /**
+   * Toggle the pin status of a collection
+   * @param options Options containing the collection ID to toggle pin status
+   * @returns Promise<void>
+   * @throws Error when the collection does not exist
+   */
+  async toggleCollectionPin(options: DocumentManager.ToggleCollectionPinOptions) {
+    const client = this.#database.client;
+    const schema = this.#database.schema;
+
+    return client.transaction(async (tx) => {
+      // Check if collection exists
+      const collection = await tx
+        .select({
+          id: schema.collection.id,
+          pinedTime: schema.collection.pinedTime,
+        })
+        .from(schema.collection)
+        .where(eq(schema.collection.id, options.id))
+        .execute()
+        .then((result) => {
+          if (result.length === 0) {
+            return null;
+          }
+          return result[0];
+        });
+
+      if (!collection) {
+        throw new Error("Collection does not exist.");
+      }
+
+      // Toggle pin status - if pinedTime is set, clear it; otherwise set it to current time
+      const newPinedTime = collection.pinedTime ? null : new Date();
+
+      return tx
+        .update(schema.collection)
+        .set({
+          pinedTime: newPinedTime,
+        })
+        .where(eq(schema.collection.id, options.id))
+        .execute();
+    });
+  }
+
+  /**
    * Listen to collection changes in real-time
    * Returns a readable stream that continuously pushes updates of collections and their document counts
    * @returns Real-time data stream
@@ -212,11 +255,13 @@ export class DocumentManager {
         description: schema.collection.description,
         createTime: schema.collection.createTime,
         updateTime: schema.collection.updateTime,
+        pinedTime: schema.collection.pinedTime,
         documents: client
           .$count(schema.document, eq(schema.document.collectionId, schema.collection.id))
           .as("documents"),
       })
-      .from(schema.collection);
+      .from(schema.collection)
+      .orderBy(schema.collection.pinedTime, schema.collection.createTime);
     const sql = query.toSQL();
     const abort = new AbortController();
 
@@ -278,6 +323,17 @@ export namespace DocumentManager {
      * Collection description
      */
     description: string;
+  };
+
+  /**
+   * Toggle collection pin options
+   * Defines parameters required for toggling collection pin status
+   */
+  export type ToggleCollectionPinOptions = {
+    /**
+     * Collection ID
+     */
+    id: string;
   };
 
   /**

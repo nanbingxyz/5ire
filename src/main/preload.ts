@@ -64,6 +64,7 @@ const BRIDGE = {
     createCollection: "async",
     deleteCollection: "async",
     updateCollection: "async",
+    toggleCollectionPin: "async",
     importDocuments: "async",
     deleteDocument: "async",
     liveCollections: "stream",
