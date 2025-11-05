@@ -274,9 +274,6 @@ export class DocumentManager {
       query: sql.sql,
       params: sql.params,
       signal: abort.signal,
-      callback: () => {
-        console.log("collections changed");
-      },
     });
   }
 

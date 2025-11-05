@@ -2,7 +2,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
 import { asError } from "catch-unknown";
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, not } from "drizzle-orm";
 import { createReadStream, createWriteStream } from "fs-extra";
 import { Database } from "@/main/database";
 import { Container } from "@/main/internal/container";
@@ -148,7 +148,7 @@ export class DocumentEmbedder extends Store<DocumentEmbedder.State> {
     this.#extractor
       .extract(url)
       // Embedding
-      .then(async (texts) => {
+      .then(async ({ texts, mimetype, size }) => {
         controller.signal.throwIfAborted();
 
         logger.info(`Embedding ${texts.length} text blocks`);
@@ -194,6 +194,8 @@ export class DocumentEmbedder extends Store<DocumentEmbedder.State> {
         return {
           readline: createInterface({ input: createReadStream(file), crlfDelay: Infinity }),
           length: texts.length,
+          mimetype,
+          size,
         };
       })
       // Persistence
@@ -214,16 +216,18 @@ export class DocumentEmbedder extends Store<DocumentEmbedder.State> {
               .update(schema.document)
               .set({
                 status: "completed",
+                mimetype: result.mimetype,
+                size: result.size,
               })
               .where(eq(schema.document.id, id))
               .returning()
               .execute()
-              .then((result) => {
-                if (!result.length) {
+              .then((rows) => {
+                if (!rows.length) {
                   return null;
                 }
 
-                return result[0];
+                return rows[0];
               });
 
             if (!document) {
@@ -283,7 +287,6 @@ export class DocumentEmbedder extends Store<DocumentEmbedder.State> {
       })
       // Error handling
       .catch(async (error) => {
-        console.log(error, controller.signal.aborted);
         if (controller.signal.aborted) {
           return;
         }
@@ -383,7 +386,8 @@ export class DocumentEmbedder extends Store<DocumentEmbedder.State> {
         id: schema.document.id,
         status: schema.document.status,
       })
-      .from(schema.document);
+      .from(schema.document)
+      .where(not(eq(schema.document.status, "completed")));
     const sql = query.toSQL();
     const abort = new AbortController();
 

@@ -88,13 +88,21 @@ export class DocumentExtractor {
   /**
    * Extract text content from the specified URL document and perform chunking processing
    * @param url Document file URL path
-   * @returns Promise<string[]> Array of extracted and split text chunks
+   * @returns Promise<DocumentExtractor.Result> Object containing extracted texts, mimetype and size
    * @throws Error when URL protocol is not supported
    */
   async extract(url: string) {
     if (url.startsWith("file://")) {
       return this.#read(url).then(async ({ buffer, mimetype }) => {
-        return this.#parse(buffer, mimetype).then(this.#split);
+        return this.#parse(buffer, mimetype)
+          .then(this.#split)
+          .then((texts) => {
+            return {
+              texts,
+              mimetype,
+              size: buffer.length,
+            } satisfies DocumentExtractor.Result;
+          });
       });
     }
     // TODO: support other protocols
@@ -110,4 +118,22 @@ export namespace DocumentExtractor {
    * Includes types derived from SUPPORTED_DOCUMENT_MIMETYPES constant and text type
    */
   export type Mimetype = (typeof SUPPORTED_DOCUMENT_MIMETYPES)[number] | "text";
+
+  /**
+   * Extracted document result
+   */
+  export type Result = {
+    /**
+     * Array of extracted text chunks
+     */
+    texts: string[];
+    /**
+     * MIME type of the document
+     */
+    mimetype: Mimetype;
+    /**
+     * Size of the document in bytes
+     */
+    size: number;
+  };
 }
