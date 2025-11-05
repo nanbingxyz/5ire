@@ -59,6 +59,24 @@ export class Database {
 
     await driver.exec("CREATE EXTENSION IF NOT EXISTS vector;");
 
+    // Clean up live query views to prevent "out of shared memory" errors caused by improper subscription cleanup
+    await driver
+      .query<Record<"schemaname" | "viewname", string>>("SELECT * FROM pg_views WHERE viewname LIKE 'live_query_%';")
+      .then(async (results) => {
+        logger.info("Dropping live query views...");
+
+        await Promise.all(
+          results.rows.map(async (row) => {
+            await driver.exec(`DROP VIEW IF EXISTS "${row.schemaname}"."${row.viewname}";`);
+          }),
+        );
+
+        return logger.info(`Live query views dropped. Count: ${results.rows.length}`);
+      })
+      .catch((error) => {
+        logger.error("Failed to drop live query views.", error);
+      });
+
     logger.info("Creating Drizzle ORM client...");
 
     const clientQueryLogger = this.#logger.scope("DrizzleQuery");
