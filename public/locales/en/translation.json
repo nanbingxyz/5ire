@@ -362,5 +362,6 @@
   "Document.Status.Completed": "Completed",
   "Document.ProcessStatus.Extracting": "Extracting",
   "Document.ProcessStatus.Embedding": "Embedding",
-  "Document.ProcessStatus.Saving": "Indexing"
+  "Document.ProcessStatus.Saving": "Indexing",
+  "Document.ImportFailed": "Import failed"
 }

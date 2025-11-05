@@ -1,9 +1,22 @@
-import { suspend } from "suspend-react";
+import { clear, preload, suspend } from "suspend-react";
 import { useStore } from "zustand";
 import { createStateStreamStore } from "@/renderer/next/hooks/remote/utils";
 
-const store = createStateStreamStore({
-  streamLoader: window.bridge.updater.createStateStream,
-});
+const key = crypto.randomUUID();
 
-export const useUpdater = () => useStore(suspend(() => store, ["updater"]));
+const createStore = async () => {
+  return createStateStreamStore({
+    streamLoader: window.bridge.updater.createStateStream,
+    onDone: () => {
+      clear([key]);
+    },
+  }).then(({ instance }) => {
+    return instance;
+  });
+};
+
+preload(createStore, [key]);
+
+export const useUpdater = () => {
+  return useStore(suspend(createStore, [key]));
+};

@@ -28,11 +28,8 @@ export class DocumentManagerBridge extends Bridge.define("document-manager", () 
               }
 
               controller.enqueue(live.initialResults);
-              live.subscribe(controller.enqueue.bind(controller));
 
-              abort.signal.addEventListener("abort", () => {
-                live.unsubscribe(controller.enqueue.bind(controller)).catch(() => {});
-              });
+              abort.signal.addEventListener("abort", live.subscribe(controller.enqueue.bind(controller)));
             })
             .catch((error) => {
               controller.error(error);
@@ -56,11 +53,8 @@ export class DocumentManagerBridge extends Bridge.define("document-manager", () 
               }
 
               controller.enqueue(live.initialResults);
-              live.subscribe(controller.enqueue.bind(controller));
 
-              abort.signal.addEventListener("abort", () => {
-                live.unsubscribe(controller.enqueue.bind(controller)).catch(() => {});
-              });
+              abort.signal.addEventListener("abort", live.subscribe(controller.enqueue.bind(controller)));
             })
             .catch((error) => {
               controller.error(error);

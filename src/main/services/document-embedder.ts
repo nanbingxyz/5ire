@@ -29,7 +29,7 @@ export class DocumentEmbedder extends Store<DocumentEmbedder.State> {
    * Number of worker threads
    * Controls the number of concurrent document processing to avoid exhausting system resources
    */
-  #workers = 5;
+  #workers = 1;
 
   /**
    * Empty state flag
@@ -86,19 +86,23 @@ export class DocumentEmbedder extends Store<DocumentEmbedder.State> {
           .where(eq(schema.document.status, "pending"))
           .orderBy(asc(schema.document.id))
           .limit(1)
-          .then(([it]) => {
+          .then(async ([it]) => {
             if (!it) {
               return;
             }
 
-            return tx
-              .update(schema.document)
-              .set({
-                status: "processing",
-              })
-              .where(eq(schema.document.id, it.id))
-              .execute()
-              .then(() => it);
+            await Promise.all([
+              tx
+                .update(schema.document)
+                .set({
+                  status: "processing",
+                })
+                .where(eq(schema.document.id, it.id))
+                .execute(),
+              tx.delete(schema.documentChunk).where(eq(schema.documentChunk.documentId, it.id)).execute(),
+            ]);
+
+            return it;
           });
       })
       .catch((error) => {
@@ -128,10 +132,6 @@ export class DocumentEmbedder extends Store<DocumentEmbedder.State> {
     const logger = this.#logger.scope("Process");
     const controller = new AbortController();
 
-    controller.signal.addEventListener("abort", () => {
-      console.log("Aborted", url);
-    });
-
     const client = this.#database.client;
     const schema = this.#database.schema;
 
@@ -145,178 +145,182 @@ export class DocumentEmbedder extends Store<DocumentEmbedder.State> {
 
     logger.info(`Processing document "${url}"`);
 
-    this.#extractor
-      .extract(url)
-      // Embedding
-      .then(async ({ texts, mimetype, size }) => {
-        controller.signal.throwIfAborted();
-
-        logger.info(`Embedding ${texts.length} text blocks`);
-
-        this.update((draft) => {
-          draft.processingDocuments[id] = {
-            controller: controller,
-            status: "embedding",
-            progress: 0,
-          };
-        });
-
-        const file = join(tmpdir(), crypto.randomUUID());
-        const stream = createWriteStream(file);
-
-        let processed = 0;
-
-        for (const text of texts) {
+    return (
+      this.#extractor
+        .extract(url)
+        // Embedding
+        .then(async ({ texts, mimetype, size }) => {
           controller.signal.throwIfAborted();
 
-          await this.#embedder.embed([text]).then(([vector]) => {
-            stream.write(`${JSON.stringify({ text, vector })}\n`);
-          });
-
-          processed += 1;
+          logger.info(`Extracted ${texts.length} text blocks in document "${url}"`);
 
           this.update((draft) => {
             draft.processingDocuments[id] = {
               controller: controller,
               status: "embedding",
-              progress: processed / texts.length,
+              progress: 0,
             };
           });
-        }
 
-        stream.end();
+          const file = join(tmpdir(), crypto.randomUUID());
+          const stream = createWriteStream(file);
 
-        await new Promise<void>((resolve, reject) => {
-          stream.on("finish", resolve);
-          stream.on("error", reject);
-        });
+          let processed = 0;
 
-        return {
-          readline: createInterface({ input: createReadStream(file), crlfDelay: Infinity }),
-          length: texts.length,
-          mimetype,
-          size,
-        };
-      })
-      // Persistence
-      .then(async (result) => {
-        controller.signal.throwIfAborted();
+          for (const text of texts) {
+            controller.signal.throwIfAborted();
 
-        this.update((draft) => {
-          draft.processingDocuments[id] = {
-            controller: controller,
-            status: "saving",
-            progress: 0,
+            await this.#embedder.embed([text]).then(([vector]) => {
+              stream.write(`${JSON.stringify({ text, vector })}\n`);
+            });
+
+            processed += 1;
+
+            this.update((draft) => {
+              draft.processingDocuments[id] = {
+                controller: controller,
+                status: "embedding",
+                progress: processed / texts.length,
+              };
+            });
+
+            await new Promise((resolve) => setTimeout(resolve, 10));
+          }
+
+          stream.end();
+
+          await new Promise<void>((resolve, reject) => {
+            stream.on("finish", resolve);
+            stream.on("error", reject);
+          });
+
+          return {
+            readline: createInterface({ input: createReadStream(file), crlfDelay: Infinity }),
+            length: texts.length,
+            mimetype,
+            size,
           };
-        });
+        })
+        // Persistence
+        .then(async (result) => {
+          controller.signal.throwIfAborted();
 
-        return client
-          .transaction(async (tx) => {
-            const document = await tx
-              .update(schema.document)
-              .set({
-                status: "completed",
-                mimetype: result.mimetype,
-                size: result.size,
-              })
-              .where(eq(schema.document.id, id))
-              .returning()
-              .execute()
-              .then((rows) => {
-                if (!rows.length) {
-                  return null;
-                }
+          this.update((draft) => {
+            draft.processingDocuments[id] = {
+              controller: controller,
+              status: "saving",
+              progress: 0,
+            };
+          });
 
-                return rows[0];
-              });
+          const document = await client
+            .update(schema.document)
+            .set({
+              status: "completed",
+              mimetype: result.mimetype,
+              size: result.size,
+            })
+            .where(eq(schema.document.id, id))
+            .returning()
+            .execute()
+            .then((rows) => {
+              if (!rows.length) {
+                return null;
+              }
 
-            if (!document) {
+              return rows[0];
+            });
+
+          if (!document) {
+            return;
+          }
+
+          let inserted = 0;
+
+          const batch: { text: string; vector: number[] }[] = [];
+          const insert = async () => {
+            const values = batch.map(({ text, vector }, index) => {
+              return {
+                documentId: id,
+                text,
+                embedding: vector,
+                index: inserted + index,
+              } as const;
+            });
+
+            if (values.length === 0) {
               return;
             }
 
-            let inserted = 0;
-
-            const batch: { text: string; vector: number[] }[] = [];
-            const insert = async () => {
-              const values = batch.map(({ text, vector }, index) => {
-                return {
-                  documentId: id,
-                  text,
-                  embedding: vector,
-                  index: inserted + index,
-                } as const;
-              });
-
-              if (values.length === 0) {
-                return;
-              }
-
-              return tx
-                .insert(schema.documentChunk)
-                .values(values)
-                .execute()
-                .then(() => {
-                  inserted += values.length;
-                  // Clear the batch after inserting
-                  batch.length = 0;
-                  // Update the progress
-                  this.update((draft) => {
-                    draft.processingDocuments[id] = {
-                      controller: controller,
-                      status: "saving",
-                      progress: inserted / result.length,
-                    };
-                  });
+            return client
+              .insert(schema.documentChunk)
+              .values(values)
+              .execute()
+              .then(() => {
+                inserted += values.length;
+                // Clear the batch after inserting
+                batch.length = 0;
+                // Update the progress
+                this.update((draft) => {
+                  draft.processingDocuments[id] = {
+                    controller: controller,
+                    status: "saving",
+                    progress: inserted / result.length,
+                  };
                 });
-            };
+              });
+          };
 
+          try {
             for await (const line of result.readline) {
               controller.signal.throwIfAborted();
               batch.push(JSON.parse(line));
 
-              if (batch.length >= 100) {
+              if (batch.length >= 10) {
                 await insert();
               }
+
+              await new Promise((resolve) => setTimeout(resolve, 20));
             }
 
             await insert();
-          })
-          .finally(() => {
+          } finally {
             result.readline.close();
+          }
+        })
+        // Error handling
+        .catch(async (error) => {
+          if (controller.signal.aborted) {
+            return;
+          }
+
+          logger.error("Failed to process document:", error);
+
+          this.#emitter.emit("document-embed-failed", {
+            id,
+            url,
+            message: asError(error).message,
           });
-      })
-      // Error handling
-      .catch(async (error) => {
-        if (controller.signal.aborted) {
-          return;
-        }
 
-        logger.error("Failed to process document:", error);
-
-        this.#emitter.emit("document-embed-failed", {
-          id,
-          url,
-          message: asError(error).message,
-        });
-
-        return client
-          .update(schema.document)
-          .set({
-            status: "failed",
-            error: asError(error).message,
-          })
-          .where(eq(schema.document.id, id))
-          .execute()
-          .catch(() => {
-            logger.error("Failed to update document status after processing failure:", error);
+          return client
+            .update(schema.document)
+            .set({
+              status: "failed",
+              error: asError(error).message,
+            })
+            .where(eq(schema.document.id, id))
+            .execute()
+            .catch(() => {
+              logger.error("Failed to update document status after processing failure:", error);
+            });
+        })
+        // Reset processing state
+        .finally(() => {
+          this.update((draft) => {
+            delete draft.processingDocuments[id];
           });
-      })
-      // Reset processing state
-      .finally(() => {
-        this.update((draft) => {
-          delete draft.processingDocuments[id];
-        });
-      });
+        })
+    );
   }
 
   /**

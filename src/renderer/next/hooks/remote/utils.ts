@@ -1,11 +1,35 @@
 import { createStore } from "zustand/vanilla";
 import type { Bridge } from "@/main/internal/bridge";
 
+/**
+ * Options for creating a stream store
+ * @template T - The type of data in the stream
+ */
 export type StreamStoreOptions<T> = {
+  /**
+   * A function that returns a promise resolving to a readable stream proxy
+   */
   streamLoader: () => Promise<Bridge.ReadableStreamProxy<T>>;
-  signal?: AbortSignal;
+  /**
+   * Optional callback function that is called when the stream is done
+   */
+  onDone?: () => void;
+  /**
+   * Optional callback function that is called when there is an error reading a chunk
+   * @param error - The error that occurred while reading a chunk
+   */
+  onReadChunkError?: (error: unknown) => void;
 };
 
+/**
+ * Creates a state stream store from a stream loader
+ *
+ * @template T - The type of data in the stream
+ * @param options - Configuration options for the stream store
+ * @returns A promise that resolves to an object containing the store instance and stream
+ *
+ * @throws {Error} If the initial state from the stream is empty
+ */
 export const createStateStreamStore = async <T>(options: StreamStoreOptions<T>) => {
   const stream = await options.streamLoader();
   const initial = await stream.next();
@@ -20,35 +44,28 @@ export const createStateStreamStore = async <T>(options: StreamStoreOptions<T>) 
 
   const setState = instance.setState.bind(instance);
 
-  Promise.resolve()
-    .then(async () => {
-      while (true) {
-        try {
-          const chunk = await stream.next();
+  Promise.resolve().then(async () => {
+    while (true) {
+      try {
+        const chunk = await stream.next();
 
-          if (chunk.done) {
-            break;
-          }
-
-          setState(() => chunk.value, true);
-        } catch {
-          await new Promise((resolve) => setTimeout(resolve, 1000));
+        if (chunk.done) {
+          break;
         }
+
+        setState(() => chunk.value, true);
+      } catch (error) {
+        await stream
+          .stop()
+          .catch(() => {})
+          .finally(() => {
+            options.onReadChunkError?.(error);
+          });
       }
-    })
-    .catch(() => {
-      //
-    });
-
-  if (options.signal) {
-    options.signal.addEventListener("abort", () => {
-      stream.stop().catch(() => {});
-    });
-
-    if (options.signal.aborted) {
-      stream.stop().catch(() => {});
     }
-  }
 
-  return instance;
+    options.onDone?.();
+  });
+
+  return { instance, stream };
 };

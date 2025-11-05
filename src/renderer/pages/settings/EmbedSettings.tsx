@@ -48,7 +48,7 @@ export default function EmbedSettings() {
         <span>{t("Common.Model")}: </span>
         <span>{embedder.model}</span>
         <span>{embedder.status.type === "ready" && <CheckmarkCircle20Filled className="text-green-500" />}</span>
-        <span>{embedder.status.type}</span>
+        <span>{embedder.status.type === "initializing" && <Spinner size="extra-tiny" />}</span>
       </div>
     );
   };

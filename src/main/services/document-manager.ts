@@ -1,6 +1,7 @@
 import { basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { eq } from "drizzle-orm";
+import { default as memoize } from "memoizee";
 import { MAX_COLLECTIONS, SUPPORTED_DOCUMENT_URL_SCHEMAS } from "@/main/constants";
 import { Database } from "@/main/database";
 import { Container } from "@/main/internal/container";
@@ -13,6 +14,29 @@ import { Logger } from "@/main/services/logger";
 export class DocumentManager {
   #database = Container.inject(Database);
   #logger = Container.inject(Logger).scope("DocumentsManager");
+
+  /**
+   * Constructor to initialize the DocumentManager instance
+   *
+   * This constructor sets up memoization for live query methods to improve performance
+   * by caching the results of identical method calls.
+   *
+   * Configuration options:
+   * - primitive: true enables primitive value comparison for cache keys
+   * - promise: true handles Promise-returning functions properly
+   * - normalizer: function to generate cache keys from method arguments
+   */
+  constructor() {
+    this.liveCollections = memoize(this.liveCollections.bind(this), {
+      primitive: true,
+      promise: true,
+    });
+    this.liveDocuments = memoize(this.liveDocuments.bind(this), {
+      primitive: true,
+      promise: true,
+      normalizer: (args) => args[0],
+    });
+  }
 
   /**
    * Create a new document collection
@@ -240,10 +264,14 @@ export class DocumentManager {
 
   /**
    * Listen to collection changes in real-time
-   * Returns a readable stream that continuously pushes updates of collections and their document counts
-   * @returns Real-time data stream
+   * Returns an object with subscribe method, refresh function and initial results
+   * that continuously pushes updates of collections and their document counts
+   * @returns Object containing:
+   * - subscribe: Function to add a subscriber that receives updates
+   * - refresh: Function to manually refresh the data
+   * - initialResults: Initial set of collection data with document counts
    */
-  liveCollections() {
+  async liveCollections() {
     const schema = this.#database.schema;
     const client = this.#database.client;
     const driver = this.#database.driver;
@@ -268,22 +296,41 @@ export class DocumentManager {
       .orderBy(schema.collection.pinedTime, schema.collection.createTime);
 
     const sql = query.toSQL();
-    const abort = new AbortController();
+    const subscribers = new Set<(results: typeof live.initialResults) => void>();
 
-    return driver.live.query<Awaited<ReturnType<(typeof query)["execute"]>>[number]>({
+    const live = await driver.live.query<Awaited<ReturnType<(typeof query)["execute"]>>[number]>({
       query: sql.sql,
       params: sql.params,
-      signal: abort.signal,
+      callback: (results) => {
+        for (const subscriber of subscribers) {
+          subscriber(results);
+        }
+      },
     });
+
+    return {
+      subscribe: (subscriber: (results: typeof live.initialResults) => void) => {
+        subscribers.add(subscriber);
+        return () => {
+          subscribers.delete(subscriber);
+        };
+      },
+      refresh: live.refresh,
+      initialResults: live.initialResults,
+    };
   }
 
   /**
    * Listen to document changes in real-time for a specific collection
-   * Returns a readable stream that continuously pushes updates of documents in the collection
-   * @param collection Collection ID
-   * @returns Real-time data stream
+   * Returns an object with subscribe method, refresh function and initial results
+   * that continuously pushes updates of documents in the collection
+   * @param collection Collection ID to listen to
+   * @returns Object containing:
+   * - subscribe: Function to add a subscriber that receives updates
+   * - refresh: Function to manually refresh the data
+   * - initialResults: Initial set of document data
    */
-  liveDocuments(collection: string) {
+  async liveDocuments(collection: string) {
     const schema = this.#database.schema;
     const client = this.#database.client;
     const driver = this.#database.driver;
@@ -308,14 +355,30 @@ export class DocumentManager {
       })
       .from(schema.document)
       .where(eq(schema.document.collectionId, collection));
-    const sql = query.toSQL();
-    const abort = new AbortController();
 
-    return driver.live.query<Awaited<ReturnType<(typeof query)["execute"]>>[number]>({
+    const sql = query.toSQL();
+    const subscribers = new Set<(results: typeof live.initialResults) => void>();
+
+    const live = await driver.live.query<Awaited<ReturnType<(typeof query)["execute"]>>[number]>({
       query: sql.sql,
       params: sql.params,
-      signal: abort.signal,
+      callback: (results) => {
+        for (const subscriber of subscribers) {
+          subscriber(results);
+        }
+      },
     });
+
+    return {
+      subscribe: (subscriber: (results: typeof live.initialResults) => void) => {
+        subscribers.add(subscriber);
+        return () => {
+          subscribers.delete(subscriber);
+        };
+      },
+      refresh: live.refresh,
+      initialResults: live.initialResults,
+    };
   }
 }
 

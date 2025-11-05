@@ -351,5 +351,6 @@
   "Document.Status.Completed": "处理完成",
   "Document.ProcessStatus.Extracting": "正在提取内容",
   "Document.ProcessStatus.Embedding": "正在向量化",
-  "Document.ProcessStatus.Saving": "正在索引"
+  "Document.ProcessStatus.Saving": "正在索引",
+  "Document.ImportFailed": "导入失败"
 }

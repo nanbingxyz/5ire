@@ -1,9 +1,22 @@
-import { suspend } from "suspend-react";
+import { clear, preload, suspend } from "suspend-react";
 import { useStore } from "zustand";
 import { createStateStreamStore } from "@/renderer/next/hooks/remote/utils";
 
-const store = createStateStreamStore({
-  streamLoader: window.bridge.databaseMigrator.createStateStream,
-});
+const key = crypto.randomUUID();
 
-export const useDatabaseMigrator = () => useStore(suspend(() => store, ["database-migrator"]));
+const createStore = async () => {
+  return createStateStreamStore({
+    streamLoader: window.bridge.databaseMigrator.createStateStream,
+    onDone: () => {
+      clear([key]);
+    },
+  }).then(({ instance }) => {
+    return instance;
+  });
+};
+
+preload(createStore, [key]);
+
+export const useDatabaseMigrator = () => {
+  return useStore(suspend(createStore, [key]));
+};

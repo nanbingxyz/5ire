@@ -19,6 +19,10 @@ export default function CollectionForm() {
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: x
   useEffect(() => {
+    if (!id) {
+      return;
+    }
+
     const found = items.find((item) => item.id === id);
 
     if (!found) {
@@ -31,7 +35,7 @@ export default function CollectionForm() {
 
   const handleSave = async () => {
     if (isBlank(name)) {
-      notifyInfo(t("Knowledge.Notification.NameRequired"));
+      notifyError(t("Knowledge.Notification.NameRequired"));
       return;
     }
 
@@ -57,6 +61,7 @@ export default function CollectionForm() {
         .catch(console.log);
     }
   };
+
   return (
     <div className="page h-full">
       <div className="page-top-bar" />

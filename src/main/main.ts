@@ -93,6 +93,7 @@ Container.singleton(Environment, () => {
   ensureDirSync(env.embedderCacheFolder);
   ensureDirSync(env.embedderModelsFolder);
   ensureDirSync(env.storiesFolder);
+  ensureDirSync(env.databaseDataFolder);
 
   return env;
 });
@@ -272,15 +273,18 @@ if (!gotTheLock) {
       Container.inject(Updater)
         .checkForUpdates()
         .catch(() => {});
-      Container.inject(DocumentEmbedder)
-        .init()
-        .catch((err) => {
-          console.log(err);
-        });
 
       await Container.inject(Database).ready;
       await Container.inject(Renderer).focus();
       await Container.inject(DatabaseMigrator).migrate(legacySqliteDatabase, await Knowledge.getDatabase());
+
+      setTimeout(() => {
+        Container.inject(DocumentEmbedder)
+          .init()
+          .catch((err) => {
+            console.log(err);
+          });
+      }, 3000);
 
       app.on("activate", () => {
         Container.inject(Renderer)
@@ -514,16 +518,6 @@ ipcMain.handle("get-user-data-path", (_, paths) => {
 ipcMain.handle("get-system-language", () => {
   return app.getLocale();
 });
-
-// ipcMain.handle("get-embedding-model-file-status", () => {
-//   return Embedder.getFileStatus();
-// });
-// ipcMain.handle("remove-embedding-model", () => {
-//   Embedder.removeModel();
-// });
-// ipcMain.handle("save-embedding-model-file", (_, fileName: string, filePath: string) => {
-//   Embedder.saveModelFile(fileName, filePath);
-// });
 
 ipcMain.handle(
   "import-knowledge-file",

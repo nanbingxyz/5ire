@@ -8,17 +8,21 @@ import {
   MenuList,
   MenuPopover,
   MenuTrigger,
+  Spinner,
   TableCell,
   TableCellActions,
   TableCellLayout,
   type TableColumnDefinition,
+  Tooltip,
   useFluent,
   useScrollbarWidth,
 } from "@fluentui/react-components";
 import {
   bundleIcon,
+  CircleHintFilled,
   DeleteFilled,
   DeleteRegular,
+  DismissCircleColor,
   MoreHorizontalFilled,
   MoreHorizontalRegular,
 } from "@fluentui/react-icons";
@@ -34,15 +38,79 @@ import {
 import useToast from "hooks/useToast";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import ConfirmDialog from "renderer/components/ConfirmDialog";
 import { fmtDateTime } from "utils/util";
+import type { Document } from "@/main/database/types";
 import { useDocumentEmbedder } from "@/renderer/next/hooks/remote/use-document-embedder";
 import { useLiveDocuments } from "@/renderer/next/hooks/remote/use-live-documents";
 
 const DeleteIcon = bundleIcon(DeleteFilled, DeleteRegular);
 
 const MoreHorizontalIcon = bundleIcon(MoreHorizontalFilled, MoreHorizontalRegular);
+
+type StatusIndicatorProps = {
+  item: Pick<Document, "status" | "id" | "error">;
+};
+
+const StatusIndicator = (props: StatusIndicatorProps) => {
+  const { t } = useTranslation();
+
+  const embedder = useDocumentEmbedder();
+
+  // console.log(embedder.processingDocuments, props.item.id);
+
+  if (props.item.status === "completed") {
+    return null;
+  }
+
+  if (props.item.status === "failed") {
+    return (
+      <Tooltip
+        relationship="description"
+        content={{ children: `${t("Document.ImportFailed")}: ${props.item.error || "Unknown error."}` }}
+      >
+        <DismissCircleColor fontSize="16px" />
+      </Tooltip>
+    );
+  }
+
+  if (props.item.status === "processing") {
+    let content = "";
+
+    const processing = embedder.processingDocuments[props.item.id];
+
+    if (!processing) {
+      content = t("Document.Status.Processing");
+    } else {
+      content = {
+        embedding: t("Document.ProcessStatus.Embedding"),
+        extracting: t("Document.ProcessStatus.Extracting"),
+        saving: t("Document.ProcessStatus.Saving"),
+      }[processing.status];
+
+      content += `... ${(processing.progress * 100).toFixed(1)}%`;
+    }
+
+    return (
+      <Tooltip
+        content={{
+          children: content,
+        }}
+        withArrow
+        relationship="description"
+      >
+        <Spinner size="extra-tiny" />
+      </Tooltip>
+    );
+  }
+
+  return (
+    <Tooltip relationship="description" content={{ children: t("Document.Status.Pending") }}>
+      <CircleHintFilled fontSize="16px" />
+    </Tooltip>
+  );
+};
 
 /**
  * Grid component that displays knowledge collections in a data grid format.
@@ -56,7 +124,6 @@ export default function Grid() {
   const { notifySuccess } = useToast();
 
   const documents = useLiveDocuments(id || "");
-  const embedder = useDocumentEmbedder();
 
   const items = useMemo(() => documents.rows, [documents]);
 
@@ -105,15 +172,36 @@ export default function Grid() {
         return t("Common.Name");
       },
       renderCell: (item) => {
+        const renderName = () => {
+          const formatSize = () => {
+            if (item.size === 0) {
+              return "0B";
+            }
+
+            const units = ["B", "KB", "MB", "GB", "TB", "PB"];
+            const i = Math.floor(Math.log(item.size) / Math.log(1024));
+            const value = item.size / 1024 ** i;
+
+            return ` ${value.toFixed(value < 10 && i > 0 ? 1 : 0)}${units[i]}`;
+          };
+
+          return (
+            <span className={item.status === "completed" ? "" : "text-gray-300"}>
+              {item.name} <span className="text-gray-400">{item.status === "completed" ? formatSize() : ""}</span>
+            </span>
+          );
+        };
+
+        const renderStatus = () => {
+          return <StatusIndicator item={item} />;
+        };
+
         return (
           <TableCell>
             <TableCellLayout truncate style={{ width: "40vw" }}>
               <div className="flex flex-start items-center gap-1 pr-6">
-                <div className="-mt-0.5 flex-1 min-w-0 max-w-max truncate">
-                  <span className={item.status === "completed" ? "" : "text-gray-300"}>
-                    {item.name} ({item.size}B)
-                  </span>
-                </div>
+                {renderStatus()}
+                <div className="-mt-0.5 flex-1 min-w-0 max-w-max truncate">{renderName()}</div>
               </div>
             </TableCellLayout>
             <TableCellActions>
@@ -150,102 +238,20 @@ export default function Grid() {
         );
       },
     }),
-    createTableColumn({
-      columnId: "status",
-      renderHeaderCell: () => {
-        return t("Common.Status");
-      },
-      renderCell: (item) => {
-        if (item.status === "completed") {
-          return (
-            <TableCellLayout>
-              <span>{t("Document.Status.Completed")}</span>
-            </TableCellLayout>
-          );
-        }
-
-        if (item.status === "processing") {
-          const processing = embedder.processingDocuments[item.id];
-
-          if (processing) {
-            if (processing.status === "extracting") {
-              return (
-                <TableCellLayout>
-                  <span>
-                    {t("Document.ProcessStatus.Extracting")} {processing.progress * 100}%
-                  </span>
-                </TableCellLayout>
-              );
-            }
-
-            if (processing.status === "embedding") {
-              return (
-                <TableCellLayout>
-                  <span>
-                    {t("Document.ProcessStatus.Embedding")} {processing.progress * 100}%
-                  </span>
-                </TableCellLayout>
-              );
-            }
-
-            if (processing.status === "saving") {
-              return (
-                <TableCellLayout>
-                  <span>
-                    {t("Document.ProcessStatus.Saving")} {processing.progress * 100}%
-                  </span>
-                </TableCellLayout>
-              );
-            }
-          }
-
-          return (
-            <TableCellLayout>
-              <span>{t("Document.Status.Processing")}</span>
-            </TableCellLayout>
-          );
-        }
-
-        if (item.status === "failed") {
-          return (
-            <TableCellLayout>
-              <span>{t("Document.Status.Failed")}</span>
-            </TableCellLayout>
-          );
-        }
-
-        if (item.status === "pending") {
-          return (
-            <TableCellLayout>
-              <span>{t("Document.Status.Pending")}</span>
-            </TableCellLayout>
-          );
-        }
-
-        const renderProcessStatus = () => {};
-      },
-    }),
   ];
 
   const renderRow: RowRenderer<(typeof items)[number]> = ({ item, rowId }, style) => (
-    <DataGridRow<(typeof items)[number]> key={rowId} style={style}>
+    <DataGridRow<(typeof items)[number]> key={item.id} style={style}>
       {({ renderCell }) => <DataGridCell>{renderCell(item)}</DataGridCell>}
     </DataGridRow>
   );
+
   const { targetDocument } = useFluent();
   const scrollbarWidth = useScrollbarWidth({ targetDocument });
 
   return (
     <div className="w-full">
-      <DataGrid
-        items={items}
-        columns={columns}
-        focusMode="cell"
-        sortable
-        size="small"
-        className="w-full"
-        getRowId={(item) => item.id}
-      >
+      <DataGrid items={items} columns={columns} sortable size="small" className="w-full" getRowId={(item) => item.id}>
         <DataGridHeader style={{ paddingRight: scrollbarWidth }}>
           <DataGridRow>
             {({ renderHeaderCell }) => <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>}
