@@ -139,7 +139,7 @@
   "Auth.Notification.LoginCallbackFailed": "Sign in failed, please check if the link has expired.",
   "Editor.Toolbar.StreamMode": "Stream Mode",
   "Version.UpdateNow": "Update Now",
-  "Version.HasNewVersion": "A new version is available.",
+  "Version.HasNewVersion": "A new version is available",
   "Editor.Toolbar.StreamEnabled": "Streaming mode enabled",
   "Settings.Action.SaveToCloud": "Save to Cloud",
   "Knowledge.Action.AddFiles": "Add files",
@@ -363,5 +363,10 @@
   "Document.ProcessStatus.Extracting": "Extracting",
   "Document.ProcessStatus.Embedding": "Embedding",
   "Document.ProcessStatus.Saving": "Indexing",
-  "Document.ImportFailed": "Import failed"
+  "Document.ImportFailed": "Import failed",
+  "Updater.CheckingForUpdates": "Checking for updates",
+  "Updater.CheckForUpdates": "Check for updates",
+  "Updater.DownloadUpdates": "Download updates",
+  "Updater.DownloadingUpdates": "Downloading updates",
+  "Updater.InstallNow": "Install now"
 }

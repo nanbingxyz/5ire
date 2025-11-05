@@ -131,7 +131,7 @@
   "Knowledge.Notification.OutOfMaxNumFilesError": "请一次添加 1 到 10 个文件。",
   "Knowledge.Page.Title.Collection": "知识收集",
   "Notification.NameRequired": "名称为必填项。",
-  "Version.HasNewVersion": "有新版本可用。",
+  "Version.HasNewVersion": "有新版本可用",
   "Settings.Embeddings.Tip.ModelRequired": "在使用知识库之前，请先下载模型。\n知识库使用bge-m3对数据进行向量化。",
   "Settings.Action.DownloadFromCloud": "从云端恢复",
   "Settings.Action.SaveToCloud": "保存至云端",
@@ -352,5 +352,10 @@
   "Document.ProcessStatus.Extracting": "正在提取内容",
   "Document.ProcessStatus.Embedding": "正在向量化",
   "Document.ProcessStatus.Saving": "正在索引",
-  "Document.ImportFailed": "导入失败"
+  "Document.ImportFailed": "导入失败",
+  "Updater.CheckingForUpdates": "正在检查更新",
+  "Updater.CheckForUpdates": "检查更新",
+  "Updater.DownloadUpdates": "下载更新",
+  "Updater.DownloadingUpdates": "正在下载更新",
+  "Updater.InstallNow": "现在安装"
 }

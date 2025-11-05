@@ -1,4 +1,4 @@
-import { clear, preload, suspend } from "suspend-react";
+import { clear, suspend } from "suspend-react";
 import { useStore } from "zustand";
 import { createStateStreamStore } from "@/renderer/next/hooks/remote/utils";
 
@@ -14,8 +14,6 @@ const createStore = async () => {
     return instance;
   });
 };
-
-preload(createStore, [key]);
 
 export const useUpdater = () => {
   return useStore(suspend(createStore, [key]));

@@ -53,8 +53,12 @@ export class Updater extends Store<Updater.State> {
   async checkForUpdates() {
     const logger = this.#logger.scope("CheckForUpdates");
 
-    if (this.state.status.type !== "idle") {
-      return logger.error("Cannot check for updates: updater is already checking for updates");
+    if (
+      this.state.status.type !== "idle" &&
+      this.state.status.type !== "error" &&
+      this.state.status.type !== "not-available"
+    ) {
+      return logger.info("Cannot check for updates: updater is already checking or has updates available");
     }
 
     this.update((draft) => {
