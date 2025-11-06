@@ -366,7 +366,11 @@
   "Document.ImportFailed": "Import failed",
   "Updater.CheckingForUpdates": "Checking for updates",
   "Updater.CheckForUpdates": "Check for updates",
+  "Updater.CheckForUpdatesFailed": "Failed to check for updates",
   "Updater.DownloadUpdates": "Download updates",
+  "Updater.DownloadUpdatesFailed": "Failed to download updates",
   "Updater.DownloadingUpdates": "Downloading updates",
-  "Updater.InstallNow": "Install now"
+  "Updater.InstallNow": "Install now",
+  "Updater.InstallAfterRestart": "{version} will be installed after you restart the app",
+  "Updater.ManualDownload": "Download manually"
 }

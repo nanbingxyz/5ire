@@ -1,56 +1,19 @@
 import { Button } from "@fluentui/react-components";
-import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import Spinner from "renderer/components/Spinner";
 import { useUpdater } from "@/renderer/next/hooks/remote/use-updater";
-import { captureException } from "../../logging";
-
-interface IUpdateInfo {
-  version: string;
-  releaseNotes: string;
-  releaseName: string;
-  isDownloading: boolean;
-}
 
 export default function Version() {
   const { t } = useTranslation();
 
-  const [updateInfo, setUpdateInfo] = useState<IUpdateInfo>();
-  const [version, setVersion] = useState("0");
-
   const updater = useUpdater();
-
-  console.log(updater);
-
-  useEffect(() => {
-    let timer: number | null = null;
-    let info = window.electron.store.get("updateInfo");
-    setUpdateInfo(info);
-    if (info?.isDownloading) {
-      timer = setInterval(() => {
-        info = window.electron.store.get("updateInfo");
-        if (timer && !info?.isDownloading) {
-          clearInterval(timer);
-        }
-        setUpdateInfo(info);
-      }, 1000) as any;
-    }
-    window.electron
-      .getAppVersion()
-      .then((appVersion) => {
-        return setVersion(appVersion);
-      })
-      .catch(captureException);
-
-    return () => {
-      if (timer) {
-        clearInterval(timer);
-      }
-    };
-  }, []);
 
   const renderProgress = (total: number, received: number) => {
     return `${((received / total) * 100).toFixed(1)}%`;
+  };
+
+  const handleOpenWebsite = () => {
+    window.open("https://5ire.app", "_blank");
   };
 
   return (
@@ -64,7 +27,6 @@ export default function Version() {
             {updater.status.type === "checking" && (
               <div className="flex items-center gap-1">
                 <Spinner size={14} />
-                <span className="tips">{t("Updater.CheckingForUpdates")}...</span>
               </div>
             )}
           </div>
@@ -72,7 +34,7 @@ export default function Version() {
           {updater.status.type === "available" && (
             <div className="flex items-center">
               <div className="tips">
-                {t("Version.HasNewVersion")} {updater.status.updateInfo.version}{" "}
+                {t("Version.HasNewVersion")} (v{updater.status.updateInfo.version})
               </div>
             </div>
           )}
@@ -91,7 +53,15 @@ export default function Version() {
           {updater.status.type === "downloaded" && (
             <div className="flex items-center">
               <span className="tips">
-                {t("Version.HasNewVersion")} {updater.status.updateInfo.version}{" "}
+                {t("Version.HasNewVersion")} (v{updater.status.updateInfo.version})
+              </span>
+            </div>
+          )}
+
+          {updater.status.type === "error" && updater.status.updateInfo && (
+            <div className="flex items-center">
+              <span className="tips">
+                {t("Version.HasNewVersion")} (v{updater.status.updateInfo.version})
               </span>
             </div>
           )}
@@ -123,14 +93,25 @@ export default function Version() {
               </Button>
 
               <div className="tips">
-                {updater.status.updateInfo.version} will be installed after you restart the app.
+                {t("Updater.InstallAfterRestart", {
+                  version: updater.status.updateInfo.version,
+                })}
               </div>
             </div>
           )}
 
-          {(updater.status.type === "idle" ||
-            updater.status.type === "error" ||
-            updater.status.type === "not-available") && (
+          {updater.status.type === "error" && (
+            <div className="text-red-300">
+              {updater.status.updateInfo ? t("Updater.DownloadUpdatesFailed") : t("Updater.CheckForUpdatesFailed")}{" "}
+              {updater.status.updateInfo && (
+                <button className="underline cursor-pointer" type="button" onClick={handleOpenWebsite}>
+                  {t("Updater.ManualDownload")}
+                </button>
+              )}
+            </div>
+          )}
+
+          {(updater.status.type === "idle" || updater.status.type === "not-available") && (
             <div>
               <Button
                 appearance="primary"

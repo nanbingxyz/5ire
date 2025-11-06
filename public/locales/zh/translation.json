@@ -355,7 +355,11 @@
   "Document.ImportFailed": "导入失败",
   "Updater.CheckingForUpdates": "正在检查更新",
   "Updater.CheckForUpdates": "检查更新",
+  "Updater.CheckForUpdatesFailed": "检查更新失败",
   "Updater.DownloadUpdates": "下载更新",
+  "Updater.DownloadUpdatesFailed": "下载更新失败",
   "Updater.DownloadingUpdates": "正在下载更新",
-  "Updater.InstallNow": "现在安装"
+  "Updater.InstallNow": "现在安装",
+  "Updater.InstallAfterRestart": "在您重启应用后，将安装版本 {{version}}",
+  "Updater.ManualDownload": "手动下载"
 }
