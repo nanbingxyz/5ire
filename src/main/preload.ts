@@ -69,6 +69,10 @@ const BRIDGE = {
     deleteDocument: "async",
     liveCollections: "stream",
     liveDocuments: "stream",
+    queryChunks: "async",
+    associateCollection: "async",
+    disassociateCollection: "async",
+    listAssociatedCollections: "async",
   }),
   documentEmbedder: connector.connect<DocumentEmbedderBridge>("document-embedder", {
     createStateStream: "stream",

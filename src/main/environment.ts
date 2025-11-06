@@ -34,6 +34,7 @@ export type Environment = {
 
   readonly databaseMigrationsFolder: string;
   readonly databaseDataFolder: string;
+  readonly userDataFolder: string;
 };
 
 export namespace Environment {}

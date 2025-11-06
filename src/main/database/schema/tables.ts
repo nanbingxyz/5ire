@@ -213,5 +213,9 @@ const conversationCollectionColumns = {
  * The `conversation_collections` table is used to store the relationship between conversations and knowledge collections.
  */
 export const conversationCollection = pgTable("conversation_collections", conversationCollectionColumns, (table) => {
-  return [index().on(table.createTime), index().on(table.conversationId)];
+  return [
+    index().on(table.createTime),
+    index().on(table.conversationId),
+    uniqueIndex().on(table.conversationId, table.collectionId),
+  ];
 });

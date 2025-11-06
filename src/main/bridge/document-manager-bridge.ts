@@ -12,6 +12,10 @@ export class DocumentManagerBridge extends Bridge.define("document-manager", () 
     toggleCollectionPin: service.toggleCollectionPin.bind(service),
     importDocuments: service.importDocuments.bind(service),
     deleteDocument: service.deleteDocument.bind(service),
+    queryChunks: service.queryChunks.bind(service),
+    associateCollection: service.associateCollection.bind(service),
+    disassociateCollection: service.disassociateCollection.bind(service),
+    listAssociatedCollections: service.listAssociatedCollections.bind(service),
     liveCollections: () => {
       const abort = new AbortController();
 
@@ -27,6 +31,7 @@ export class DocumentManagerBridge extends Bridge.define("document-manager", () 
                 return;
               }
 
+              live.refresh().catch();
               controller.enqueue(live.initialResults);
 
               abort.signal.addEventListener("abort", live.subscribe(controller.enqueue.bind(controller)));
@@ -52,6 +57,7 @@ export class DocumentManagerBridge extends Bridge.define("document-manager", () 
                 return;
               }
 
+              live.refresh().catch();
               controller.enqueue(live.initialResults);
 
               abort.signal.addEventListener("abort", live.subscribe(controller.enqueue.bind(controller)));

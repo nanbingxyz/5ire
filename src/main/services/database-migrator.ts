@@ -1,3 +1,4 @@
+import { pathToFileURL } from "node:url";
 import type { Connection as LanceDB } from "@lancedb/lancedb";
 import type { Database as SqliteDB } from "better-sqlite3";
 import { Database } from "@/main/database";
@@ -61,15 +62,15 @@ export class DatabaseMigrator extends Store.Persistable<DatabaseMigrator.State> 
       .get();
 
     if (!existsKnowledgeCollectionsTable || existsKnowledgeCollectionsTable.count <= 0) {
-      return logger.info("No knowledge collections table found.");
+      return logger.warning("No knowledge collections table found.");
     }
 
     if (!existsKnowledgeFilesTable || existsKnowledgeFilesTable.count <= 0) {
-      return logger.info("No knowledge files table found.");
+      return logger.warning("No knowledge files table found.");
     }
 
     if (!existsKnowledgeRelationsTable || existsKnowledgeRelationsTable.count <= 0) {
-      return logger.info("No knowledge relations table found.");
+      return logger.warning("No knowledge relations table found.");
     }
 
     const knowledgeCollectionsIdMap = new Map<string, string>();
@@ -109,7 +110,9 @@ export class DatabaseMigrator extends Store.Persistable<DatabaseMigrator.State> 
         });
     }
 
-    logger.info("Migrate knowledge collections completed.");
+    logger.info(
+      `Migrate knowledge collections completed. Total: ${knowledgeCollectionsIdMap.size} collections migrated.`,
+    );
 
     const knowledgeFilesIdMap = new Map<string, string>();
     const knowledgeFiles = sqlite
@@ -139,15 +142,38 @@ export class DatabaseMigrator extends Store.Persistable<DatabaseMigrator.State> 
         continue;
       }
 
+      const ext = knowledgeFile.name.split(".").pop();
+
+      let mimetype = "unknown";
+
+      if (ext) {
+        mimetype =
+          {
+            txt: "text/plain",
+            md: "text/plain",
+            csv: "text/csv",
+            epub: "application/epub+zip",
+            docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            pdf: "application/pdf",
+            xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+            jpg: "image/jpeg",
+            jpeg: "image/jpeg",
+            png: "image/png",
+            gif: "image/gif",
+          }[ext] || "unknown";
+      }
+
       await client
         .insert(schema.document)
         .values({
           id,
           collectionId,
           name: knowledgeFile.name.slice(0, 300),
-          url: `legacy://${knowledgeFile.id}`,
+          url: pathToFileURL(`[not found in legacy]/${knowledgeFile.name}`).toString(),
           status: "completed",
-          mimetype: "unknown",
+          mimetype,
+          size: knowledgeFile.size || 0,
         })
         .execute()
         .then(async () => {
@@ -205,12 +231,14 @@ export class DatabaseMigrator extends Store.Persistable<DatabaseMigrator.State> 
         });
     }
 
-    logger.info("Migrate knowledge files completed.");
+    logger.info(`Migrate knowledge files completed. Total: ${knowledgeFilesIdMap.size} knowledge files migrated.`);
 
+    const knowledgeRelationsIdMap = new Map<string, string>();
     const knowledgeRelations = sqlite
       .prepare<
         [],
         {
+          id: string;
           collectionId: string;
           chatId: string;
         }
@@ -218,6 +246,7 @@ export class DatabaseMigrator extends Store.Persistable<DatabaseMigrator.State> 
       .iterate();
 
     for (const rel of knowledgeRelations) {
+      const id = crypto.randomUUID();
       const collectionId = knowledgeCollectionsIdMap.get(rel.collectionId);
 
       if (!collectionId) {
@@ -229,14 +258,18 @@ export class DatabaseMigrator extends Store.Persistable<DatabaseMigrator.State> 
         .values({
           conversationId: rel.chatId,
           collectionId,
+          id,
         })
+        .returning()
         .execute()
         .catch((error) => {
           logger.error("Failed to insert conversation collection relation", error);
         });
+
+      knowledgeRelationsIdMap.set(rel.id, id);
     }
 
-    logger.info("Migrate knowledge relations completed.");
+    logger.info(`Migrate knowledge relations completed. Total: ${knowledgeRelationsIdMap.size} relations migrated.`);
 
     // Update state to mark knowledge migration as completed
     this.update((draft) => {

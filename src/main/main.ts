@@ -88,6 +88,7 @@ Container.singleton(Environment, () => {
     storiesFolder: resolve(userDataFolder, "Stories"),
     databaseDataFolder: resolve(userDataFolder, "Database"),
     databaseMigrationsFolder: resolve(__dirname, "./migrations"),
+    userDataFolder,
   };
 
   ensureDirSync(env.embedderCacheFolder);
@@ -257,6 +258,11 @@ if (!gotTheLock) {
   app
     .whenReady()
     .then(async () => {
+      const logger = Container.inject(Logger).scope("Main:WhenReady");
+      const environment = Container.inject(Environment);
+
+      logger.info("User data folder:", environment.userDataFolder);
+
       Container.inject(EncryptorBridge).expose(ipcMain);
       Container.inject(UpdaterBridge).expose(ipcMain);
       Container.inject(RendererBridge).expose(ipcMain);
@@ -269,28 +275,33 @@ if (!gotTheLock) {
 
       Container.inject(Embedder)
         .init()
-        .catch(() => {});
+        .catch((error) => {
+          logger.error("Failed to init embedder:", error);
+        });
+
       Container.inject(Updater)
         .checkForUpdates()
-        .catch(() => {});
+        .catch((error) => {
+          logger.error("Failed to check for updates:", error);
+        });
+
+      Container.inject(DocumentEmbedder)
+        .init()
+        .catch((err) => {
+          logging.error("Failed to init document embedder:", err);
+        });
 
       await Container.inject(Database).ready;
       await Container.inject(Renderer).focus();
       await Container.inject(DatabaseMigrator).migrate(legacySqliteDatabase, await Knowledge.getDatabase());
 
-      setTimeout(() => {
-        Container.inject(DocumentEmbedder)
-          .init()
-          .catch((err) => {
-            console.log(err);
-          });
-      }, 3000);
-
       app.on("activate", () => {
+        const logger = Container.inject(Logger).scope("Main:AppOnActivate");
+
         Container.inject(Renderer)
           .focus()
-          .catch(() => {
-            // ignore
+          .catch((error) => {
+            logger.error("Failed to focus main window:", error);
           });
       });
 

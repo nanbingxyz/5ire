@@ -1,10 +1,11 @@
 import { basename } from "node:path";
 import { fileURLToPath } from "node:url";
-import { eq } from "drizzle-orm";
+import { and, cosineDistance, eq, inArray } from "drizzle-orm";
 import { default as memoize } from "memoizee";
 import { MAX_COLLECTIONS, SUPPORTED_DOCUMENT_URL_SCHEMAS } from "@/main/constants";
 import { Database } from "@/main/database";
 import { Container } from "@/main/internal/container";
+import { Embedder } from "@/main/services/embedder";
 import { Logger } from "@/main/services/logger";
 
 /**
@@ -14,6 +15,7 @@ import { Logger } from "@/main/services/logger";
 export class DocumentManager {
   #database = Container.inject(Database);
   #logger = Container.inject(Logger).scope("DocumentsManager");
+  #embedder = Container.inject(Embedder);
 
   /**
    * Constructor to initialize the DocumentManager instance
@@ -380,6 +382,144 @@ export class DocumentManager {
       initialResults: live.initialResults,
     };
   }
+
+  /**
+   * Associate a collection with a target entity
+   * @param options Options containing the collection ID, target entity ID and association type
+   * @returns Promise<void>
+   * @throws Error when the collection does not exist
+   */
+  async associateCollection(options: DocumentManager.AssociateCollectionOptions) {
+    const schema = this.#database.schema;
+    const client = this.#database.client;
+
+    return client.transaction(async (tx) => {
+      // Check if collection exists
+      const exists = await tx
+        .select({
+          id: schema.collection.id,
+        })
+        .from(schema.collection)
+        .where(eq(schema.collection.id, options.id))
+        .execute()
+        .then((result) => {
+          return result.length > 0;
+        });
+
+      if (!exists) {
+        throw new Error("Collection does not exist.");
+      }
+
+      if (options.type === "conversation") {
+        return tx
+          .insert(schema.conversationCollection)
+          .values({
+            collectionId: options.id,
+            conversationId: options.target,
+          })
+          .onConflictDoNothing()
+          .execute();
+      }
+    });
+  }
+
+  /**
+   * Disassociate a collection from a target entity
+   * @param options Options containing the collection ID, target entity ID and association type
+   * @returns Promise<void>
+   */
+  async disassociateCollection(options: DocumentManager.DisassociateCollectionOptions) {
+    const schema = this.#database.schema;
+    const client = this.#database.client;
+
+    if (options.type === "conversation") {
+      return client
+        .delete(schema.conversationCollection)
+        .where(
+          and(
+            eq(schema.conversationCollection.collectionId, options.id),
+            eq(schema.conversationCollection.conversationId, options.target),
+          ),
+        )
+        .execute();
+    }
+  }
+
+  async listAssociatedCollections(options: DocumentManager.ListAssociatedCollectionsOptions) {
+    const schema = this.#database.schema;
+    const client = this.#database.client;
+
+    const select = {
+      id: schema.collection.id,
+      name: schema.collection.name,
+      description: schema.collection.description,
+      createTime: schema.collection.createTime,
+      updateTime: schema.collection.updateTime,
+      pinedTime: schema.collection.pinedTime,
+      documents: client.$count(schema.document, eq(schema.document.collectionId, schema.collection.id)).as("documents"),
+    };
+
+    if (options.type === "conversation") {
+      return client
+        .select(select)
+        .from(schema.collection)
+        .innerJoin(schema.conversationCollection, eq(schema.collection.id, schema.conversationCollection.collectionId))
+        .where(eq(schema.conversationCollection.conversationId, options.target))
+        .execute();
+    }
+
+    return [];
+  }
+
+  async queryChunks(options: DocumentManager.QueryChunksOptions) {
+    const logger = this.#logger.scope("QueryChunks");
+
+    const schema = this.#database.schema;
+    const client = this.#database.client;
+
+    const vector = await this.#embedder.embed([options.text]).then(([vector]) => vector);
+
+    const documents = [...new Set(options.documents || [])];
+    const collections = [...new Set(options.collections || [])];
+
+    let limit = options.limit || 10;
+
+    if (limit < 1 || limit > 100) {
+      limit = 10;
+    }
+
+    logger.info(
+      `Querying chunks with text: "${options.text}", documents: ${documents.length}, collections: ${collections.length}, limit: ${limit}`,
+    );
+
+    if (collections.length) {
+      await client
+        .select({ id: schema.document.id })
+        .from(schema.document)
+        .where(and(inArray(schema.document.collectionId, collections), eq(schema.document.status, "completed")))
+        .then((result) => {
+          documents.push(...result.map((document) => document.id));
+        });
+    }
+
+    if (!documents.length) {
+      return [];
+    }
+
+    logger.info(`Querying against ${documents.length} documents after flattening`);
+
+    const results = await client
+      .select({ text: schema.documentChunk.text, url: schema.document.url })
+      .from(schema.documentChunk)
+      .innerJoin(schema.document, eq(schema.documentChunk.documentId, schema.document.id))
+      .where(inArray(schema.documentChunk.documentId, documents))
+      .orderBy(cosineDistance(schema.documentChunk.embedding, vector))
+      .limit(limit);
+
+    logger.info(`Retrieved ${results.length} chunks from database`);
+
+    return results;
+  }
 }
 
 export namespace DocumentManager {
@@ -463,5 +603,61 @@ export namespace DocumentManager {
      * ID of the document to delete
      */
     id: string;
+  };
+
+  /**
+   * Associate collection options
+   * Defines parameters required for associating a collection with a target entity
+   */
+  export type AssociateCollectionOptions = {
+    /**
+     * Collection ID
+     */
+    id: string;
+    /**
+     * Target entity ID
+     */
+    target: string;
+    /**
+     * Association type
+     */
+    type: "conversation";
+  };
+
+  /**
+   * Disassociate collection options
+   * Defines parameters required for disassociating a collection from a target entity
+   */
+  export type DisassociateCollectionOptions = {
+    /**
+     * Collection ID
+     */
+    id: string;
+    /**
+     * Target entity ID
+     */
+    target: string;
+    /**
+     * Association type
+     */
+    type: "conversation";
+  };
+
+  export type ListAssociatedCollectionsOptions = {
+    /**
+     * Target entity ID
+     */
+    target: string;
+    /**
+     * Association type
+     */
+    type: "conversation";
+  };
+
+  export type QueryChunksOptions = {
+    limit?: number;
+    documents?: string[];
+    collections?: string[];
+    text: string;
   };
 }

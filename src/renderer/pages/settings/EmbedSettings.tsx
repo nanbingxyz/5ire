@@ -1,10 +1,9 @@
-import { Button, dialogBodyClassNames, ProgressBar, Spinner } from "@fluentui/react-components";
+import { Button, ProgressBar, Spinner } from "@fluentui/react-components";
 import { CheckmarkCircle16Filled, CheckmarkCircle20Filled } from "@fluentui/react-icons";
 import useToast from "hooks/useToast";
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import ConfirmDialog from "renderer/components/ConfirmDialog";
-import { useStore } from "zustand";
 import { useEmbedder } from "@/renderer/next/hooks/remote/use-embedder";
 
 /**

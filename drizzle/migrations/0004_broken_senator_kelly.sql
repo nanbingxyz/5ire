@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "conversation_collections_conversationId_collectionId_index" ON "conversation_collections" USING btree ("conversationId","collectionId");
