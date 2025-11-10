@@ -2,7 +2,7 @@ import { basename } from "node:path";
 import { fileURLToPath } from "node:url";
 import { and, cosineDistance, eq, inArray } from "drizzle-orm";
 import { default as memoize } from "memoizee";
-import { MAX_COLLECTIONS, SUPPORTED_DOCUMENT_URL_SCHEMAS } from "@/main/constants";
+import { SUPPORTED_DOCUMENT_URL_SCHEMAS } from "@/main/constants";
 import { Database } from "@/main/database";
 import { Container } from "@/main/internal/container";
 import { Embedder } from "@/main/services/embedder";
@@ -44,19 +44,12 @@ export class DocumentManager {
    * Create a new document collection
    * @param options Options for creating a collection, including name and description
    * @returns Promise<Collection> The created collection object
-   * @throws Error when the number of collections reaches the limit
    */
   async createCollection(options: DocumentManager.CreateCollectionOptions) {
     const client = this.#database.client;
     const schema = this.#database.schema;
 
     return client.transaction(async (tx) => {
-      const count = await tx.$count(schema.collection);
-
-      if (count >= MAX_COLLECTIONS) {
-        throw new Error("Maximum number of collections reached.");
-      }
-
       return tx
         .insert(schema.collection)
         .values({
@@ -509,7 +502,13 @@ export class DocumentManager {
     logger.info(`Querying against ${documents.length} documents after flattening`);
 
     const results = await client
-      .select({ text: schema.documentChunk.text, url: schema.document.url })
+      .select({
+        id: schema.documentChunk.id,
+        text: schema.documentChunk.text,
+        url: schema.document.url,
+        name: schema.document.name,
+        distance: cosineDistance(schema.documentChunk.embedding, vector),
+      })
       .from(schema.documentChunk)
       .innerJoin(schema.document, eq(schema.documentChunk.documentId, schema.document.id))
       .where(inArray(schema.documentChunk.documentId, documents))

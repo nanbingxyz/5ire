@@ -20,7 +20,6 @@ export const DOCUMENT_EMBEDDING_MODEL_FILES = [
 ];
 
 export const MAX_COLLECTIONS = 200;
-export const MAX_DOCUMENTS_PER_COLLECTION = 1000;
 export const MAX_DOCUMENT_SIZE = 1024 * 1024 * 10;
 
 export const SUPPORTED_DOCUMENT_URL_SCHEMAS = [

@@ -11,6 +11,7 @@ import type { DocumentManagerBridge } from "@/main/bridge/document-manager-bridg
 import type { DownloaderBridge } from "@/main/bridge/downloader-bridge";
 import type { EmbedderBridge } from "@/main/bridge/embedder-bridge";
 import type { EncryptorBridge } from "@/main/bridge/encryptor-bridge";
+import type { PromptManagerBridge } from "@/main/bridge/prompt-manager-bridge";
 import type { RendererBridge } from "@/main/bridge/renderer-bridge";
 import type { SettingsStoreBridge } from "@/main/bridge/settings-store-bridge";
 import type { UpdaterBridge } from "@/main/bridge/updater-bridge";
@@ -77,6 +78,12 @@ const BRIDGE = {
   documentEmbedder: connector.connect<DocumentEmbedderBridge>("document-embedder", {
     createStateStream: "stream",
     createEventStream: "stream",
+  }),
+  promptManager: connector.connect<PromptManagerBridge>("prompt-manager", {
+    createPrompt: "async",
+    updatePrompt: "async",
+    deletePrompt: "async",
+    listPrompts: "async",
   }),
   databaseMigrator: connector.connect<DatabaseMigratorBridge>("database-migrator", {
     createStateStream: "stream",

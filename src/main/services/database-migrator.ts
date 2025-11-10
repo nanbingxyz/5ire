@@ -2,6 +2,7 @@ import { pathToFileURL } from "node:url";
 import type { Connection as LanceDB } from "@lancedb/lancedb";
 import type { Database as SqliteDB } from "better-sqlite3";
 import { Database } from "@/main/database";
+import type { PromptApplicableModel } from "@/main/database/types";
 import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
 import { Store } from "@/main/internal/store";
@@ -170,7 +171,7 @@ export class DatabaseMigrator extends Store.Persistable<DatabaseMigrator.State> 
           id,
           collectionId,
           name: knowledgeFile.name.slice(0, 300),
-          url: pathToFileURL(`[not found in legacy]/${knowledgeFile.name}`).toString(),
+          url: pathToFileURL(`/[not found in legacy]/${knowledgeFile.name}`).toString(),
           status: "completed",
           mimetype,
           size: knowledgeFile.size || 0,
@@ -278,6 +279,87 @@ export class DatabaseMigrator extends Store.Persistable<DatabaseMigrator.State> 
   }
 
   /**
+   * Migrate prompt-related data
+   *
+   * This method migrates the following data:
+   * 1. Prompt templates (prompts)
+   * 2. Prompt messages (system and user messages)
+   * 3. Applicable models for each prompt
+   *
+   * @param sqlite SQLite database connection
+   *
+   * @returns Promise<void> A Promise that resolves when the migration is complete
+   */
+  async #migratePrompts(sqlite: SqliteDB) {
+    const logger = this.#logger.scope("MigrateKnowledge");
+
+    // Check if prompts migration has already been completed to avoid duplicate execution
+    if (this.state.migrations.migratedPrompts) {
+      return logger.info("prompts migration already completed.");
+    }
+
+    const schema = this.#database.schema;
+    const client = this.#database.client;
+
+    const existsPromptsTable = sqlite
+      .prepare<[], { count: number }>(
+        "select count(*) as count from sqlite_master where type='table' and name='prompts'",
+      )
+      .get();
+
+    if (!existsPromptsTable || existsPromptsTable.count <= 0) {
+      return logger.warning("No prompts table found.");
+    }
+
+    const prompts = sqlite
+      .prepare<
+        [],
+        {
+          id: string;
+          name: string;
+          systemMessage: string;
+          userMessage: string;
+          models: string;
+          createdAt: number;
+          updatedAt: number;
+        }
+      >("select * from prompts")
+      .iterate();
+
+    let total = 0;
+
+    for (const prompt of prompts) {
+      const applicableModels: PromptApplicableModel[] = [];
+
+      try {
+        const models = JSON.parse(prompt.models);
+
+        if (Array.isArray(models) && models.every((model) => typeof model === "string")) {
+          applicableModels.push(...models.map((model) => ({ id: model })));
+        }
+      } catch {}
+
+      await client.insert(schema.prompt).values({
+        applicableModels,
+        name: prompt.name.slice(0, 300),
+        createTime: new Date(prompt.createdAt * 1000),
+        updateTime: new Date(prompt.updatedAt * 1000),
+        roleDefinition: prompt.systemMessage,
+        instructionTemplate: prompt.userMessage,
+      });
+
+      total++;
+    }
+
+    logger.info(`Migrate prompts completed. Total: ${total} prompts migrated.`);
+
+    // Update state to mark prompts migration as completed
+    this.update((draft) => {
+      draft.migrations.migratedPrompts = new Date();
+    });
+  }
+
+  /**
    * Execute database migration
    *
    * @param sqlite SQLite database connection
@@ -286,6 +368,8 @@ export class DatabaseMigrator extends Store.Persistable<DatabaseMigrator.State> 
    * @returns Promise<void> A Promise that resolves when the migration is complete
    */
   async migrate(sqlite: SqliteDB, lance: LanceDB) {
+    const logger = this.#logger.scope("Migrate");
+
     if (this.state.migrating) {
       return;
     }
@@ -295,7 +379,12 @@ export class DatabaseMigrator extends Store.Persistable<DatabaseMigrator.State> 
     });
 
     try {
-      await this.#migrateKnowledge(sqlite, lance);
+      await this.#migrateKnowledge(sqlite, lance).catch((error) => {
+        logger.error("Failed to migrate knowledge", error);
+      });
+      await this.#migratePrompts(sqlite).catch((error) => {
+        logger.error("Failed to migrate prompts", error);
+      });
     } finally {
       this.update((draft) => {
         draft.migrating = false;

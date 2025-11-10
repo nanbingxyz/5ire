@@ -1,4 +1,16 @@
-import { index, integer, pgEnum, pgTable, timestamp, uniqueIndex, uuid, varchar, vector } from "drizzle-orm/pg-core";
+import {
+  index,
+  integer,
+  json,
+  pgEnum,
+  pgTable,
+  timestamp,
+  uniqueIndex,
+  uuid,
+  varchar,
+  vector,
+} from "drizzle-orm/pg-core";
+import type { PromptApplicableModel } from "@/main/database/types";
 
 /**
  * Defines a column for recording the creation time.
@@ -218,4 +230,56 @@ export const conversationCollection = pgTable("conversation_collections", conver
     index().on(table.conversationId),
     uniqueIndex().on(table.conversationId, table.collectionId),
   ];
+});
+
+/**
+ * Defines the strategy for merging prompts.
+ *
+ * - `merge`: Combines the role definition with the existing system prompt.
+ *            Both prompts are included in the final system message sent to the model.
+ * - `replace`: Replaces the existing system prompt entirely with the role definition.
+ * - `scoped`: Applies the role definition only within a specific scope or context.
+ */
+export const promptMergeStrategy = pgEnum("prompt_merge_strategy", ["merge", "replace", "scoped"]);
+
+const promptColumns = {
+  /**
+   * The unique identifier for the record.
+   */
+  id: uuid().primaryKey().defaultRandom(),
+  /**
+   * The creation time of the record.
+   */
+  createTime: makeCreateTime(),
+  /**
+   * The last update time of the record.
+   */
+  updateTime: makeUpdateTime(),
+  /**
+   * The name of the prompt.
+   */
+  name: varchar({ length: 300 }).notNull(),
+  /**
+   * "Role definition" or "behavioral instruction"
+   */
+  roleDefinition: varchar("role_definition"),
+  /**
+   * Template used to generate user instructions
+   */
+  instructionTemplate: varchar("instruction_template").notNull(),
+  /**
+   * The applicable models of the prompt.
+   */
+  applicableModels: json("applicable_models").$type<PromptApplicableModel[]>(),
+  /**
+   * System prompt merging strategy, used to specify how to use roleDefinition in conversations; when roleDefinition is empty, mergeStrategy is invalid
+   */
+  mergeStrategy: promptMergeStrategy().notNull().default("merge"),
+};
+
+/**
+ * The `prompts` table is used to store user-defined prompts.
+ */
+export const prompt = pgTable("prompts", promptColumns, (table) => {
+  return [index().on(table.createTime), index().on(table.name)];
 });

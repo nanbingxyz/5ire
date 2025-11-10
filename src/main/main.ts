@@ -31,6 +31,7 @@ import { DocumentManagerBridge } from "@/main/bridge/document-manager-bridge";
 import { DownloaderBridge } from "@/main/bridge/downloader-bridge";
 import { EmbedderBridge } from "@/main/bridge/embedder-bridge";
 import { EncryptorBridge } from "@/main/bridge/encryptor-bridge";
+import { PromptManagerBridge } from "@/main/bridge/prompt-manager-bridge";
 import { RendererBridge } from "@/main/bridge/renderer-bridge";
 import { SettingsStoreBridge } from "@/main/bridge/settings-store-bridge";
 import { UpdaterBridge } from "@/main/bridge/updater-bridge";
@@ -45,6 +46,7 @@ import { Downloader } from "@/main/services/downloader";
 import { Embedder } from "@/main/services/embedder";
 import { Encryptor } from "@/main/services/encryptor";
 import { Logger } from "@/main/services/logger";
+import { PromptManager } from "@/main/services/prompt-manager";
 import { Renderer } from "@/main/services/renderer";
 import { Updater } from "@/main/services/updater";
 import { SettingsStore } from "@/main/stories/settings-store";
@@ -120,6 +122,8 @@ Container.singleton(DocumentManagerBridge, () => new DocumentManagerBridge());
 Container.singleton(DocumentExtractor, () => new DocumentExtractor());
 Container.singleton(DocumentEmbedder, () => new DocumentEmbedder());
 Container.singleton(DocumentEmbedderBridge, () => new DocumentEmbedderBridge());
+Container.singleton(PromptManager, () => new PromptManager());
+Container.singleton(PromptManagerBridge, () => new PromptManagerBridge());
 
 logging.init();
 
@@ -272,6 +276,7 @@ if (!gotTheLock) {
       Container.inject(DocumentManagerBridge).expose(ipcMain);
       Container.inject(DocumentEmbedderBridge).expose(ipcMain);
       Container.inject(DatabaseMigratorBridge).expose(ipcMain);
+      Container.inject(PromptManagerBridge).expose(ipcMain);
 
       Container.inject(Embedder)
         .init()
