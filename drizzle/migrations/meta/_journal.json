@@ -50,6 +50,13 @@
       "when": 1762923853778,
       "tag": "0006_huge_omega_sentinel",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1763020109179,
+      "tag": "0007_numerous_owl",
+      "breakpoints": true
     }
   ]
 }
