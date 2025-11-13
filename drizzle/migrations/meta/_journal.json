@@ -43,6 +43,13 @@
       "when": 1762765178606,
       "tag": "0005_concerned_risque",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1762923853778,
+      "tag": "0006_huge_omega_sentinel",
+      "breakpoints": true
     }
   ]
 }
