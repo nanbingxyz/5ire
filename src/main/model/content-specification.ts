@@ -1,0 +1,435 @@
+/**
+ * Represents a JSON value, which can be a primitive value, object, or array
+ */
+export type JSONValue = JSONValue.Primitive | JSONValue.Object | JSONValue.Array;
+
+export namespace JSONValue {
+  /**
+   * Represents primitive value types in JSON, including string, number, boolean, and null
+   */
+  export type Primitive = string | number | boolean | null;
+
+  /**
+   * Represents a JSON object with string keys and arbitrary JSON values
+   */
+  export type Object = {
+    [key: string]: JSONValue;
+  };
+
+  /**
+   * Represents a JSON array with elements of arbitrary JSON values
+   */
+  export type Array = JSONValue[];
+}
+
+/**
+ * Represents a standardized content segment transmitted between client, MCP, and model,
+ * with different types of segments having specific semantics
+ */
+export type Part =
+  | Part.Text
+  | Part.File
+  | Part.Reference
+  | Part.Error
+  | Part.Resource
+  | Part.ToolCall
+  | Part.ToolResult
+  | Part.Reasoning
+  | Part.Source;
+
+export namespace Part {
+  /**
+   * Represents plain text content, the most basic content type
+   */
+  export type Text = {
+    /**
+     * Type; fixed as "text"; identifies this as a text content segment
+     */
+    type: "text";
+    /**
+     * Actual text content string
+     */
+    text: string;
+  };
+
+  /**
+   * Represents file content
+   */
+  export type File = {
+    /**
+     * Type; fixed as "file"; identifies this as a file content segment
+     */
+    type: "file";
+    /**
+     * Location pointing to the file resource
+     */
+    url: string;
+    /**
+     * Media type of the file, used to identify the file format
+     */
+    mimetype: string;
+  };
+
+  /**
+   * Represents the model's internal reasoning process
+   */
+  export type Reasoning = {
+    /**
+     * Type; fixed as "reasoning"; identifies this as a reasoning content segment
+     */
+    type: "reasoning";
+    /**
+     * Text description of the reasoning process
+     */
+    text: string;
+  };
+
+  /**
+   * Represents a tool call request containing the required parameter information for invocation
+   */
+  export type ToolCall = {
+    /**
+     * Type; fixed as "tool-call"; identifies this as a tool call content segment
+     */
+    type: "tool-call";
+    /**
+     * Unique identifier for the tool call; used to match tool calls with tool results
+     */
+    id: string;
+    /**
+     * Tool name; the name of the tool to be invoked
+     */
+    tool: string;
+    /**
+     * Tool input arguments
+     */
+    arguments: JSONValue;
+  };
+
+  /**
+   * Represents the return result after tool execution, which may include success or failure status
+   */
+  export type ToolResult = {
+    /**
+     * Type; fixed as "tool-result"; identifies this as a tool result content segment
+     */
+    type: "tool-result";
+    /**
+     * Unique identifier for the tool call; matches the corresponding `ToolCall.id`
+     */
+    id: string;
+    /**
+     * Tool name; the name of the tool that produced this result
+     */
+    tool: string;
+    /**
+     * Tool input arguments
+     */
+    arguments: JSONValue;
+    /**
+     * Array of result content segments returned after tool execution, which can contain multiple types of content
+     */
+    result: Array<Text | File | Reference | Error | Resource>;
+    /**
+     * Structured output data
+     */
+    structuredResult?: JSONValue;
+    /**
+     * Execution status; the tool's output result should also correspond to the content
+     */
+    status: "success" | "failure";
+  };
+
+  /**
+   * Represents a reference to an external resource, such as a web link, knowledge base document, or MCP resource
+   */
+  export type Reference = {
+    /**
+     * Type; fixed as "reference"; identifies this as a reference content segment
+     */
+    type: "reference";
+    /**
+     * URL of the referenced resource; points to the location of the referenced resource
+     */
+    url: string;
+    /**
+     * Optional title of the referenced resource
+     */
+    title?: string;
+    /**
+     * Description of the resource
+     */
+    description?: string;
+    /**
+     * Optional media type of the resource
+     */
+    mimetype?: string;
+  };
+
+  /**
+   * Represents an error message containing error information
+   */
+  export type Error = {
+    /**
+     * Type; fixed as "error"; identifies this as an error content segment
+     */
+    type: "error";
+    /**
+     * Error message
+     */
+    message: string;
+  };
+
+  /**
+   * Represents a source content used to identify the information source;
+   * models may return this type of content segment when capabilities like WebSearch are enabled
+   */
+  export type Source = {
+    /**
+     * Type; fixed as "source"; identifies this as a source content segment
+     */
+    type: "source";
+    /**
+     * URL of the source resource; points to the location of the referenced resource
+     */
+    url: string;
+    /**
+     * Optional title of the source resource
+     */
+    title?: string;
+  };
+
+  /**
+   * Represents a resource that has been loaded into memory
+   */
+  export type Resource = {
+    /**
+     * Type; fixed as "resource"; identifies this as a resource content segment
+     */
+    type: "resource";
+    /**
+     * URL of the resource; points to its source location
+     */
+    url: string;
+    /**
+     * Media type of the resource
+     */
+    mimetype: string;
+    /**
+     * Resource content
+     */
+    content:
+      | {
+          /**
+           * Text content
+           */
+          text: string;
+        }
+      | {
+          /**
+           * Binary content
+           */
+          bytes: Uint8Array;
+        };
+  };
+}
+
+/**
+ * Represents a message containing role and content
+ */
+export type Message =
+  | {
+      /**
+       * Role; fixed value "user"; represents a user message
+       */
+      role: "user";
+      /**
+       * Message content
+       */
+      content: Array<Part.Text | Part.File | Part.Reference | Part.Resource>;
+    }
+  | {
+      /**
+       * Role; fixed value "assistant"; represents a model response message
+       */
+      role: "assistant";
+      /**
+       * Message content
+       */
+      content: Array<
+        | Part.Text
+        | Part.File
+        | Part.Reference
+        | Part.Reasoning
+        | Part.ToolCall
+        | Part.Error
+        | Part.Source
+        | Part.Resource
+      >;
+    }
+  | {
+      /**
+       * Role; fixed value "system"; represents a system message
+       */
+      role: "system";
+      /**
+       * System message content
+       */
+      content: Array<Part.Text | Part.Reference>;
+    }
+  | {
+      /**
+       * Role; fixed value "tool"; represents a tool message
+       */
+      role: "tool";
+      /**
+       * Tool message content
+       */
+      content: Array<Part.ToolResult>;
+    };
+
+/**
+ * Metadata descriptions for some known, processable URLs
+ */
+export type URLDescription =
+  | URLDescription.HTTP
+  | URLDescription.File
+  | URLDescription.Inline
+  | URLDescription.InlineCached
+  | URLDescription.MCPResource
+  | URLDescription.Document
+  | URLDescription.Unknown;
+
+export namespace URLDescription {
+  /**
+   * Describes an HTTP URL
+   */
+  export type HTTP = {
+    /**
+     * Type; fixed as "http"; identifies this as an HTTP URL
+     */
+    type: "http";
+    /**
+     * Protocol of the URL; can be http or https
+     */
+    schema: "http" | "https";
+    /**
+     * URL
+     */
+    url: URL;
+  };
+
+  /**
+   * Describes a file URL
+   */
+  export type File = {
+    /**
+     * Type; fixed as "file"; identifies this as a file URL
+     */
+    type: "file";
+    /**
+     * File path
+     */
+    path: string;
+    /**
+     * URL object
+     */
+    url: URL;
+  };
+
+  /**
+   * Describes an inline data URL
+   */
+  export type Inline = {
+    /**
+     * Type; fixed as "inline"; identifies this as an inline data URL
+     */
+    type: "inline";
+    /**
+     * Media type of the inline data
+     */
+    mimetype: string;
+    /**
+     * Inline data
+     */
+    data: Uint8Array;
+  };
+
+  /**
+   * Describes an inline data URL cached to disk, where inline data exceeding a certain limit
+   * is cached to local disk in file form, but logically still belongs to the inline data
+   */
+  export type InlineCached = {
+    /**
+     * Type; fixed as "inline-cached"; identifies this as an inline data URL cached to disk
+     */
+    type: "inline-cached";
+    /**
+     * Media type of the inline data
+     */
+    mimetype: string;
+    /**
+     * Cache path
+     */
+    path: string;
+  };
+
+  /**
+   * Describes a resource URL; points to a resource in an MCP
+   */
+  export type MCPResource = {
+    /**
+     * Type; fixed as "mcp-resource"; identifies this as a resource URL
+     */
+    type: "mcp-resource";
+    /**
+     * Original resource URL; is the complete resource URL returned by MCP
+     */
+    origin: string;
+    /**
+     * MCP service ID to which the resource belongs
+     */
+    server: string;
+    /**
+     * URL object
+     */
+    url: URL;
+  };
+
+  /**
+   * Describes a document URL; points to a document or document fragment in a knowledge base
+   */
+  export type Document = {
+    /**
+     * Type; fixed as "document"; identifies this as a document URL
+     */
+    type: "document";
+    /**
+     * Knowledge base document ID
+     */
+    id: string;
+    /**
+     * Document fragment ID; if present, indicates that the URL points to a document fragment;
+     * otherwise, indicates that the URL points to the entire document
+     */
+    chunk?: string;
+    /**
+     * URL object
+     */
+    url: URL;
+  };
+
+  /**
+   * Describes an unknown URL; may refer to a URL that cannot be parsed or whose protocol is unrecognized
+   */
+  export type Unknown = {
+    /**
+     * Type; fixed as "unknown"; identifies this as an unknown URL
+     */
+    type: "unknown";
+    /**
+     * URL
+     */
+    url: string;
+  };
+}
