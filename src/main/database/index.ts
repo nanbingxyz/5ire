@@ -233,4 +233,11 @@ export namespace Database {
   export type Driver = PGlite & {
     live: LiveNamespace;
   };
+
+  /**
+   * Database transaction type
+   *
+   * Type representing a database transaction context
+   */
+  export type Transaction = Parameters<Exclude<Parameters<Client["transaction"]>[0], undefined>>[0];
 }

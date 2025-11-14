@@ -1,4 +1,5 @@
 import {
+  boolean,
   index,
   integer,
   jsonb,
@@ -551,3 +552,79 @@ export const usage = pgTable("usages", usageColumns, (table) => {
 // export const bookmark = pgTable("bookmarks", bookmarkColumns, (table) => {})
 
 // const serverColumns = {};
+/**
+ * MCP server transport protocols
+ * - stdio: Standard Input/Output
+ * - sse: Server Sent Events
+ * - http-streamable: HTTP Streamable
+ */
+export const serverTransport = pgEnum("server_transport", ["stdio", "sse", "http-streamable"]);
+
+/**
+ * Approval policy when model requests to call tools:
+ * - always: Always require confirmation
+ * - never: Default, no confirmation required
+ * - once: Only require confirmation once
+ */
+export const serverApprovalPolicy = pgEnum("server_approval_policy", ["always", "never", "once"]);
+
+const serverColumns = {
+  /**
+   * The unique identifier for the record.
+   */
+  id: uuid().primaryKey().defaultRandom(),
+  /**
+   * The creation time of the record.
+   */
+  createTime: makeCreateTime(),
+  /**
+   * The last update time of the record.
+   */
+  updateTime: makeUpdateTime(),
+  /**
+   * The display label for end users.
+   */
+  label: varchar({ length: 300 }).notNull(),
+  /**
+   * The description for the server.
+   */
+  description: varchar({ length: 300 }),
+  /**
+   * The transport protocol used by the server.
+   */
+  transport: serverTransport().notNull(),
+  /**
+   * The endpoint for the server.
+   * - When `transport` is "stdio", this is the command to start the process.
+   * - When `transport` is "sse" or "http-streamable", this is the URL to connect to.
+   */
+  endpoint: varchar({ length: 600 }).notNull(),
+  /**
+   * Configuration for the server.
+   * - When `transport` is "stdio", this represents environment variables.
+   * - When `transport` is "sse" or "http-streamable", this represents HTTP headers.
+   */
+  config: jsonb().$type<Record<string, string>>().notNull(),
+  /**
+   * Associates with the project it belongs to.
+   */
+  projectId: uuid().references(() => project.id, {
+    onDelete: "cascade",
+    onUpdate: "cascade",
+  }),
+  /**
+   * Whether the server is active.
+   */
+  active: boolean().notNull().default(true),
+  /**
+   * The approval policy for model requests to call tools.
+   */
+  approvalPolicy: serverApprovalPolicy().notNull().default("once"),
+};
+
+/**
+ * The `servers` table is used to store mcp server configurations.
+ */
+export const server = pgTable("servers", serverColumns, (table) => {
+  return [index().on(table.createTime), index().on(table.projectId)];
+});

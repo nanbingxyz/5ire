@@ -1,5 +1,13 @@
 import { relations } from "drizzle-orm";
-import { collection, conversation, document, documentChunk, project, turn } from "@/main/database/schema/tables";
+import {
+  collection,
+  conversation,
+  document,
+  documentChunk,
+  project,
+  server,
+  turn,
+} from "@/main/database/schema/tables";
 
 /**
  * Defines the relationships between the `collection` table and other tables.
@@ -101,5 +109,24 @@ export const projectRelations = relations(project, (helpers) => {
      * A project can contain multiple knowledge collections.
      */
     collections: helpers.many(collection),
+    /**
+     * A project can contain multiple MCP servers.
+     */
+    servers: helpers.many(server),
+  };
+});
+
+/**
+ * Defines the relationships between the `server` table and other tables.
+ */
+export const serverRelations = relations(server, (helpers) => {
+  return {
+    /**
+     * Associates with the project it belongs to.
+     */
+    project: helpers.one(project, {
+      references: [project.id],
+      fields: [server.projectId],
+    }),
   };
 });

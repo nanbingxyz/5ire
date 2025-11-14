@@ -10,6 +10,7 @@ import type {
   promptMergeStrategy,
   provider,
   providerKind,
+  server,
   turn,
   turnFinishReason,
   usage,
@@ -204,10 +205,6 @@ export namespace TurnPrompt {
        * The display name of the MCP server.
        */
       name: string;
-      /**
-       * The server key identifying this MCP server.
-       */
-      key: string;
     };
     /**
      * The name of the external prompt.
@@ -223,7 +220,7 @@ export namespace TurnPrompt {
     messages: {
       role: "user" | "assistant";
       content: Array<Part.Text | Part.File | Part.Reference | Part.Resource>;
-    };
+    }[];
   };
 }
 
@@ -275,3 +272,7 @@ export type ProviderInsert = InferInsertModel<typeof provider>;
 export type Usage = InferSelectModel<typeof usage>;
 export type UsageRaw = InferSelectModel<typeof usage, { dbColumnNames: true }>;
 export type UsageInsert = InferInsertModel<typeof usage>;
+
+export type Server = InferSelectModel<typeof server>;
+export type ServerRaw = InferSelectModel<typeof server, { dbColumnNames: true }>;
+export type ServerInsert = InferInsertModel<typeof server>;
