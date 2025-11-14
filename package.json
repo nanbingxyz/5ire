@@ -87,6 +87,7 @@
     "classnames": "^2.5.1",
     "clipboard": "^2.0.11",
     "clsx": "^2.1.1",
+    "data-uri-to-buffer": "^6.0.2",
     "dompurify": "^3.2.5",
     "drizzle-orm": "^0.44.7",
     "echarts": "^5.4.2",
@@ -135,6 +136,7 @@
     "swr": "^2.2.0",
     "tiktoken": "^1.0.10",
     "ts-key-enum": "^2.0.12",
+    "ts-pattern": "^5.9.0",
     "typeid-js": "^0.3.0",
     "valid-url": "^1.0.9",
     "zustand": "^4.3.9"

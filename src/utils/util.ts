@@ -1,7 +1,7 @@
-import { TEMP_CHAT_ID } from 'consts';
-import { IChat, IPromptDef } from 'intellichat/types';
-import { isArray, isNull } from 'lodash';
-import DOMPurify from 'dompurify';
+import { TEMP_CHAT_ID } from "consts";
+import DOMPurify from "dompurify";
+import type { IChat, IPromptDef } from "intellichat/types";
+import { isArray, isNull } from "lodash";
 
 export function date2unix(date: Date) {
   return Math.floor(date.getTime() / 1000);
@@ -13,23 +13,23 @@ export function unix2date(unix: number) {
 
 export function getRelativeTime(date: Date) {
   const locales: { [key: string]: string } = {
-    prefix: '',
-    suffix: 'ago',
-    seconds: 'less than a minute',
-    minute: 'about a minute',
-    minutes: '%d minutes',
-    hour: 'about an hour',
-    hours: 'about %d hours',
-    day: 'a day',
-    days: '%d days',
-    month: 'about a month',
-    months: '%d months',
-    year: 'about a year',
-    years: '%d years',
+    prefix: "",
+    suffix: "ago",
+    seconds: "less than a minute",
+    minute: "about a minute",
+    minutes: "%d minutes",
+    hour: "about an hour",
+    hours: "about %d hours",
+    day: "a day",
+    days: "%d days",
+    month: "about a month",
+    months: "%d months",
+    year: "about a year",
+    years: "%d years",
   };
   const now = new Date();
   const seconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-  const separator = locales.separator || ' ';
+  const separator = locales.separator || " ";
   let words = locales.prefix + separator;
   let interval: number = 0;
   const intervals: { [key: string]: number } = {
@@ -45,7 +45,7 @@ export function getRelativeTime(date: Date) {
   for (var key in intervals) {
     interval = Math.floor(intervals[key]);
     if (interval > 1) {
-      distance = locales[key + 's'];
+      distance = locales[key + "s"];
       break;
     } else if (interval === 1) {
       distance = locales[key];
@@ -59,10 +59,10 @@ export function getRelativeTime(date: Date) {
 }
 
 export function isTagClosed(code: string, tag: string) {
-  if (!code || code.trim() === '') return true;
-  if (!tag || tag.trim() === '') return true;
-  const openRegex = new RegExp(`<${tag}>`, 'g');
-  const closeRegex = new RegExp(`</${tag}>`, 'g');
+  if (!code || code.trim() === "") return true;
+  if (!tag || tag.trim() === "") return true;
+  const openRegex = new RegExp(`<${tag}>`, "g");
+  const closeRegex = new RegExp(`</${tag}>`, "g");
   const openMatched = code.match(openRegex) || [];
   const closeMatched = code.match(closeRegex) || [];
   return openMatched.length === closeMatched.length;
@@ -81,36 +81,30 @@ export function isPersistedChat(chat: Partial<IChat>): boolean {
 }
 export function fmtDate(date: Date) {
   const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
   return `${year}/${month}/${day}`;
 }
 
 export function fmtDateTime(date: Date) {
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
   return `${fmtDate(date)} ${hours}:${minutes}:${seconds}`;
 }
 
 export function highlight(text: string, keyword: string | string[]) {
-  if (!text) return '';
+  if (!text) return "";
   if (!keyword) return text;
-  if (typeof keyword === 'string') {
-    if (keyword.trim() === '') return text;
-    const regex = new RegExp(keyword.trim(), 'gi');
-    return DOMPurify.sanitize(text).replace(
-      regex,
-      (match) => `<mark>${match}</mark>`,
-    );
+  if (typeof keyword === "string") {
+    if (keyword.trim() === "") return text;
+    const regex = new RegExp(keyword.trim(), "gi");
+    return DOMPurify.sanitize(text).replace(regex, (match) => `<mark>${match}</mark>`);
   }
   let result = text;
   keyword.forEach((word) => {
-    const regex = new RegExp(word, 'gi');
-    result = DOMPurify.sanitize(result).replace(
-      regex,
-      (match) => `<mark>${match}</mark>`,
-    );
+    const regex = new RegExp(word, "gi");
+    result = DOMPurify.sanitize(result).replace(regex, (match) => `<mark>${match}</mark>`);
   });
   return result;
 }
@@ -121,7 +115,7 @@ export function parseVariables(text: string): string[] {
   let m = regex.exec(text);
   while (m) {
     const variable = m[1].trim();
-    if (variable !== '' && !variables.includes(variable)) {
+    if (variable !== "" && !variables.includes(variable)) {
       variables.push(variable);
     }
     variables.push();
@@ -130,13 +124,10 @@ export function parseVariables(text: string): string[] {
   return variables;
 }
 
-export function fillVariables(
-  text: string,
-  variables: { [key: string]: string },
-) {
+export function fillVariables(text: string, variables: { [key: string]: string }) {
   let result = text;
   Object.keys(variables).forEach((key) => {
-    const regex = new RegExp(`{{${key}}}`, 'g');
+    const regex = new RegExp(`{{${key}}}`, "g");
     result = result.replace(regex, variables[key]);
   });
   return result;
@@ -155,9 +146,7 @@ export function sortPrompts(prompts: IPromptDef[]) {
     if (b.pinedAt && isNull(a.pinedAt)) {
       return 1 || a.createdAt - b.createdAt;
     }
-    return (
-      (b.pinedAt as number) - (a.pinedAt as number) || a.createdAt - b.createdAt
-    );
+    return (b.pinedAt as number) - (a.pinedAt as number) || a.createdAt - b.createdAt;
   });
 }
 
@@ -194,14 +183,11 @@ export function setCursorToEnd(field: HTMLDivElement) {
 }
 
 export function isGPT35(model: string) {
-  return (
-    model.toLowerCase().startsWith('gpt-3.5') ||
-    model.toLowerCase().startsWith('gpt-35')
-  );
+  return model.toLowerCase().startsWith("gpt-3.5") || model.toLowerCase().startsWith("gpt-35");
 }
 
 export function isGPT4(model: string) {
-  return model.toLowerCase().startsWith('gpt-4');
+  return model.toLowerCase().startsWith("gpt-4");
 }
 
 export function isGPT(model: string) {
@@ -209,23 +195,23 @@ export function isGPT(model: string) {
 }
 
 export function isDoubao(model: string) {
-  return model.toLowerCase().startsWith('doubao');
+  return model.toLowerCase().startsWith("doubao");
 }
 
 export function isGrok(model: string) {
-  return model.toLowerCase().startsWith('grok');
+  return model.toLowerCase().startsWith("grok");
 }
 
 export function isDeepSeek(model: string) {
-  return model.toLowerCase().startsWith('deepseek');
+  return model.toLowerCase().startsWith("deepseek");
 }
 
 export function isClaude1(model: string) {
-  return model.toLowerCase() === 'claude-instant-1';
+  return model.toLowerCase() === "claude-instant-1";
 }
 
 export function isClaude2(model: string) {
-  return model.toLowerCase() === 'claude-2';
+  return model.toLowerCase() === "claude-2";
 }
 
 export function isClaude(model: string) {
@@ -233,23 +219,23 @@ export function isClaude(model: string) {
 }
 
 export function isGemini(model: string) {
-  return model.toLowerCase().startsWith('gemini');
+  return model.toLowerCase().startsWith("gemini");
 }
 
 export function isMoonshot(model: string) {
-  return model.toLowerCase().startsWith('moonshot');
+  return model.toLowerCase().startsWith("moonshot");
 }
 
 export function isLlama(model: string) {
-  return model.toLowerCase().startsWith('llama');
+  return model.toLowerCase().startsWith("llama");
 }
 
 export function isZhipu(model: string) {
-  return model.toLowerCase().startsWith('glm');
+  return model.toLowerCase().startsWith("glm");
 }
 
 export function isPerplexity(model: string) {
-  return model.toLowerCase().startsWith('sonar');
+  return model.toLowerCase().startsWith("sonar");
 }
 export function tryAgain(callback: () => any, times = 3, delay = 1000) {
   let tryTimes = 0;
@@ -284,41 +270,28 @@ export function raiseError(status: number, response: any, message?: string) {
   const msg = resp?.error?.message || resp?.error || message;
   switch (status) {
     case 400:
-      throw new Error(msg || 'Bad request');
+      throw new Error(msg || "Bad request");
     case 401:
-      throw new Error(
-        msg ||
-          'Invalid authentication, please ensure the API key used is correct',
-      );
+      throw new Error(msg || "Invalid authentication, please ensure the API key used is correct");
     case 403:
-      throw new Error(
-        msg ||
-          'Permission denied, please confirm your authority before try again.',
-      );
+      throw new Error(msg || "Permission denied, please confirm your authority before try again.");
     case 404:
-      throw new Error(msg || 'Not found');
+      throw new Error(msg || "Not found");
     case 409:
-      throw new Error(msg || 'Conflict');
+      throw new Error(msg || "Conflict");
     case 429:
-      throw new Error(
-        msg ||
-          'Rate limit reached for requests, or you exceeded your current quota.',
-      );
+      throw new Error(msg || "Rate limit reached for requests, or you exceeded your current quota.");
     case 500:
-      throw new Error(
-        msg || 'The server had an error while processing your request',
-      );
+      throw new Error(msg || "The server had an error while processing your request");
     case 503:
-      throw new Error(
-        msg || 'The engine is currently overloaded, please try again later',
-      );
+      throw new Error(msg || "The engine is currently overloaded, please try again later");
     default:
-      throw new Error(msg || 'Unknown error');
+      throw new Error(msg || "Unknown error");
   }
 }
 
 export function arrayBufferToBase64(buffer: ArrayBuffer) {
-  let binary = '';
+  let binary = "";
   const bytes = new Uint8Array(buffer);
   const len = bytes.byteLength;
   for (let i = 0; i < len; i++) {
@@ -334,75 +307,99 @@ export async function getBase64(url: string): Promise<string> {
 
 export function removeTagsExceptImg(html: string): string {
   // 使用正则表达式移除除 <img> 以外的所有标签
-  return html.replace(/<(?!img\b)[^>]*>/gi, '');
+  return html.replace(/<(?!img\b)[^>]*>/gi, "");
 }
 
 export function stripHtmlTags(html: string): string {
-  return html.replace(/<[^>]*>/g, '');
+  return html.replace(/<[^>]*>/g, "");
 }
 
 export function splitByImg(html: string, base64Only: boolean = false) {
-  const defaultMimeType = 'image/jpeg';
+  const defaultMimeType = "image/jpeg";
   const mimeTypes: { [key: string]: string } = {
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.png': 'image/png',
-    '.gif': 'image/gif',
-    '.bmp': 'image/bmp',
-    '.webp': 'image/webp',
-    '.heic': 'image/heic',
-    '.heif': 'image/heif',
+    ".jpg": "image/jpeg",
+    ".jpeg": "image/jpeg",
+    ".png": "image/png",
+    ".gif": "image/gif",
+    ".bmp": "image/bmp",
+    ".webp": "image/webp",
+    ".heic": "image/heic",
+    ".heif": "image/heif",
   };
-  const splitRegex = base64Only
-    ? /(<img\s+src="data:[^"]+"\s*.*\/?>)/g
-    : /(<img\s+src="[^"]+"\s*.*\/?>)/g;
-  const srcRegex = base64Only
-    ? /<img\s+src="(data:[^"]+)"\s*.*\/?>/g
-    : /<img\s+src="([^"]+)"\s*.*\/?>/g;
+  const splitRegex = base64Only ? /(<img\s+src="data:[^"]+"\s*.*\/?>)/g : /(<img\s+src="[^"]+"\s*.*\/?>)/g;
+  const srcRegex = base64Only ? /<img\s+src="(data:[^"]+)"\s*.*\/?>/g : /<img\s+src="([^"]+)"\s*.*\/?>/g;
   const items = html
     .split(splitRegex)
     .map((item) => item.trim())
-    .filter((item: string) => item !== '');
+    .filter((item: string) => item !== "");
   return items.map((item: string) => {
     const matches = item.match(srcRegex);
     if (matches) {
-      const data = matches.map((match) => match.replace(srcRegex, '$1'))[0];
-      const dataType = data.startsWith('data:') ? 'base64' : 'URL';
+      const data = matches.map((match) => match.replace(srcRegex, "$1"))[0];
+      const dataType = data.startsWith("data:") ? "base64" : "URL";
       let mimeType = defaultMimeType;
-      if (dataType === 'base64') {
-        mimeType = data.split(';')[0].split(':')[1];
+      if (dataType === "base64") {
+        mimeType = data.split(";")[0].split(":")[1];
       } else {
-        const ext = `.${data.split('.').pop()?.toLowerCase()}`;
+        const ext = `.${data.split(".").pop()?.toLowerCase()}`;
         mimeType = ext ? mimeTypes[ext] || defaultMimeType : defaultMimeType;
       }
       return {
-        type: 'image',
+        type: "image",
         dataType,
         mimeType,
         data,
-      };
+      } as const;
     }
     return {
-      type: 'text',
+      type: "text",
       data: item,
-    };
+    } as const;
   });
 }
 
+export function splitByCitations(input: string) {
+  const regex = /\[\(?\d+\)?\]\(citation#([a-z0-9-]+)\s*.*?\)/g;
+
+  const result: Array<string | { id: string }> = [];
+  let lastIndex = 0;
+
+  for (const match of input.matchAll(regex)) {
+    const start = match.index!;
+    const end = start + match[0].length;
+    const id = match[1];
+
+    if (start > lastIndex) {
+      const text = input.slice(lastIndex, start);
+      if (text) result.push(text);
+    }
+
+    // citation
+    result.push({ id });
+
+    lastIndex = end;
+  }
+
+  if (lastIndex < input.length) {
+    const text = input.slice(lastIndex);
+    if (text) result.push(text);
+  }
+
+  return result;
+}
+
 export function paddingZero(num: number, length: number) {
-  return (Array(length).join('0') + num).slice(-length);
+  return (Array(length).join("0") + num).slice(-length);
 }
 
 export function fileSize(sizeInBytes: number) {
   const i = Math.floor(Math.log(sizeInBytes) / Math.log(1024));
-  return (
-    (sizeInBytes / 1024 ** i).toFixed(1) + ['B', 'KB', 'MB', 'GB', 'TB'][i]
-  );
+  return (sizeInBytes / 1024 ** i).toFixed(1) + ["B", "KB", "MB", "GB", "TB"][i];
 }
 
 export function isOneDimensionalArray(arr: any[]): boolean {
   if (!isArray(arr)) {
-    throw new Error('Input is not an array.');
+    throw new Error("Input is not an array.");
   }
   for (const item of arr) {
     if (isArray(item)) {
@@ -413,7 +410,7 @@ export function isOneDimensionalArray(arr: any[]): boolean {
 }
 
 export function extractCitationIds(text: string): string[] {
-  const regex = /\[\(?\d+\)?\]\(citation#([a-z0-9]+)\s*.*?\)/g;
+  const regex = /\[\(?\d+\)?\]\(citation#([a-z0-9-]+)\s*.*?\)/g;
   // 使用matchAll返回所有匹配结果
   const matches = text.matchAll(regex);
   return [...matches].map((match) => match[1]);
@@ -422,30 +419,30 @@ export function extractCitationIds(text: string): string[] {
 export function extractFirstLevelBrackets(text: string): string[] {
   const results = [];
   const stack = [];
-  let current = '';
+  let current = "";
   let firstLevelCapture = false;
 
   for (let i = 0; i < text.length; i++) {
     const char = text[i];
 
-    if (char === '{') {
+    if (char === "{") {
       if (stack.length === 0) {
         firstLevelCapture = true;
-        current = ''; // start capturing a new section
+        current = ""; // start capturing a new section
       }
-      stack.push('{');
+      stack.push("{");
     }
 
     if (firstLevelCapture) {
       current += char;
     }
 
-    if (char === '}') {
+    if (char === "}") {
       stack.pop();
       if (stack.length === 0) {
         firstLevelCapture = false;
         results.push(current); // end of a section
-        current = ''; // reset current for the next possible section
+        current = ""; // reset current for the next possible section
       }
     }
   }
@@ -457,59 +454,51 @@ export function getReasoningContent(reply: string, reasoning?: string) {
   if (reasoning) {
     return reasoning;
   }
-  const parts = reply.split('<think>');
+  const parts = reply.split("<think>");
 
   if (parts.length <= 1) {
-    return '';
+    return "";
   }
 
   const thinkParts = parts
     .slice(1)
     .map((part) => {
-      const [content] = part.split('</think>');
+      const [content] = part.split("</think>");
       return content;
     })
     .filter(Boolean);
 
-  return thinkParts.join('');
+  return thinkParts.join("");
 }
 
 export function getNormalContent(reply: string) {
-  const parts = reply.split('<think>');
+  const parts = reply.split("<think>");
 
   if (parts.length === 1) {
     return reply;
   }
 
-  const replyParts = parts
-    .map((part) => part.split('</think>')[1])
-    .filter(Boolean);
+  const replyParts = parts.map((part) => part.split("</think>")[1]).filter(Boolean);
 
-  return replyParts.join('');
+  return replyParts.join("");
 }
 
 export function urlJoin(part: string, base: string): string {
   // Trim trailing slash from base
-  const trimmedBase = base.replace(/\/+$/, '');
+  const trimmedBase = base.replace(/\/+$/, "");
 
   // Remove leading slash from part and trim trailing slashes
-  const trimmedPart = part.replace(/^\/+/, '');
+  const trimmedPart = part.replace(/^\/+/, "");
 
   // Join with a single slash
   try {
     return new URL(`${trimmedBase}/${trimmedPart}`).toString();
   } catch {
-    return '';
+    return "";
   }
 }
 
-export type JsonValue =
-  | string
-  | number
-  | boolean
-  | null
-  | JsonArray
-  | JsonObject;
+export type JsonValue = string | number | boolean | null | JsonArray | JsonObject;
 export type JsonArray = JsonValue[];
 export type JsonObject = { [key: string]: JsonValue };
 
@@ -520,7 +509,7 @@ export function transformPropertiesType(obj: JsonValue): JsonValue {
   }
 
   // 如果不是对象，直接返回
-  if (typeof obj !== 'object' || obj === null) {
+  if (typeof obj !== "object" || obj === null) {
     return obj;
   }
 
@@ -528,21 +517,19 @@ export function transformPropertiesType(obj: JsonValue): JsonValue {
   const result: JsonObject = {};
 
   for (const [key, value] of Object.entries(obj)) {
-    if (key === 'properties' && typeof value === 'object' && value !== null) {
+    if (key === "properties" && typeof value === "object" && value !== null) {
       // 处理 properties 对象
       const transformedProperties: JsonObject = {};
 
       for (const [propKey, propValue] of Object.entries(value)) {
-        if (typeof propValue === 'object' && propValue !== null) {
+        if (typeof propValue === "object" && propValue !== null) {
           // 递归处理嵌套的对象
           const transformed = transformPropertiesType(propValue) as JsonObject;
 
           // 检查并转换当前层级的 type 属性
-          if ('type' in transformed && Array.isArray(transformed.type)) {
+          if ("type" in transformed && Array.isArray(transformed.type)) {
             const typeArray = transformed.type as JsonArray;
-            const firstNonNull = typeArray.find(
-              (t) => t !== null && t !== 'null',
-            );
+            const firstNonNull = typeArray.find((t) => t !== null && t !== "null");
             transformed.type = firstNonNull || typeArray[0];
           }
 
@@ -563,7 +550,7 @@ export function transformPropertiesType(obj: JsonValue): JsonValue {
 }
 
 export function removeAdditionalProperties(schema: any): any {
-  if (typeof schema !== 'object' || schema === null) {
+  if (typeof schema !== "object" || schema === null) {
     return schema;
   }
 
@@ -576,8 +563,8 @@ export function removeAdditionalProperties(schema: any): any {
   delete result.additionalProperties;
 
   for (const [key, value] of Object.entries(result)) {
-    if (typeof value === 'object' && value !== null) {
-      if (key === 'properties') {
+    if (typeof value === "object" && value !== null) {
+      if (key === "properties") {
         const properties: any = {};
         for (const [propKey, propValue] of Object.entries(value)) {
           properties[propKey] = removeAdditionalProperties(propValue);
@@ -594,7 +581,7 @@ export function removeAdditionalProperties(schema: any): any {
 
 // Gemini require explicitly set type to string
 export function addStringTypeToEnumProperty(schema: any): any {
-  if (typeof schema !== 'object' || schema === null) {
+  if (typeof schema !== "object" || schema === null) {
     return schema;
   }
 
@@ -604,13 +591,13 @@ export function addStringTypeToEnumProperty(schema: any): any {
 
   const result = { ...schema };
 
-  if ('enum' in schema && Array.isArray(schema.enum)) {
-    result.type = 'string';
+  if ("enum" in schema && Array.isArray(schema.enum)) {
+    result.type = "string";
   }
 
   for (const [key, value] of Object.entries(schema)) {
-    if (typeof value === 'object' && value !== null) {
-      if (key === 'properties') {
+    if (typeof value === "object" && value !== null) {
+      if (key === "properties") {
         const properties: any = {};
         for (const [propKey, propValue] of Object.entries(value)) {
           properties[propKey] = addStringTypeToEnumProperty(propValue);

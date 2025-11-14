@@ -46,9 +46,11 @@ import { Downloader } from "@/main/services/downloader";
 import { Embedder } from "@/main/services/embedder";
 import { Encryptor } from "@/main/services/encryptor";
 import { Logger } from "@/main/services/logger";
+import { MCPContentConverter } from "@/main/services/mcp-content-converter";
 import { PromptManager } from "@/main/services/prompt-manager";
 import { Renderer } from "@/main/services/renderer";
 import { Updater } from "@/main/services/updater";
+import { URLParser } from "@/main/services/url-parser";
 import { SettingsStore } from "@/main/stories/settings-store";
 import initCrashReporter from "../CrashReporter";
 import {
@@ -124,6 +126,8 @@ Container.singleton(DocumentEmbedder, () => new DocumentEmbedder());
 Container.singleton(DocumentEmbedderBridge, () => new DocumentEmbedderBridge());
 Container.singleton(PromptManager, () => new PromptManager());
 Container.singleton(PromptManagerBridge, () => new PromptManagerBridge());
+Container.singleton(URLParser, () => new URLParser());
+Container.singleton(MCPContentConverter, () => new MCPContentConverter());
 
 logging.init();
 
@@ -298,7 +302,11 @@ if (!gotTheLock) {
 
       await Container.inject(Database).ready;
       await Container.inject(Renderer).focus();
-      await Container.inject(DatabaseMigrator).migrate(legacySqliteDatabase, await Knowledge.getDatabase());
+      await Container.inject(DatabaseMigrator).migrate(
+        legacySqliteDatabase,
+        await Knowledge.getDatabase(),
+        mcp.getConfig(),
+      );
 
       app.on("activate", () => {
         const logger = Container.inject(Logger).scope("Main:AppOnActivate");
