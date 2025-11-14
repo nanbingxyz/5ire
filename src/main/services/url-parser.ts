@@ -8,6 +8,7 @@ import type { URLDescription } from "@/main/model/url-description";
 const PROTOCOL = {
   EXTERNAL: "external",
   DOCUMENT: "document",
+  DOCUMENT_FRAGMENT: "document+fragment",
   INLINE: "data",
   FILE: "file",
   HTTP: "http",
@@ -19,6 +20,10 @@ const PROTOCOL = {
  * Supports external, document, file, HTTP, HTTPS, and inline data URLs
  */
 export class URLParser {
+  #isUUID(value: string) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+  }
+
   /**
    * Parses a string URL into a structured URLDescription object
    * @param value - The URL string to parse
@@ -44,15 +49,27 @@ export class URLParser {
 
       if (url.protocol === `${PROTOCOL.DOCUMENT}:`) {
         const id = url.hostname;
-        const chunk = url.searchParams.get("chunk") ?? undefined;
+        const name = decodeURIComponent(url.searchParams.get("name") || "");
 
-        if (id && chunk) {
+        if (id && this.#isUUID(id)) {
           return {
             type: "document",
             id,
-            chunk,
             url,
+            name: name || undefined,
           } satisfies URLDescription.Document;
+        }
+      }
+
+      if (url.protocol === `${PROTOCOL.DOCUMENT_FRAGMENT}:`) {
+        const id = url.hostname;
+
+        if (id && this.#isUUID(id)) {
+          return {
+            type: "document-fragment",
+            id,
+            url,
+          } satisfies URLDescription.DocumentFragment;
         }
       }
 
@@ -97,28 +114,39 @@ export class URLParser {
 
   /**
    * Formats a document URL from its components
-   * @param payload - The document URL components (excluding type and url)
+   * @param id - The document ID
+   * @param name - The document name
    * @returns A formatted document URL string
    */
-  formatDocument(payload: Omit<URLDescription.Document, "type" | "url">) {
+  formatDocument(id: string, name?: string) {
     return format({
       protocol: PROTOCOL.DOCUMENT,
-      hostname: payload.id,
+      hostname: id,
       query: {
-        chunk: payload.chunk,
+        name: name ? encodeURIComponent(name) : undefined,
       },
     });
   }
 
   /**
+   * Formats a document fragment URL from its components
+   * @param id - The document fragment ID
+   * @returns A formatted document fragment URL string
+   */
+  formatDocumentFragment(id: string) {
+    return format({
+      protocol: PROTOCOL.DOCUMENT_FRAGMENT,
+      hostname: id,
+    });
+  }
+
+  /**
    * Formats a file URL from its path
-   * @param payload - The file path (excluding type and url)
+   * @param path - The file path
    * @returns A formatted file URL string
    */
-  formatFile(payload: Omit<URLDescription.File, "type" | "url">) {
-    return pathToFileURL(payload.path, {
-      windows: process.platform === "win32",
-    }).toString();
+  formatFile(path: string) {
+    return pathToFileURL(path, { windows: process.platform === "win32" }).toString();
   }
 
   /**
@@ -132,15 +160,16 @@ export class URLParser {
 
   /**
    * Formats an external URL from its components
-   * @param payload - The external URL components (excluding type and url)
+   * @param server - The server id
+   * @param uri - The original resource URI
    * @returns A formatted external URL string
    */
-  formatExternal(payload: Omit<URLDescription.External, "type" | "url">) {
+  formatExternal(server: string, uri: string) {
     return format({
       protocol: PROTOCOL.EXTERNAL,
-      hostname: payload.server,
+      hostname: server,
       query: {
-        origin: encodeURIComponent(payload.origin),
+        origin: encodeURIComponent(uri),
       },
     });
   }

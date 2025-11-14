@@ -7,6 +7,7 @@ export type URLDescription =
   | URLDescription.Inline
   | URLDescription.External
   | URLDescription.Document
+  | URLDescription.DocumentFragment
   | URLDescription.Unknown;
 
 export namespace URLDescription {
@@ -87,7 +88,7 @@ export namespace URLDescription {
   };
 
   /**
-   * Describes a document URL; points to a document or document fragment in a knowledge base
+   * Describes a document URL; points to a document in a knowledge base
    */
   export type Document = {
     /**
@@ -99,10 +100,27 @@ export namespace URLDescription {
      */
     id: string;
     /**
-     * Document fragment ID; if present, indicates that the URL points to a document fragment;
-     * otherwise, indicates that the URL points to the entire document
+     * Document name
      */
-    chunk?: string;
+    name?: string;
+    /**
+     * URL object
+     */
+    url: URL;
+  };
+
+  /**
+   * Describes a document slice URL; points to a specific fragment of a document in a knowledge base
+   */
+  export type DocumentFragment = {
+    /**
+     * Type; fixed as "document-fragment"; identifies this as a document slice URL
+     */
+    type: "document-fragment";
+    /**
+     * Document fragment ID
+     */
+    id: string;
     /**
      * URL object
      */

@@ -22,9 +22,9 @@ export class MCPContentConverter {
    *
    * @see https://modelcontextprotocol.io/specification/2025-06-18/server/resources#common-uri-schemes
    * @param uri - The resource URI returned by the MCP server
-   * @param serverId - The MCP server ID
+   * @param server - The MCP server ID
    */
-  #convertResourceURI(uri: string, serverId: string) {
+  #convertResourceURI(uri: string, server: string) {
     try {
       const url = new URL(uri);
 
@@ -33,10 +33,7 @@ export class MCPContentConverter {
       }
     } catch {}
 
-    return this.#urlParser.formatExternal({
-      server: serverId,
-      origin: uri,
-    });
+    return this.#urlParser.formatExternal(server, uri);
   }
 
   /**
@@ -109,5 +106,7 @@ export class MCPContentConverter {
 
       return resource;
     }
+
+    throw new Error(`Unknown content block type: ${block}`);
   }
 }
