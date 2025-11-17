@@ -13,7 +13,7 @@ import type { EncryptorBridge } from "@/main/bridge/encryptor-bridge";
 import type { LegacyDataMigratorBridge } from "@/main/bridge/legacy-data-migrator-bridge";
 import type { PromptManagerBridge } from "@/main/bridge/prompt-manager-bridge";
 import type { RendererBridge } from "@/main/bridge/renderer-bridge";
-import type { SettingsStoreBridge } from "@/main/bridge/settings-store-bridge";
+import type { SettingsBridge } from "@/main/bridge/settings-bridge";
 import type { UpdaterBridge } from "@/main/bridge/updater-bridge";
 import { BridgeConnector } from "@/main/internal/bridge-connector";
 import type { ContentPart as DocumentContentPart } from "./next/document-loader/DocumentLoader";
@@ -55,7 +55,7 @@ const BRIDGE = {
     focus: "async",
     createStateStream: "stream",
   }),
-  settingsStore: connector.connect<SettingsStoreBridge>("settings-store", {
+  settingsStore: connector.connect<SettingsBridge>("settings-store", {
     updateLanguage: "async",
     updateTheme: "async",
     updateFontSize: "async",

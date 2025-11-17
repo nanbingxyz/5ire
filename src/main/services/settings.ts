@@ -3,7 +3,7 @@ import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
 import { Stateful } from "@/main/internal/stateful";
 
-export class SettingsStore extends Stateful.Persistable<SettingsStore.State> {
+export class Settings extends Stateful.Persistable<Settings.State> {
   constructor() {
     super({
       name: "settings",
@@ -18,7 +18,7 @@ export class SettingsStore extends Stateful.Persistable<SettingsStore.State> {
     nativeTheme.themeSource = this.state.theme;
   }
 
-  updateTheme(theme: SettingsStore.Theme) {
+  updateTheme(theme: Settings.Theme) {
     this.update((draft) => {
       draft.theme = theme;
     });
@@ -26,20 +26,20 @@ export class SettingsStore extends Stateful.Persistable<SettingsStore.State> {
     nativeTheme.themeSource = this.state.theme;
   }
 
-  updateLanguage(language: SettingsStore.Language) {
+  updateLanguage(language: Settings.Language) {
     this.update((draft) => {
       draft.language = language;
     });
   }
 
-  updateFontSize(fontSize: SettingsStore.FontSize) {
+  updateFontSize(fontSize: Settings.FontSize) {
     this.update((draft) => {
       draft.fontSize = fontSize;
     });
   }
 }
 
-export namespace SettingsStore {
+export namespace Settings {
   export type Language = "en" | "zh" | "system";
 
   export type Theme = "light" | "dark" | "system";
