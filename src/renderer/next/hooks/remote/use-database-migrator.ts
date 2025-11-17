@@ -6,7 +6,7 @@ const key = crypto.randomUUID();
 
 const createStore = async () => {
   return createStateStreamStore({
-    streamLoader: window.bridge.databaseMigrator.createStateStream,
+    streamLoader: window.bridge.legacyDataMigrator.createStateStream,
     onDone: () => {
       clear([key]);
     },

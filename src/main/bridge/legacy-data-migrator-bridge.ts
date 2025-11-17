@@ -1,9 +1,9 @@
 import { Bridge } from "@/main/internal/bridge";
 import { Container } from "@/main/internal/container";
-import { DatabaseMigrator } from "@/main/services/database-migrator";
+import { LegacyDataMigrator } from "@/main/services/legacy-data-migrator";
 
-export class DatabaseMigratorBridge extends Bridge.define("database-migrator", () => {
-  const service = Container.inject(DatabaseMigrator);
+export class LegacyDataMigratorBridge extends Bridge.define("legacy-data-migrator", () => {
+  const service = Container.inject(LegacyDataMigrator);
 
   return {
     createStateStream() {

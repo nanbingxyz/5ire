@@ -25,12 +25,12 @@ import fetch from "node-fetch";
 import path from "path";
 import type { IMCPServer } from "types/mcp";
 import { isValidMCPServer, isValidMCPServerKey } from "utils/validators";
-import { DatabaseMigratorBridge } from "@/main/bridge/database-migrator-bridge";
 import { DocumentEmbedderBridge } from "@/main/bridge/document-embedder-bridge";
 import { DocumentManagerBridge } from "@/main/bridge/document-manager-bridge";
 import { DownloaderBridge } from "@/main/bridge/downloader-bridge";
 import { EmbedderBridge } from "@/main/bridge/embedder-bridge";
 import { EncryptorBridge } from "@/main/bridge/encryptor-bridge";
+import { LegacyDataMigratorBridge } from "@/main/bridge/legacy-data-migrator-bridge";
 import { PromptManagerBridge } from "@/main/bridge/prompt-manager-bridge";
 import { RendererBridge } from "@/main/bridge/renderer-bridge";
 import { SettingsStoreBridge } from "@/main/bridge/settings-store-bridge";
@@ -38,13 +38,13 @@ import { UpdaterBridge } from "@/main/bridge/updater-bridge";
 import { Database } from "@/main/database";
 import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
-import { DatabaseMigrator } from "@/main/services/database-migrator";
 import { DocumentEmbedder } from "@/main/services/document-embedder";
 import { DocumentExtractor } from "@/main/services/document-extractor";
 import { DocumentManager } from "@/main/services/document-manager";
 import { Downloader } from "@/main/services/downloader";
 import { Embedder } from "@/main/services/embedder";
 import { Encryptor } from "@/main/services/encryptor";
+import { LegacyDataMigrator } from "@/main/services/legacy-data-migrator";
 import { Logger } from "@/main/services/logger";
 import { MCPContentConverter } from "@/main/services/mcp-content-converter";
 import { PromptManager } from "@/main/services/prompt-manager";
@@ -117,8 +117,8 @@ Container.singleton(SettingsStoreBridge, () => new SettingsStoreBridge());
 Container.singleton(Embedder, () => new Embedder());
 Container.singleton(EmbedderBridge, () => new EmbedderBridge());
 Container.singleton(Database, () => new Database());
-Container.singleton(DatabaseMigrator, () => new DatabaseMigrator());
-Container.singleton(DatabaseMigratorBridge, () => new DatabaseMigratorBridge());
+Container.singleton(LegacyDataMigrator, () => new LegacyDataMigrator());
+Container.singleton(LegacyDataMigratorBridge, () => new LegacyDataMigratorBridge());
 Container.singleton(DocumentManager, () => new DocumentManager());
 Container.singleton(DocumentManagerBridge, () => new DocumentManagerBridge());
 Container.singleton(DocumentExtractor, () => new DocumentExtractor());
@@ -279,7 +279,7 @@ if (!gotTheLock) {
       Container.inject(EmbedderBridge).expose(ipcMain);
       Container.inject(DocumentManagerBridge).expose(ipcMain);
       Container.inject(DocumentEmbedderBridge).expose(ipcMain);
-      Container.inject(DatabaseMigratorBridge).expose(ipcMain);
+      Container.inject(LegacyDataMigratorBridge).expose(ipcMain);
       Container.inject(PromptManagerBridge).expose(ipcMain);
 
       Container.inject(Embedder)
@@ -302,7 +302,7 @@ if (!gotTheLock) {
 
       await Container.inject(Database).ready;
       await Container.inject(Renderer).focus();
-      await Container.inject(DatabaseMigrator).migrate(
+      await Container.inject(LegacyDataMigrator).migrate(
         legacySqliteDatabase,
         await Knowledge.getDatabase(),
         mcp.getConfig(),

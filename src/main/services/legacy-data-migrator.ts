@@ -33,19 +33,17 @@ const LEGACY_DATABASE_TABLES = [
 ] as const;
 
 /**
- * Database migrator class
- *
  * Responsible for migrating old database structures to new database structures
  *
  * Inherits from Store.Persistable to persist migration state and avoid duplicate migrations
  */
-export class DatabaseMigrator extends Store.Persistable<DatabaseMigrator.State> {
+export class LegacyDataMigrator extends Store.Persistable<LegacyDataMigrator.State> {
   #logger = Container.inject(Logger).scope("DatabaseMigrator");
   #database = Container.inject(Database);
   #urlParser = Container.inject(URLParser);
   #mcpContentConverter = Container.inject(MCPContentConverter);
 
-  async #migrateMCPConfig(context: DatabaseMigrator.Context) {
+  async #migrateMCPConfig(context: LegacyDataMigrator.Context) {
     const { legacyDataIdMap: ids, legacySqliteDB: sqlite, legacyLanceDB: lance, tx, legacyMCPConfig: mcp } = context;
 
     const logger = this.#logger.scope("MigrateMCPConfig");
@@ -102,7 +100,7 @@ export class DatabaseMigrator extends Store.Persistable<DatabaseMigrator.State> 
    *
    * @returns Promise<void> A Promise that resolves when the migration is complete
    */
-  async #migrateKnowledge(context: DatabaseMigrator.Context) {
+  async #migrateKnowledge(context: LegacyDataMigrator.Context) {
     const { legacyDataIdMap: ids, legacySqliteDB: sqlite, legacyLanceDB: lance, tx } = context;
 
     const logger = this.#logger.scope("MigrateKnowledge");
@@ -318,7 +316,7 @@ export class DatabaseMigrator extends Store.Persistable<DatabaseMigrator.State> 
    *
    * @returns Promise<void> A Promise that resolves when the migration is complete
    */
-  async #migratePrompts(context: DatabaseMigrator.Context) {
+  async #migratePrompts(context: LegacyDataMigrator.Context) {
     const { legacyDataIdMap: ids, legacySqliteDB: sqlite, tx } = context;
 
     const logger = this.#logger.scope("MigrateKnowledge");
@@ -368,7 +366,7 @@ export class DatabaseMigrator extends Store.Persistable<DatabaseMigrator.State> 
     logger.info(`Migrate prompts completed. Total: ${ids.prompts.size} prompts migrated.`);
   }
 
-  async #migrateFolders(context: DatabaseMigrator.Context) {
+  async #migrateFolders(context: LegacyDataMigrator.Context) {
     const { legacyDataIdMap: ids, legacySqliteDB: sqlite, tx } = context;
 
     const logger = this.#logger.scope("MigrateFolders");
@@ -425,7 +423,7 @@ export class DatabaseMigrator extends Store.Persistable<DatabaseMigrator.State> 
     logger.info(`Migrate folders completed. Total: ${ids.folders.size} folders migrated.`);
   }
 
-  async #migrateChats(context: DatabaseMigrator.Context) {
+  async #migrateChats(context: LegacyDataMigrator.Context) {
     const { legacyDataIdMap: ids, legacySqliteDB: sqlite, tx } = context;
 
     const logger = this.#logger.scope("MigrateChats");
@@ -483,7 +481,7 @@ export class DatabaseMigrator extends Store.Persistable<DatabaseMigrator.State> 
     logger.info(`Migrate chats completed. Total: ${ids.chats.size} chats migrated.`);
   }
 
-  async #migrateMessages(context: DatabaseMigrator.Context) {
+  async #migrateMessages(context: LegacyDataMigrator.Context) {
     const { legacyDataIdMap: ids, legacySqliteDB: sqlite, legacyMCPConfig: mcp, tx } = context;
 
     const logger = this.#logger.scope("MigrateMessages");
@@ -726,7 +724,7 @@ export class DatabaseMigrator extends Store.Persistable<DatabaseMigrator.State> 
 
     try {
       await client.transaction(async (tx) => {
-        const context: DatabaseMigrator.Context = {
+        const context: LegacyDataMigrator.Context = {
           legacyLanceDB: lance,
           legacySqliteDB: sqlite,
           legacyDataIdMap: {
@@ -794,7 +792,7 @@ export class DatabaseMigrator extends Store.Persistable<DatabaseMigrator.State> 
   }
 }
 
-export namespace DatabaseMigrator {
+export namespace LegacyDataMigrator {
   /**
    * Database migrator state type definition
    *

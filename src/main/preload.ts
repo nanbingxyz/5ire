@@ -5,12 +5,12 @@ import { contextBridge, type IpcRendererEvent, ipcRenderer } from "electron";
 import { platform } from "os";
 import type { ThemeType } from "types/appearance";
 import v8 from "v8";
-import type { DatabaseMigratorBridge } from "@/main/bridge/database-migrator-bridge";
 import type { DocumentEmbedderBridge } from "@/main/bridge/document-embedder-bridge";
 import type { DocumentManagerBridge } from "@/main/bridge/document-manager-bridge";
 import type { DownloaderBridge } from "@/main/bridge/downloader-bridge";
 import type { EmbedderBridge } from "@/main/bridge/embedder-bridge";
 import type { EncryptorBridge } from "@/main/bridge/encryptor-bridge";
+import type { LegacyDataMigratorBridge } from "@/main/bridge/legacy-data-migrator-bridge";
 import type { PromptManagerBridge } from "@/main/bridge/prompt-manager-bridge";
 import type { RendererBridge } from "@/main/bridge/renderer-bridge";
 import type { SettingsStoreBridge } from "@/main/bridge/settings-store-bridge";
@@ -85,7 +85,7 @@ const BRIDGE = {
     deletePrompt: "async",
     listPrompts: "async",
   }),
-  databaseMigrator: connector.connect<DatabaseMigratorBridge>("database-migrator", {
+  legacyDataMigrator: connector.connect<LegacyDataMigratorBridge>("legacy-data-migrator", {
     createStateStream: "stream",
   }),
 };
