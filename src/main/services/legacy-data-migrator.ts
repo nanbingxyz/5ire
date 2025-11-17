@@ -38,7 +38,7 @@ const LEGACY_DATABASE_TABLES = [
  * Inherits from Store.Persistable to persist migration state and avoid duplicate migrations
  */
 export class LegacyDataMigrator extends Stateful.Persistable<LegacyDataMigrator.State> {
-  #logger = Container.inject(Logger).scope("DatabaseMigrator");
+  #logger = Container.inject(Logger).scope("LegacyDataMigrator");
   #database = Container.inject(Database);
   #urlParser = Container.inject(URLParser);
   #mcpContentConverter = Container.inject(MCPContentConverter);

@@ -1,5 +1,13 @@
+import { Axiom } from "@axiomhq/js";
+import { captureException, captureMessage, init } from "@sentry/electron/main";
 import { asError } from "catch-unknown";
 import { default as logger } from "electron-log";
+import { Environment } from "@/main/environment";
+import { Container } from "@/main/internal/container";
+
+let SENTRY_INITIALIZED = false;
+let AXIOM_INITIALIZED = false;
+let AXIOM_INSTANCE = null as Axiom | null;
 
 /**
  * Logger class is used to handle application log recording functions
@@ -7,6 +15,33 @@ import { default as logger } from "electron-log";
  */
 export class Logger {
   #scope = "";
+  #environment = Container.inject(Environment);
+
+  constructor() {
+    if (!SENTRY_INITIALIZED && this.#environment.mode === "production" && this.#environment.sentryDsn) {
+      init({
+        dsn: this.#environment.sentryDsn,
+      });
+      SENTRY_INITIALIZED = true;
+    }
+
+    if (
+      !AXIOM_INITIALIZED &&
+      this.#environment.mode === "production" &&
+      this.#environment.axiomToken &&
+      this.#environment.axiomOrgId
+    ) {
+      try {
+        AXIOM_INSTANCE = new Axiom({
+          token: this.#environment.axiomToken,
+          orgId: this.#environment.axiomOrgId,
+        });
+      } catch (e) {
+        this.capture(e, { reason: "Failed to initialize Axiom" });
+      }
+      AXIOM_INITIALIZED = true;
+    }
+  }
 
   /**
    * Record info level logs
@@ -59,19 +94,32 @@ export class Logger {
   /**
    * Capture and record error information
    * @param error Error object
-   * @param message Error description message
    * @param options Capture options, can specify log level
    */
-  capture(error: unknown, message: string, options?: Logger.CaptureOptions) {
+  capture(error: unknown, options?: Logger.CaptureOptions) {
     const level = options?.level || "error";
 
-    if (level === "error") {
-      this.error(message, asError(error));
-    } else {
-      this.warning(message, asError(error));
+    if (SENTRY_INITIALIZED) {
+      if (level === "error") {
+        captureMessage(asError(error).message, {
+          extra: {
+            scope: this.#scope,
+            reason: options?.reason,
+            level: level,
+          },
+        });
+      } else {
+        captureException(asError(error), {
+          extra: {
+            scope: this.#scope,
+            reason: options?.reason,
+            level: level,
+          },
+        });
+      }
     }
 
-    // TODO: Add error reporting logic
+    this[level].bind(this)(options?.reason || "", asError(error));
   }
 
   /**
@@ -90,6 +138,35 @@ export class Logger {
 
     return instance;
   }
+
+  /**
+   * Track analytics events
+   * @param options Tracking options including event name and properties
+   */
+  track(options: Logger.TrackOptions) {
+    if (AXIOM_INSTANCE) {
+      AXIOM_INSTANCE.ingest("5ire", [
+        {
+          ...options,
+          ...{
+            timestamp: new Date().toISOString(),
+            // legacy
+            app: options.event,
+          },
+        },
+      ]);
+    }
+  }
+
+  /**
+   * Flush pending analytics events
+   * Ensures all queued events are sent to the analytics service
+   */
+  flush() {
+    AXIOM_INSTANCE?.flush().catch((e) => {
+      this.capture(e, { reason: "Failed to flush Axiom" });
+    });
+  }
 }
 
 export namespace Logger {
@@ -103,5 +180,24 @@ export namespace Logger {
      * Optional values are "error" or "warning", default is "error"
      */
     level?: "error" | "warning";
+    /**
+     * Error reason
+     * Optional, used to provide additional information about the error
+     */
+    reason?: string;
+  };
+
+  /**
+   * Analytics event
+   */
+  export type TrackOptions = {
+    /**
+     * Event name
+     */
+    event: string;
+    /**
+     * Event properties
+     */
+    properties?: Record<string, string>;
   };
 }

@@ -2,6 +2,7 @@ import { app, BrowserWindow, nativeTheme, shell } from "electron";
 import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
 import { Stateful } from "@/main/internal/stateful";
+import MenuBuilder from "@/main/menu";
 import { Logger } from "@/main/services/logger";
 
 /**
@@ -96,9 +97,13 @@ export class Renderer extends Stateful<Renderer.State> {
       draft.window = window;
     });
 
+    new MenuBuilder(window).buildMenu();
+
     window.webContents.setWindowOpenHandler(({ url }) => {
       shell.openExternal(url).catch((error) => {
-        logger.capture(error, `Failed to open external link: ${url}`);
+        logger.capture(error, {
+          reason: `Failed to open external link: ${url}`,
+        });
       });
 
       return {

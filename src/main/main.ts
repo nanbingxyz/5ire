@@ -10,6 +10,7 @@ import dotenv from "dotenv";
 import {
   app,
   type BrowserWindow,
+  crashReporter,
   dialog,
   ipcMain,
   Menu,
@@ -45,6 +46,7 @@ import { Downloader } from "@/main/services/downloader";
 import { Embedder } from "@/main/services/embedder";
 import { Encryptor } from "@/main/services/encryptor";
 import { LegacyDataMigrator } from "@/main/services/legacy-data-migrator";
+import { LegacyVectorDatabaseLoader } from "@/main/services/legacy-vector-database-loader";
 import { Logger } from "@/main/services/logger";
 import { MCPContentConverter } from "@/main/services/mcp-content-converter";
 import { PromptManager } from "@/main/services/prompt-manager";
@@ -52,20 +54,15 @@ import { Renderer } from "@/main/services/renderer";
 import { Settings } from "@/main/services/settings";
 import { Updater } from "@/main/services/updater";
 import { URLParser } from "@/main/services/url-parser";
-import initCrashReporter from "../CrashReporter";
 import {
   KNOWLEDGE_IMPORT_MAX_FILE_SIZE,
   KNOWLEDGE_IMPORT_MAX_FILES,
   SUPPORTED_FILE_TYPES,
   SUPPORTED_IMAGE_TYPES,
 } from "../consts";
-import axiom from "../vendors/axiom";
-import { loadDocumentFromBuffer } from "./docloader";
-import Knowledge from "./knowledge";
-import * as logging from "./logging";
 import ModuleContext from "./mcp";
 import { DocumentLoader } from "./next/document-loader/DocumentLoader";
-import { legacySqliteDatabase } from "./sqlite";
+import { initLegacyDatabase } from "./sqlite";
 import { decodeBase64, getFileInfo, getFileType } from "./util";
 
 dotenv.config({
@@ -82,6 +79,7 @@ Container.singleton(Environment, () => {
   }
 
   const env: Environment = {
+    mode: app.isPackaged ? "production" : "development",
     cryptoSecret: process.env.CRYPTO_SECRET || "",
     rendererDevServer: process.env.RENDERER_DEV_SERVER || "",
     rendererEntry: resolve(__dirname, "./renderer/index.html"),
@@ -93,6 +91,14 @@ Container.singleton(Environment, () => {
     databaseDataFolder: resolve(userDataFolder, "Database"),
     databaseMigrationsFolder: resolve(__dirname, "./migrations"),
     userDataFolder,
+    legacyDatabasePath: resolve(app.getPath("userData"), "./5ire.db"),
+    legacyVectorDatabaseFolder: resolve(app.getPath("userData"), "./lancedb.db"),
+    legacyMCPConfigPath: resolve(app.getPath("userData"), "./mcp.json"),
+    legacyProviderConfigPath: resolve(app.getPath("userData"), "./config.json"),
+    sentryDsn: process.env.SENTRY_DSN,
+    sentryKey: process.env.SENTRY_KEY,
+    axiomToken: process.env.AXIOM_TOKEN,
+    axiomOrgId: process.env.AXIOM_ORG_ID,
   };
 
   ensureDirSync(env.embedderCacheFolder);
@@ -119,6 +125,7 @@ Container.singleton(EmbedderBridge, () => new EmbedderBridge());
 Container.singleton(Database, () => new Database());
 Container.singleton(LegacyDataMigrator, () => new LegacyDataMigrator());
 Container.singleton(LegacyDataMigratorBridge, () => new LegacyDataMigratorBridge());
+Container.singleton(LegacyVectorDatabaseLoader, () => new LegacyVectorDatabaseLoader());
 Container.singleton(DocumentManager, () => new DocumentManager());
 Container.singleton(DocumentManagerBridge, () => new DocumentManagerBridge());
 Container.singleton(DocumentExtractor, () => new DocumentExtractor());
@@ -129,9 +136,19 @@ Container.singleton(PromptManagerBridge, () => new PromptManagerBridge());
 Container.singleton(URLParser, () => new URLParser());
 Container.singleton(MCPContentConverter, () => new MCPContentConverter());
 
-logging.init();
+// init crash reporter
+(() => {
+  const logger = Container.inject(Logger).scope("Main:InitCrashReporter");
+  const env = Container.inject(Environment);
 
-logging.info("Main process start...");
+  if (env.mode === "production" && env.sentryDsn && env.sentryKey) {
+    crashReporter.start({
+      submitURL: `${env.sentryDsn}/minidump/?sentry_key=${env.sentryKey}`,
+    });
+
+    logger.debug("CrashReporter initialized");
+  }
+})();
 
 const mcp = new ModuleContext();
 const store = new Store();
@@ -150,6 +167,7 @@ if (process.defaultApp) {
 }
 
 const onDeepLink = (link: string) => {
+  const logger = Container.inject(Logger).scope("Main:OnDeepLink");
   const { host, hash } = new URL(link);
   if (host === "login-callback") {
     const params = new URLSearchParams(hash.substring(1));
@@ -208,21 +226,22 @@ const onDeepLink = (link: string) => {
       dialog.showMessageBox(dialogOpts);
     }
   } else {
-    logging.captureException(`Invalid deeplink, ${link}`);
+    logger.capture(`Invalid deeplink, ${link}`);
   }
 };
 
 const openSafeExternal = (url: string) => {
+  const logger = Container.inject(Logger).scope("Main:OpenSafeExternal");
   try {
     const parsedUrl = new URL(url);
     const allowedProtocols = ["http:", "https:", "mailto:"];
     if (!allowedProtocols.includes(parsedUrl.protocol)) {
-      logging.warn(`Blocked unsafe protocol: ${parsedUrl.protocol}`);
+      logger.warning(`Blocked unsafe protocol: ${parsedUrl.protocol}`);
       return;
     }
     shell.openExternal(url);
   } catch (e) {
-    logging.warn("Invalid URL:", url);
+    logger.warning("Invalid URL:", url);
   }
 };
 
@@ -268,6 +287,7 @@ if (!gotTheLock) {
     .then(async () => {
       const logger = Container.inject(Logger).scope("Main:WhenReady");
       const environment = Container.inject(Environment);
+      const legacySqliteDatabase = initLegacyDatabase();
 
       logger.info("User data folder:", environment.userDataFolder);
 
@@ -297,16 +317,21 @@ if (!gotTheLock) {
       Container.inject(DocumentEmbedder)
         .init()
         .catch((err) => {
-          logging.error("Failed to init document embedder:", err);
+          logger.error("Failed to init document embedder:", err);
         });
 
       await Container.inject(Database).ready;
       await Container.inject(Renderer).focus();
-      await Container.inject(LegacyDataMigrator).migrate(
-        legacySqliteDatabase,
-        await Knowledge.getDatabase(),
-        mcp.getConfig(),
-      );
+
+      await Container.inject(LegacyDataMigrator)
+        .migrate(
+          legacySqliteDatabase,
+          await Container.inject(LegacyVectorDatabaseLoader).load(environment.legacyVectorDatabaseFolder),
+          mcp.getConfig(),
+        )
+        .catch((error) => {
+          //
+        });
 
       app.on("activate", () => {
         const logger = Container.inject(Logger).scope("Main:AppOnActivate");
@@ -318,16 +343,9 @@ if (!gotTheLock) {
           });
       });
 
-      app.on("will-finish-launching", () => {
-        initCrashReporter();
-      });
-
       app.on("window-all-closed", () => {
-        try {
-          axiom.flush();
-        } catch (error) {
-          logging.error("Failed to flush axiom:", error);
-        }
+        logger.flush();
+
         // Respect the OSX convention of having the application in memory even
         // after all windows have been closed
         if (process.platform !== "darwin") {
@@ -337,11 +355,12 @@ if (!gotTheLock) {
       });
 
       app.on("before-quit", async () => {
+        const logger = Container.inject(Logger).scope("Main:AppOnBeforeQuit");
         ipcMain.removeAllListeners();
         try {
           await mcp.close();
         } catch (error) {
-          logging.error("Failed to close MCP:", error);
+          logger.error("Failed to close MCP:", error);
         }
         process.stdin.destroy();
       });
@@ -351,9 +370,28 @@ if (!gotTheLock) {
         event.preventDefault();
         callback(true);
       });
-      axiom.ingest([{ app: "launch" }]);
+
+      logger.track({ event: "launch" });
     })
-    .catch(logging.captureException);
+    .catch((error) => {
+      const logger = Container.inject(Logger).scope("Main:WhenReadyError");
+
+      logger.capture(error, {
+        reason: "Failed to initialize main process",
+      });
+
+      dialog.showErrorBox(
+        "Application Launch Failed",
+        [
+          "The application could not start correctly.",
+          "",
+          "Please try restarting the app. If the problem persists,",
+          "contact support and provide the error logs.",
+        ].join("\n"),
+      );
+
+      app.quit();
+    });
   handleDeepLinkOnColdStart();
 }
 
@@ -370,6 +408,7 @@ ipcMain.on("install-tool-listener-ready", () => {
 const activeRequests = new Map<string, AbortController>();
 
 ipcMain.handle("request", async (event, options) => {
+  const logger = Container.inject(Logger).scope("Main:Request");
   const { url, method, headers, body, proxy, isStream } = options;
   const requestId = Math.random().toString(36).substr(2, 9);
   const abortController = new AbortController();
@@ -379,9 +418,9 @@ ipcMain.handle("request", async (event, options) => {
     if (proxy) {
       try {
         agent = new HttpsProxyAgent(proxy);
-        logging.info(`Using proxy: ${proxy}`);
+        logger.info(`Using proxy: ${proxy}`);
       } catch (error) {
-        logging.error(`Invalid proxy URL: ${proxy}`, error);
+        logger.error(`Invalid proxy URL: ${proxy}`, error);
       }
     }
 
@@ -448,9 +487,9 @@ ipcMain.handle("request", async (event, options) => {
   } catch (error: unknown) {
     activeRequests.delete(requestId);
     if (error instanceof Error && error.name === "AbortError") {
-      logging.info(`Request ${requestId} was cancelled`);
+      logger.info(`Request ${requestId} was cancelled`);
     } else {
-      logging.error("Request failed:", error);
+      logger.error("Request failed:", error);
     }
     throw error;
   }
@@ -525,7 +564,7 @@ ipcMain.handle("get-app-version", () => {
 });
 
 ipcMain.handle("ingest-event", (_, data) => {
-  axiom.ingest(data);
+  Container.inject(Logger).track({ event: data.app as string });
 });
 
 ipcMain.handle("open-external", (_, url) => {
@@ -543,39 +582,9 @@ ipcMain.handle("get-system-language", () => {
   return app.getLocale();
 });
 
-ipcMain.handle(
-  "import-knowledge-file",
-  (
-    _,
-    {
-      file,
-      collectionId,
-    }: {
-      file: {
-        id: string;
-        path: string;
-        name: string;
-        size: number;
-        type: string;
-      };
-      collectionId: string;
-    },
-  ) => {
-    Knowledge.importFile({
-      file,
-      collectionId,
-      onProgress: (filePath: string, total: number, done: number) => {
-        mainWindow?.webContents.send("knowledge-import-progress", filePath, total, done);
-      },
-      onSuccess: (data: any) => {
-        mainWindow?.webContents.send("knowledge-import-success", data);
-      },
-    });
-  },
-);
-
 // eslint-disable-next-line consistent-return
 ipcMain.handle("select-knowledge-files", async () => {
+  const logger = Container.inject(Logger).scope("Main:SelectKnowledgeFiles");
   try {
     const result = await dialog.showOpenDialog({
       properties: ["openFile", "multiSelections"],
@@ -611,15 +620,18 @@ ipcMain.handle("select-knowledge-files", async () => {
       fileInfo.type = fileType;
       files.push(fileInfo);
     }
-    logging.debug(files);
+    logger.debug(files);
     return JSON.stringify(files);
   } catch (err: any) {
-    logging.captureException(err);
+    logger.capture(err, {
+      reason: "Failed to select knowledge files",
+    });
   }
 });
 
 // eslint-disable-next-line consistent-return
 ipcMain.handle("select-image-with-base64", async () => {
+  const logger = Container.inject(Logger).scope("Main:SelectImageWithBase64");
   try {
     const result = await dialog.showOpenDialog({
       properties: ["openFile"],
@@ -654,30 +666,19 @@ ipcMain.handle("select-image-with-base64", async () => {
       base64: `data:image/${fileType};base64,${base64}`,
     });
   } catch (err: any) {
-    logging.captureException(err);
+    logger.capture(err, {
+      reason: "Failed to select image with base64",
+    });
   }
-});
-
-ipcMain.handle("search-knowledge", async (_, collectionIds: string[], query: string) => {
-  const result = await Knowledge.search(collectionIds, query, { limit: 6 });
-  return JSON.stringify(result);
-});
-ipcMain.handle("remove-knowledge-file", (_, fileId: string) => {
-  return Knowledge.remove({ fileId });
-});
-ipcMain.handle("remove-knowledge-collection", (_, collectionId: string) => {
-  return Knowledge.remove({ collectionId });
-});
-ipcMain.handle("get-knowledge-chunk", (_, chunkId: string) => {
-  return Knowledge.getChunk(chunkId);
 });
 
 /** mcp */
 ipcMain.handle("mcp-init", () => {
+  const logger = Container.inject(Logger).scope("Main:MCPInit");
   // eslint-disable-next-line promise/catch-or-return
   mcp.init().then(async () => {
     // https://github.com/sindresorhus/fix-path
-    logging.info("mcp initialized");
+    logger.info("mcp initialized");
     await mcp.load();
     mainWindow?.webContents.send("mcp-server-loaded", mcp.getClientNames());
   });
@@ -695,10 +696,11 @@ ipcMain.handle("mcp-deactivate", async (_, clientName: string) => {
   return mcp.deactivate(clientName);
 });
 ipcMain.handle("mcp-list-tools", async (_, name: string) => {
+  const logger = Container.inject(Logger).scope("Main:MCPListTools");
   try {
     return await mcp.listTools(name);
   } catch (error: any) {
-    logging.error("Error listing MCP tools:", error);
+    logger.error("Error listing MCP tools:", error);
     return {
       tools: [],
       error: {
@@ -709,10 +711,11 @@ ipcMain.handle("mcp-list-tools", async (_, name: string) => {
   }
 });
 ipcMain.handle("mcp-call-tool", async (_, args: { client: string; name: string; args: any; requestId?: string }) => {
+  const logger = Container.inject(Logger).scope("Main:MCPCallTool");
   try {
     return await mcp.callTool(args);
   } catch (error: any) {
-    logging.error("Error invoking MCP tool:", error);
+    logger.error("Error invoking MCP tool:", error);
     return {
       isError: true,
       content: [
@@ -728,10 +731,11 @@ ipcMain.handle("mcp-cancel-tool", (_, requestId: string) => {
   mcp.cancelToolCall(requestId);
 });
 ipcMain.handle("mcp-list-prompts", async (_, name: string) => {
+  const logger = Container.inject(Logger).scope("Main:MCPListPrompts");
   try {
     return await mcp.listPrompts(name);
   } catch (error: any) {
-    logging.error("Error listing MCP prompts:", error);
+    logger.error("Error listing MCP prompts:", error);
     return {
       prompts: [],
       error: {
@@ -743,10 +747,11 @@ ipcMain.handle("mcp-list-prompts", async (_, name: string) => {
 });
 
 ipcMain.handle("mcp-get-prompt", async (_, args: { client: string; name: string; args?: any }) => {
+  const logger = Container.inject(Logger).scope("Main:MCPGetPrompt");
   try {
     return await mcp.getPrompt(args.client, args.name, args.args);
   } catch (error: any) {
-    logging.error("Error getting MCP prompt:", error);
+    logger.error("Error getting MCP prompt:", error);
     return {
       isError: true,
       content: [
@@ -824,10 +829,6 @@ ipcMain.on("show-context-menu", (event, params) => {
   menu.popup({ window: mainWindow as BrowserWindow, x: params.x, y: params.y });
 });
 
-ipcMain.handle("load-document-buffer", (_, buffer: Uint8Array, fileType: string) => {
-  return loadDocumentFromBuffer(buffer, fileType);
-});
-
 ipcMain.handle("DocumentLoader::loadFromBuffer", (_, buffer, mimeType) => {
   return DocumentLoader.loadFromBuffer(buffer, mimeType);
 });
@@ -838,7 +839,7 @@ ipcMain.handle("DocumentLoader::loadFromFilePath", (_, file, mimeType) => {
   return DocumentLoader.loadFromFilePath(file, mimeType);
 });
 
-if (process.env.NODE_ENV === "production") {
+if (process.env.NODE_ENV !== "production") {
   const sourceMapSupport = require("source-map-support");
   sourceMapSupport.install();
 }
@@ -860,9 +861,13 @@ if (app.dock) {
 app.setName("5ire");
 
 process.on("uncaughtException", (error) => {
-  logging.captureException(error);
+  Container.inject(Logger, false)?.scope("App:UncaughtException").capture(error, {
+    reason: "Uncaught Exception",
+  });
 });
 
-process.on("unhandledRejection", (reason: any) => {
-  logging.captureException(reason);
+process.on("unhandledRejection", (reason) => {
+  Container.inject(Logger, false)?.scope("App:UnhandledRejection").capture(reason, {
+    reason: "Unhandled Rejection",
+  });
 });
