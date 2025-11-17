@@ -64,6 +64,13 @@
       "when": 1763106553239,
       "tag": "0008_familiar_retro_girl",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1763366429472,
+      "tag": "0009_luxuriant_talon",
+      "breakpoints": true
     }
   ]
 }

@@ -1,3 +1,4 @@
+import { isNotNull } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -74,13 +75,21 @@ const collectionColumns = {
     onDelete: "cascade",
     onUpdate: "cascade",
   }),
+  /**
+   * The legacy ID of the collection.
+   */
+  legacyId: varchar("legacy_id", { length: 300 }),
 };
 
 /**
  * The `collections` table is used to store knowledge collections created by users.
  */
 export const collection = pgTable("collections", collectionColumns, (table) => {
-  return [index().on(table.createTime), index().on(table.name)];
+  return [
+    index().on(table.createTime),
+    index().on(table.name),
+    uniqueIndex().on(table.legacyId).where(isNotNull(table.legacyId)),
+  ];
 });
 
 /**
@@ -138,6 +147,10 @@ const documentColumns = {
    * The size of the document.
    */
   size: integer().default(0).notNull(),
+  /**
+   * The legacy ID of the document.
+   */
+  legacyId: varchar("legacy_id", { length: 300 }),
 };
 
 /**
@@ -151,6 +164,7 @@ export const document = pgTable("documents", documentColumns, (table) => {
     index().on(table.url),
     // Duplicate documents are not allowed in knowledge collection
     uniqueIndex().on(table.collectionId, table.url),
+    uniqueIndex().on(table.legacyId).where(isNotNull(table.legacyId)),
   ];
 });
 
@@ -191,6 +205,10 @@ const documentChunkColumns = {
       onDelete: "cascade",
       onUpdate: "cascade",
     }),
+  /**
+   * The legacy ID of the document chunk.
+   */
+  legacyId: varchar("legacy_id", { length: 300 }),
 };
 
 /**
@@ -202,6 +220,7 @@ export const documentChunk = pgTable("document_chunks", documentChunkColumns, (t
     index().using("hnsw", table.embedding.op("vector_cosine_ops")),
     // Duplicate chunk indexes are not allowed for the same document
     uniqueIndex().on(table.documentId, table.index),
+    uniqueIndex().on(table.legacyId).where(isNotNull(table.legacyId)),
   ];
 });
 
