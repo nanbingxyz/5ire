@@ -324,11 +324,7 @@ if (!gotTheLock) {
       await Container.inject(Renderer).focus();
 
       await Container.inject(LegacyDataMigrator)
-        .migrate(
-          legacySqliteDatabase,
-          await Container.inject(LegacyVectorDatabaseLoader).load(environment.legacyVectorDatabaseFolder),
-          mcp.getConfig(),
-        )
+        .migrate(legacySqliteDatabase)
         .catch((error) => {
           //
         });
