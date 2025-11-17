@@ -48,6 +48,7 @@ import {
 } from '../consts';
 
 import { loadDocumentFromBuffer } from './docloader';
+import { initMLflow, traceLLMCall, isMLflowEnabled, mlflow, SpanType } from '../intellichat/tracing';
 import { DocumentLoader } from './next/document-loader/DocumentLoader';
 
 dotenv.config({
@@ -65,6 +66,10 @@ const isWin32 = process.platform === 'win32';
 
 const mcp = new ModuleContext();
 const store = new Store();
+
+// Initialize MLflow tracing
+initMLflow(store);
+
 const loadTheme = (theme?: ThemeType) => {
   const $theme = theme || (store.get('settings.theme', 'system') as ThemeType);
   if ($theme === 'dark' || $theme === 'light') {
@@ -360,11 +365,83 @@ ipcMain.on('install-tool-listener-ready', () => {
 
 const activeRequests = new Map<string, AbortController>();
 
-ipcMain.handle('request', async (event, options) => {
+// Helper function to determine if a request is an LLM API call
+function isLLMRequest(url: string): boolean {
+  return url.includes('/chat/completions') ||
+         url.includes('/v1/messages') ||
+         url.includes('/v1/chat') ||
+         url.includes('/generate') ||
+         url.includes('/embeddings');
+}
+
+// Helper function to extract provider name from URL
+function getProviderFromUrl(url: string): string {
+  if (url.includes('api.openai.com')) return 'OpenAI';
+  if (url.includes('api.anthropic.com')) return 'Anthropic';
+  if (url.includes('generativelanguage.googleapis.com')) return 'Google';
+  if (url.includes('api.deepseek.com')) return 'DeepSeek';
+  if (url.includes('api.mistral.ai')) return 'Mistral';
+  if (url.includes('localhost') || url.includes('127.0.0.1')) return 'Local';
+  return 'Unknown';
+}
+
+// Wrapped request handler with MLflow tracing
+async function handleLLMRequest(event: any, options: any, requestId: string, abortController: AbortController) {
   const { url, method, headers, body, proxy, isStream } = options;
-  const requestId = Math.random().toString(36).substr(2, 9);
-  const abortController = new AbortController();
-  activeRequests.set(requestId, abortController);
+
+  // Determine if this is an LLM request
+  const isLLM = isLLMRequest(url);
+  const provider = isLLM ? getProviderFromUrl(url) : 'HTTP';
+
+  // If MLflow is not enabled or this is not an LLM request, execute normally
+  if (!isMLflowEnabled() || !isLLM) {
+    return executeRequest(event, options, requestId, abortController);
+  }
+
+  // Parse request body to extract LLM parameters
+  let requestData: any = {};
+  try {
+    if (body) {
+      requestData = JSON.parse(body);
+    }
+  } catch (e) {
+    // If body is not JSON, continue without parsing
+  }
+
+  // Execute request with MLflow tracing
+  return mlflow.withSpan(
+    async () => {
+      const startTime = Date.now();
+      try {
+        const result = await executeRequest(event, options, requestId, abortController);
+        const duration = Date.now() - startTime;
+
+        logging.info(`MLflow traced ${provider} request completed in ${duration}ms`);
+        return result;
+      } catch (error) {
+        logging.error(`MLflow traced ${provider} request failed:`, error);
+        throw error;
+      }
+    },
+    {
+      name: `${provider}_${requestData.model || 'unknown'}`,
+      spanType: SpanType.LLM,
+      attributes: {
+        provider,
+        model: requestData.model,
+        temperature: requestData.temperature,
+        max_tokens: requestData.max_tokens,
+        stream: requestData.stream,
+        url,
+      },
+    }
+  );
+}
+
+// Core request execution function
+async function executeRequest(event: any, options: any, requestId: string, abortController: AbortController) {
+  const { url, method, headers, body, proxy, isStream } = options;
+
   try {
     let agent;
     if (proxy) {
@@ -443,6 +520,19 @@ ipcMain.handle('request', async (event, options) => {
     } else {
       logging.error('Request failed:', error);
     }
+    throw error;
+  }
+}
+
+ipcMain.handle('request', async (event, options) => {
+  const requestId = Math.random().toString(36).substr(2, 9);
+  const abortController = new AbortController();
+  activeRequests.set(requestId, abortController);
+
+  try {
+    return await handleLLMRequest(event, options, requestId, abortController);
+  } catch (error) {
+    activeRequests.delete(requestId);
     throw error;
   }
 });
@@ -848,6 +938,24 @@ ipcMain.handle('mcp-put-config', (_, config) => {
 });
 ipcMain.handle('mcp-get-active-servers', () => {
   return mcp.getClientNames();
+});
+
+// MLflow configuration handlers
+ipcMain.handle('mlflow-get-config', () => {
+  const mlflowConfig = store.get('mlflow', {
+    enabled: false,
+    trackingUri: '',
+    experimentId: '',
+    experimentName: '',
+  });
+  return mlflowConfig;
+});
+
+ipcMain.handle('mlflow-set-config', (_, config) => {
+  store.set('mlflow', config);
+  // Re-initialize MLflow with new configuration
+  initMLflow(store);
+  return true;
 });
 
 ipcMain.on('show-context-menu', (event, params) => {

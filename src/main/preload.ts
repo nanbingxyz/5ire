@@ -133,6 +133,24 @@ const electronHandler = {
       return ipcRenderer.invoke('mcp-get-active-servers');
     },
   },
+  mlflow: {
+    getConfig(): Promise<{
+      enabled: boolean;
+      trackingUri: string;
+      experimentId: string;
+      experimentName?: string;
+    }> {
+      return ipcRenderer.invoke('mlflow-get-config');
+    },
+    setConfig(config: {
+      enabled: boolean;
+      trackingUri: string;
+      experimentId: string;
+      experimentName?: string;
+    }): Promise<boolean> {
+      return ipcRenderer.invoke('mlflow-set-config', config);
+    },
+  },
   crypto: {
     encrypt(text: string, key: string) {
       return ipcRenderer.invoke('encrypt', text, key);

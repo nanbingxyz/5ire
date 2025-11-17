@@ -8,6 +8,7 @@ import Version from './Version';
 import AppearanceSettings from './AppearanceSettings';
 import EmbedSettings from './EmbedSettings';
 import LanguageSettings from './LanguageSettings';
+import MLflowSettings from './MLflowSettings';
 
 export default function Settings() {
   const { isDarwin } = usePlatform();
@@ -36,6 +37,7 @@ export default function Settings() {
           </div>
         </div>
         <EmbedSettings />
+        <MLflowSettings />
         <AppearanceSettings />
         <LanguageSettings />
         <Version />
