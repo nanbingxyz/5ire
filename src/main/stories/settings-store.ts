@@ -1,9 +1,9 @@
 import { nativeTheme } from "electron";
 import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
-import { Store } from "@/main/internal/store";
+import { Stateful } from "@/main/internal/stateful";
 
-export class SettingsStore extends Store.Persistable<SettingsStore.State> {
+export class SettingsStore extends Stateful.Persistable<SettingsStore.State> {
   constructor() {
     super({
       name: "settings",

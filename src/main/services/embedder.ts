@@ -6,16 +6,16 @@ import { DOCUMENT_EMBEDDING_MODEL_FILES, DOCUMENT_EMBEDDING_MODEL_NAME } from "@
 import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
 import { Emitter } from "@/main/internal/emitter";
-import { Store } from "@/main/internal/store";
+import { Stateful } from "@/main/internal/stateful";
 import { Downloader } from "@/main/services/downloader";
 import { Logger } from "@/main/services/logger";
 
 /**
  * Embedder class handles generation of text embedding vectors
  * Responsible for model downloading, initialization, removal, and text embedding functions
- * @extends Store<Embedder.State>
+ * @extends Stateful<Embedder.State>
  */
-export class Embedder extends Store<Embedder.State> {
+export class Embedder extends Stateful<Embedder.State> {
   #environment = Container.inject(Environment);
   #downloader = Container.inject(Downloader);
   #logger = Container.inject(Logger).scope("Embedder");

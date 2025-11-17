@@ -6,7 +6,7 @@ import { Database } from "@/main/database";
 import type { ConversationInsert, ServerInsert, TurnInsert, TurnPrompt, TurnReply } from "@/main/database/types";
 import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
-import { Store } from "@/main/internal/store";
+import { Stateful } from "@/main/internal/stateful";
 import { Logger } from "@/main/services/logger";
 import { MCPContentConverter } from "@/main/services/mcp-content-converter";
 import { URLParser } from "@/main/services/url-parser";
@@ -37,7 +37,7 @@ const LEGACY_DATABASE_TABLES = [
  *
  * Inherits from Store.Persistable to persist migration state and avoid duplicate migrations
  */
-export class LegacyDataMigrator extends Store.Persistable<LegacyDataMigrator.State> {
+export class LegacyDataMigrator extends Stateful.Persistable<LegacyDataMigrator.State> {
   #logger = Container.inject(Logger).scope("DatabaseMigrator");
   #database = Container.inject(Database);
   #urlParser = Container.inject(URLParser);

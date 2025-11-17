@@ -2,15 +2,15 @@ import { asError } from "catch-unknown";
 import { autoUpdater, CancellationToken, type ProgressInfo, type UpdateInfo } from "electron-updater";
 import { Container } from "@/main/internal/container";
 import { Emitter } from "@/main/internal/emitter";
-import { Store } from "@/main/internal/store";
+import { Stateful } from "@/main/internal/stateful";
 import { Logger } from "@/main/services/logger";
 
 /**
  * Updater class is used to handle application update functions
  * Includes checking for updates, downloading updates, canceling downloads and installing updates
- * @extends Store<Updater.State>
+ * @extends Stateful<Updater.State>
  */
-export class Updater extends Store<Updater.State> {
+export class Updater extends Stateful<Updater.State> {
   #logger = Container.inject(Logger).scope("Updater");
   #emitter = Emitter.create<Updater.Events>();
 

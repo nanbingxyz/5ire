@@ -8,7 +8,7 @@ import { Database } from "@/main/database";
 import { Container } from "@/main/internal/container";
 import { Emitter } from "@/main/internal/emitter";
 import { Mutex } from "@/main/internal/mutex";
-import { Store } from "@/main/internal/store";
+import { Stateful } from "@/main/internal/stateful";
 import { DocumentExtractor } from "@/main/services/document-extractor";
 import { Embedder } from "@/main/services/embedder";
 import { Logger } from "@/main/services/logger";
@@ -16,9 +16,9 @@ import { Logger } from "@/main/services/logger";
 /**
  * DocumentEmbedder class is used to handle document embedding vector generation
  * Responsible for fetching pending documents from the database, extracting text content and generating embedding vectors
- * @extends Store<DocumentEmbedder.State>
+ * @extends Stateful<DocumentEmbedder.State>
  */
-export class DocumentEmbedder extends Store<DocumentEmbedder.State> {
+export class DocumentEmbedder extends Stateful<DocumentEmbedder.State> {
   #database = Container.inject(Database);
   #embedder = Container.inject(Embedder);
   #extractor = Container.inject(DocumentExtractor);

@@ -14,11 +14,11 @@ enablePatches();
  *
  * @template T The shape of the state object (must be a record-like object).
  */
-export abstract class Store<T extends Record<string, any>> {
+export abstract class Stateful<T extends Record<string, any>> {
   #state: T;
   #initialState: T;
 
-  #subscribers: Set<Store.Subscriber<T>>;
+  #subscribers: Set<Stateful.Subscriber<T>>;
 
   /**
    * @param initializer A function that returns the initial state.
@@ -57,12 +57,6 @@ export abstract class Store<T extends Record<string, any>> {
    * All subscribers are notified after each update.
    *
    * @param producer A callback that receives a mutable draft of the state.
-   * @example
-   * ```ts
-   * store.update((draft) => {
-   *   draft.count += 1;
-   * });
-   * ```
    */
   protected update(producer: (draft: Draft<T>) => void) {
     const prev = this.state;
@@ -79,10 +73,6 @@ export abstract class Store<T extends Record<string, any>> {
    * Replaces the entire state with a new value.
    *
    * @param value The new state value.
-   * @example
-   * ```ts
-   * store.replace({ count: 0 });
-   * ```
    */
   protected replace(value: T) {
     const prev = this.state;
@@ -108,18 +98,8 @@ export abstract class Store<T extends Record<string, any>> {
    *
    * @param subscriber A subscriber callback function.
    * @returns A function that unsubscribes the listener.
-   *
-   * @example
-   * ```ts
-   * const unsubscribe = store.subscribe((prev, next) => {
-   *   console.log("State changed:", next);
-   * });
-   *
-   * // Later...
-   * unsubscribe();
-   * ```
    */
-  subscribe(subscriber: Store.Subscriber<T>) {
+  subscribe(subscriber: Stateful.Subscriber<T>) {
     this.#subscribers.add(subscriber);
 
     return () => {
@@ -131,12 +111,6 @@ export abstract class Store<T extends Record<string, any>> {
    * Applies a set of Immer patches (`Patch[]`) to the current state.
    *
    * Typically used to synchronize state with remote updates or history playback.
-   *
-   * @param patches An array of Immer patches.
-   * @example
-   * ```ts
-   * store.apply(patches);
-   * ```
    */
   apply(patches: Patch[]) {
     this.update((draft) => {
@@ -144,7 +118,7 @@ export abstract class Store<T extends Record<string, any>> {
     });
   }
 
-  createStream(): ReadableStream<Store.StreamChunk<T>>;
+  createStream(): ReadableStream<Stateful.StreamChunk<T>>;
   createStream<O>(transform: (state: T) => O): ReadableStream<O>;
 
   /**
@@ -155,7 +129,7 @@ export abstract class Store<T extends Record<string, any>> {
   createStream<O>(transform?: (state: T) => O) {
     const abort = new AbortController();
 
-    return new ReadableStream<Store.StreamChunk<T> | O>({
+    return new ReadableStream<Stateful.StreamChunk<T> | O>({
       cancel: () => {
         abort.abort();
       },
@@ -186,7 +160,7 @@ export abstract class Store<T extends Record<string, any>> {
   }
 }
 
-export namespace Store {
+export namespace Stateful {
   /**
    * A tuple containing forward and inverse patches.
    *
@@ -225,28 +199,15 @@ export namespace Store {
    *
    * @template T The shape of the persisted state.
    */
-  export abstract class Persistable<T extends Record<string, any>> extends Store<T> {
+  export abstract class Persistable<T extends Record<string, any>> extends Stateful<T> {
     /**
      * @param options Persistence options.
      *
      * - `directory`: the directory to store data files.
      * - `name`: the base name of the store file.
      * - `defaults`: the default initial state.
-     *
-     * @example
-     * ```ts
-     * class SettingsStore extends Store.Persistable<{ theme: string }> {
-     *   constructor() {
-     *     super({
-     *       directory: app.getPath("userData"),
-     *       name: "settings",
-     *       defaults: { theme: "light" },
-     *     });
-     *   }
-     * }
-     * ```
      */
-    protected constructor(options: Store.Persistable.Options<T>) {
+    protected constructor(options: Stateful.Persistable.Options<T>) {
       const persistor = new ElectronStore<T>({
         defaults: options.defaults,
         name: options.name,
@@ -273,7 +234,7 @@ export namespace Store {
 
   export namespace Persistable {
     /**
-     * Configuration options for a `Store.Persistable` instance.
+     * Configuration options for a `Stateful.Persistable` instance.
      *
      * @template T The shape of the state.
      */

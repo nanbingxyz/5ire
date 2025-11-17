@@ -1,15 +1,15 @@
 import { app, BrowserWindow, nativeTheme, shell } from "electron";
 import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
-import { Store } from "@/main/internal/store";
+import { Stateful } from "@/main/internal/stateful";
 import { Logger } from "@/main/services/logger";
 
 /**
  * Renderer class is used to manage the application's rendering process and browser window
  * Responsible for creating, configuring and managing Electron's BrowserWindow instances
- * @extends Store<Renderer.State>
+ * @extends Stateful<Renderer.State>
  */
-export class Renderer extends Store<Renderer.State> {
+export class Renderer extends Stateful<Renderer.State> {
   #environment = Container.inject(Environment);
   #logger = Container.inject(Logger).scope("Renderer");
 
