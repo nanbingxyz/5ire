@@ -103,7 +103,9 @@ export class ProductionDependenciesInstallerPlugin implements Rspack.RspackPlugi
             JSON.stringify(
               {
                 verbose: false,
-                ignore: ["node_modules", "renderer"],
+                ignore: ["*/"],
+                watch: ["./"],
+                ext: "cjs",
                 delay: 1000,
                 exec: command.join(" "),
               },

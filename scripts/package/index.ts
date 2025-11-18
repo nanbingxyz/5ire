@@ -1,3 +1,5 @@
+import { notarize } from "@electron/notarize";
+import { execSync } from "child_process";
 import { build } from "electron-builder";
 
 build({
@@ -35,9 +37,74 @@ build({
       "**/node_modules/@xenova/transformers/src/**",
       "**/node_modules/textract/lib/extractors/**",
     ],
-    afterPack: ".erb/scripts/remove-useless.js",
-    afterSign: ".erb/scripts/notarize.js",
-    afterAllArtifactBuild: ".erb/scripts/sign.js",
+    // afterPack: ".erb/scripts/remove-useless.js",
+    // afterSign: ".erb/scripts/notarize.js",
+    afterSign: async (ctx) => {
+      if (ctx.electronPlatformName !== "darwin") {
+        return;
+      }
+
+      const appleId = process.env.APPLE_ID;
+      const appleIdPass = process.env.APPLE_ID_PASS;
+      const appleTeamId = process.env.APPLE_TEAM_ID;
+
+      if (!appleId || !appleIdPass || !appleTeamId) {
+        return console.warn(
+          "Skipping notarization. APPLE_ID, APPLE_ID_PASS, and APPLE_TEAM_ID environment variables must be set",
+        );
+      }
+
+      console.info("Notarizing...");
+
+      await notarize({
+        tool: "notarytool",
+        appPath: `${ctx.appOutDir}/${ctx.packager.appInfo.productFilename}.app`,
+        teamId: appleTeamId,
+        appleId: appleId,
+        appleIdPassword: appleIdPass,
+      });
+
+      console.info("Notarization complete");
+    },
+    // afterAllArtifactBuild: ".erb/scripts/sign.js",
+    afterAllArtifactBuild: async (ctx) => {
+      // Check if this is a Linux build by looking for any AppImage
+      const isLinux = ctx.artifactPaths.some((artifact) => artifact.endsWith(".AppImage"));
+
+      if (!isLinux) {
+        console.info("No AppImage found, skipping signing");
+        return [];
+      }
+
+      if (!process.env.GPG_KEY_ID) {
+        throw new Error(
+          "GPG_KEY_ID environment variable must be set to a valid GPG key ID (e.g., F51DE3D45EEFC1387B4469E788BBA7820E939D09)",
+        );
+      }
+
+      // Filter all AppImages from artifactPaths
+      const appImages = ctx.artifactPaths.filter((artifact) => artifact.endsWith(".AppImage"));
+
+      if (!appImages.length) {
+        throw new Error("No AppImages found in artifact paths");
+      }
+
+      // Sign each AppImage using forEach
+      appImages.forEach((appImagePath) => {
+        console.info(`Signing AppImage with key ${process.env.GPG_KEY_ID}: ${appImagePath}`);
+        try {
+          execSync(`gpg --detach-sign --armor --yes --default-key ${process.env.GPG_KEY_ID} "${appImagePath}"`, {
+            stdio: "inherit",
+          });
+          console.info(`AppImage signed successfully: ${appImagePath}.asc`);
+        } catch (error) {
+          console.error(`Failed to sign AppImage: ${error}`);
+          throw error; // This will stop the build and report the error
+        }
+      });
+
+      return [];
+    },
     mac: {
       target: {
         target: "default",

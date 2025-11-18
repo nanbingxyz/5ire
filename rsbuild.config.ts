@@ -124,7 +124,7 @@ export default defineConfig(async ({ command }): Promise<RsbuildConfig> => {
         },
       },
       dev: {
-        writeToDisk: true,
+        writeToDisk: false,
       },
       plugins: [pluginReact(), pluginSass()],
     };
@@ -204,10 +204,6 @@ export default defineConfig(async ({ command }): Promise<RsbuildConfig> => {
             return false;
           },
         ],
-        watchOptions: {
-          ignored: ["**/output"],
-          aggregateTimeout: 1000,
-        },
       },
     },
   };
