@@ -38,10 +38,10 @@ export default defineConfig(async ({ command }): Promise<RsbuildConfig> => {
 
   const createMainEnvironment = () => {
     const copy: Array<Record<"from" | "to", string>> = [
-      // {
-      //   from: "build",
-      //   to: "build",
-      // },
+      {
+        from: "build",
+        to: "build",
+      },
       {
         from: "drizzle/migrations",
         to: "migrations",

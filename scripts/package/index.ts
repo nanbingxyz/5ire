@@ -46,7 +46,6 @@ build({
       notarize: false,
       type: "distribution",
       hardenedRuntime: true,
-      entitlements: "assets/entitlements.mac.plist",
       entitlementsInherit: "assets/entitlements.mac.plist",
       gatekeeperAssess: false,
       electronLanguages: ["zh_CN", "en"],

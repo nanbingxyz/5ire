@@ -850,7 +850,7 @@ if (isDebug) {
  * Set Dock icon
  */
 if (app.dock) {
-  const dockIcon = nativeImage.createFromPath(`${app.getAppPath()}/assets/dockicon.png`);
+  const dockIcon = nativeImage.createFromPath(`${__dirname}/build/dockicon.png`);
   app.dock.setIcon(dockIcon);
 }
 
