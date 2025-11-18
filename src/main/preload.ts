@@ -53,6 +53,7 @@ const BRIDGE = {
   }),
   renderer: connector.connect<RendererBridge>("renderer", {
     focus: "async",
+    show: "async",
     createStateStream: "stream",
   }),
   settingsStore: connector.connect<SettingsBridge>("settings-store", {

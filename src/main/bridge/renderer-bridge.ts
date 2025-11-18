@@ -10,6 +10,10 @@ export class RendererBridge extends Bridge.define("renderer", () => {
       return service.focus();
     },
 
+    show: async () => {
+      return service.state.window?.show();
+    },
+
     createStateStream: () => {
       return service.createStream((state) => {
         return {

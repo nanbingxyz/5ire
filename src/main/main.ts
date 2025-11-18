@@ -321,12 +321,12 @@ if (!gotTheLock) {
         });
 
       await Container.inject(Database).ready;
-      await Container.inject(Renderer).focus();
+      await Container.inject(Renderer).init();
 
       await Container.inject(LegacyDataMigrator)
         .migrate(legacySqliteDatabase)
         .catch((error) => {
-          //
+          console.log(error);
         });
 
       app.on("activate", () => {

@@ -91,6 +91,10 @@ export default function FluentApp() {
     i18n.changeLanguage(language);
   }, [language, i18n]);
 
+  useEffect(() => {
+    window.bridge.renderer.show().catch(() => {});
+  }, []);
+
   return (
     <FluentProvider
       theme={theme === "light" ? lightTheme : darkTheme}

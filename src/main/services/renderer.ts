@@ -84,7 +84,7 @@ export class Renderer extends Stateful<Renderer.State> {
    * Create a new BrowserWindow instance and configure related event handling
    * @returns Promise<void>
    */
-  async #init() {
+  async init() {
     const logger = this.#logger.scope("Init");
 
     if (this.state.window && !this.state.window.isDestroyed()) {
@@ -116,8 +116,8 @@ export class Renderer extends Stateful<Renderer.State> {
     });
 
     window.webContents.on("did-finish-load", () => {
-      window?.show();
-      window?.focus();
+      // window?.show();
+      // window?.focus();
     });
 
     window.webContents.once("did-fail-load", () => {
@@ -144,7 +144,7 @@ export class Renderer extends Stateful<Renderer.State> {
    */
   async focus() {
     if (!this.state.window || this.state.window.isDestroyed()) {
-      await this.#init();
+      await this.init();
     }
 
     if (this.state.window) {
