@@ -134,7 +134,6 @@ build({
     nsis: {
       oneClick: false,
       allowToChangeInstallationDirectory: true,
-      include: "installer.nsh",
       perMachine: true,
     },
     win: {
