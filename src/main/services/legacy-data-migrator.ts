@@ -2,6 +2,7 @@ import { pathToFileURL } from "node:url";
 import type { Connection as LanceDB } from "@lancedb/lancedb";
 import type { Database as SqliteDB } from "better-sqlite3";
 import { isNotNull } from "drizzle-orm";
+import type { Draft } from "immer";
 import { Database } from "@/main/database";
 import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
@@ -298,6 +299,74 @@ export class LegacyDataMigrator extends Stateful.Persistable<LegacyDataMigrator.
     });
   }
 
+  async #migrateTransitionalChatCollections(context: LegacyDataMigrator.Context) {
+    const logger = this.#logger.scope("MigrateTransitionalChatCollections");
+    const schema = this.#database.schema;
+    const client = this.#database.client;
+
+    if (this.state.migrated.transitionChatCollections) {
+      return logger.info(
+        `Migrate transitional chat collections completed at ${this.state.migrated.transitionChatCollections.time} (total ${this.state.migrated.transitionChatCollections.total}). No migration needed.`,
+      );
+    }
+
+    const migratedTransitionalChatCollections: string[] = [];
+    const migratedLegacyCollections = await client
+      .select({
+        id: schema.collection.id,
+        legacyId: schema.collection.legacyId,
+      })
+      .from(schema.collection)
+      .where(isNotNull(schema.collection.legacyId))
+      .execute()
+      .then((result) => {
+        return result as Array<{ id: string; legacyId: string }>;
+      });
+
+    for (const item of this.#iterateLegacyDatabaseTable<{
+      id: string;
+      chatId: string | null;
+      collectionId: string | null;
+    }>(context.legacySqliteDB, "chat_knowledge_rels")) {
+      if (!item.chatId || !item.collectionId) {
+        logger.warning(`Skipping transitional chat collection "${item.id}" because chatId or collectionId is null`);
+        continue;
+      }
+
+      const collection = migratedLegacyCollections.find((collection) => {
+        return collection.legacyId === item.collectionId;
+      });
+
+      if (!collection) {
+        logger.warning(`Skipping transitional chat collection "${item.id}" because its collection is not migrated`);
+        continue;
+      }
+
+      const chatCollections = this.state.transitional.chatCollections || new Map<string, string[]>();
+      const collectionIds = chatCollections.get(item.chatId) || [];
+
+      collectionIds.push(collection.id);
+      chatCollections.set(item.chatId, collectionIds);
+
+      this.update((draft) => {
+        draft.transitional.chatCollections = new Map(chatCollections.entries());
+      });
+
+      migratedTransitionalChatCollections.push(item.id);
+    }
+
+    this.update((draft) => {
+      draft.migrated.transitionChatCollections = {
+        total: migratedTransitionalChatCollections.length,
+        time: new Date(),
+      };
+    });
+
+    logger.info(
+      `Migrate transitional chat collections completed. Total: ${migratedTransitionalChatCollections.length} migrated.`,
+    );
+  }
+
   /**
    * Execute database migration
    *
@@ -329,6 +398,9 @@ export class LegacyDataMigrator extends Stateful.Persistable<LegacyDataMigrator.
       await this.#migrateDocumentChunks(context).catch((error) => {
         logger.error("Failed to migrate document chunks", error);
       });
+      await this.#migrateTransitionalChatCollections(context).catch((error) => {
+        logger.error("Failed to migrate transitional chat collections", error);
+      });
     } finally {
       this.update((draft) => {
         draft.migrating = false;
@@ -336,6 +408,12 @@ export class LegacyDataMigrator extends Stateful.Persistable<LegacyDataMigrator.
 
       this.#legacyVectorDatabaseLoader.close();
     }
+  }
+
+  async updateTransitional(updater: (draft: Draft<LegacyDataMigrator.State["transitional"]>) => void) {
+    this.update((draft) => {
+      updater(draft.transitional);
+    });
   }
 
   /**
@@ -349,6 +427,7 @@ export class LegacyDataMigrator extends Stateful.Persistable<LegacyDataMigrator.
       defaults: {
         migrated: {},
         migrating: false,
+        transitional: {},
       },
       directory: Container.inject(Environment).storiesFolder,
     });
@@ -370,7 +449,7 @@ export namespace LegacyDataMigrator {
      */
     migrated: Partial<
       Record<
-        "collections" | "documents" | "documentChunks",
+        "collections" | "documents" | "documentChunks" | "transitionChatCollections",
         {
           time: Date;
           total: number;
@@ -381,6 +460,12 @@ export namespace LegacyDataMigrator {
      * Indicates whether a migration is currently in progress
      */
     migrating: boolean;
+    /**
+     * Transitional data storage; these data need to be migrated only after all related table migrations are completed; temporarily stored in the file system;
+     */
+    transitional: {
+      chatCollections?: Map<string, string[]>;
+    };
   };
 
   export type Context = {

@@ -6,6 +6,7 @@ import { SUPPORTED_DOCUMENT_URL_SCHEMAS } from "@/main/constants";
 import { Database } from "@/main/database";
 import { Container } from "@/main/internal/container";
 import { Embedder } from "@/main/services/embedder";
+import { LegacyDataMigrator } from "@/main/services/legacy-data-migrator";
 import { Logger } from "@/main/services/logger";
 
 /**
@@ -16,6 +17,7 @@ export class DocumentManager {
   #database = Container.inject(Database);
   #logger = Container.inject(Logger).scope("DocumentsManager");
   #embedder = Container.inject(Embedder);
+  #legacyDataMigrator = Container.inject(LegacyDataMigrator);
 
   /**
    * Constructor to initialize the DocumentManager instance
@@ -280,6 +282,7 @@ export class DocumentManager {
           createTime: schema.collection.createTime,
           updateTime: schema.collection.updateTime,
           pinedTime: schema.collection.pinedTime,
+          legacyId: schema.collection.legacyId,
         }),
         ...{
           documents: client
@@ -404,14 +407,23 @@ export class DocumentManager {
       }
 
       if (options.type === "conversation") {
-        return tx
-          .insert(schema.conversationCollection)
-          .values({
-            collectionId: options.id,
-            conversationId: options.target,
-          })
-          .onConflictDoNothing()
-          .execute();
+        return this.#legacyDataMigrator.updateTransitional((draft) => {
+          const chatCollections = draft.chatCollections || new Map<string, string[]>();
+          const collections = chatCollections.get(options.target) || [];
+
+          collections.push(options.id);
+          chatCollections.set(options.target, [...new Set(collections)]);
+
+          draft.chatCollections = new Map(chatCollections);
+        });
+        // return tx
+        //   .insert(schema.conversationCollection)
+        //   .values({
+        //     collectionId: options.id,
+        //     conversationId: options.target,
+        //   })
+        //   .onConflictDoNothing()
+        //   .execute();
       }
     });
   }
@@ -422,19 +434,31 @@ export class DocumentManager {
    * @returns Promise<void>
    */
   async disassociateCollection(options: DocumentManager.DisassociateCollectionOptions) {
-    const schema = this.#database.schema;
-    const client = this.#database.client;
+    // const schema = this.#database.schema;
+    // const client = this.#database.client;
 
     if (options.type === "conversation") {
-      return client
-        .delete(schema.conversationCollection)
-        .where(
-          and(
-            eq(schema.conversationCollection.collectionId, options.id),
-            eq(schema.conversationCollection.conversationId, options.target),
-          ),
-        )
-        .execute();
+      return this.#legacyDataMigrator.updateTransitional((draft) => {
+        const chatCollections = draft.chatCollections || new Map<string, string[]>();
+        const collections = chatCollections.get(options.target) || [];
+
+        collections.push(options.id);
+        chatCollections.set(
+          options.target,
+          collections.filter((collection) => collection !== options.id),
+        );
+
+        draft.chatCollections = new Map(chatCollections);
+      });
+      // return client
+      //   .delete(schema.conversationCollection)
+      //   .where(
+      //     and(
+      //       eq(schema.conversationCollection.collectionId, options.id),
+      //       eq(schema.conversationCollection.conversationId, options.target),
+      //     ),
+      //   )
+      //   .execute();
     }
   }
 
@@ -450,15 +474,15 @@ export class DocumentManager {
       updateTime: schema.collection.updateTime,
       pinedTime: schema.collection.pinedTime,
       documents: client.$count(schema.document, eq(schema.document.collectionId, schema.collection.id)).as("documents"),
+      legacyId: schema.collection.legacyId,
     };
 
     if (options.type === "conversation") {
-      return client
-        .select(select)
-        .from(schema.collection)
-        .innerJoin(schema.conversationCollection, eq(schema.collection.id, schema.conversationCollection.collectionId))
-        .where(eq(schema.conversationCollection.conversationId, options.target))
-        .execute();
+      console.log(this.#legacyDataMigrator.state.transitional);
+
+      const ids = this.#legacyDataMigrator.state.transitional.chatCollections?.get(options.target) || [];
+
+      return client.select(select).from(schema.collection).where(inArray(schema.collection.id, ids)).execute();
     }
 
     return [];
