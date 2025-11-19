@@ -368,6 +368,14 @@ if (!gotTheLock) {
       });
 
       logger.track({ event: "launch" });
+
+      const renderer = Container.inject(Renderer);
+
+      mainWindow = renderer.state.window;
+
+      renderer.subscribe((state) => {
+        mainWindow = state.window;
+      });
     })
     .catch((error) => {
       const logger = Container.inject(Logger).scope("Main:WhenReadyError");
