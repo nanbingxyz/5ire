@@ -361,5 +361,6 @@
   "Updater.DownloadingUpdates": "正在下载更新",
   "Updater.InstallNow": "现在安装",
   "Updater.InstallAfterRestart": "在您重启应用后，将安装版本 {{version}}",
-  "Updater.ManualDownload": "手动下载"
+  "Updater.ManualDownload": "手动下载",
+  "Common.GoSettings": "去设置"
 }
