@@ -109,7 +109,9 @@ export class Embedder extends Stateful<Embedder.State> {
         });
       })
       .catch((error) => {
-        logger.capture(error, "Failed to initialize feature extraction pipeline");
+        logger.capture(error, {
+          reason: "Failed to initialize feature extraction pipeline",
+        });
         this.update((draft) => {
           draft.status = { type: "unavailable", reason: "pipeline-init-failed" };
         });
@@ -130,12 +132,16 @@ export class Embedder extends Stateful<Embedder.State> {
 
     if (this.state.status.type === "ready") {
       await this.state.status.extractor.dispose().catch((error) => {
-        logger.capture(error, "Failed to dispose feature extraction pipeline");
+        logger.capture(error, {
+          reason: "Failed to dispose feature extraction pipeline",
+        });
       });
     }
 
     await rm(this.#environment.embedderModelsFolder, { recursive: true }).catch((error) => {
-      logger.capture(error, "Failed to remove embedder model folder");
+      logger.capture(error, {
+        reason: "Failed to remove embedder model folder",
+      });
     });
 
     this.update((draft) => {
@@ -156,10 +162,14 @@ export class Embedder extends Stateful<Embedder.State> {
     }
 
     await rm(this.#environment.embedderModelsFolder, { recursive: true, force: true }).catch((error) => {
-      logger.capture(error, "Failed to remove embedder model folder");
+      logger.capture(error, {
+        reason: "Failed to remove embedder model folder",
+      });
     });
     await ensureDir(this.#environment.embedderModelsFolder).catch((error) => {
-      logger.capture(error, "Failed to create embedder model folder");
+      logger.capture(error, {
+        reason: "Failed to create embedder model folder",
+      });
     });
 
     const progress: Record<string, Record<"total" | "received", number>> = {};
@@ -235,7 +245,9 @@ export class Embedder extends Stateful<Embedder.State> {
           return;
         }
 
-        logger.capture(error, "Failed to download model");
+        logger.capture(error, {
+          reason: "Failed to download model files",
+        });
 
         this.emitter.emit("model-download-failed", {
           message: asError(error).message,
@@ -284,7 +296,9 @@ export class Embedder extends Stateful<Embedder.State> {
         return tensor.tolist() as number[][];
       })
       .catch((error) => {
-        logger.capture(error, "Failed to embed text");
+        logger.capture(error, {
+          reason: "Failed to embed text",
+        });
         throw error;
       })
       .finally(() => {

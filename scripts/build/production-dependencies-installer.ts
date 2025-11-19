@@ -127,14 +127,12 @@ export class ProductionDependenciesInstallerPlugin implements Rspack.RspackPlugi
 
           if (!existsSync(packageJsonFile)) {
             console.warn(`Warning: Cannot find package.json for external dependency "${external}". Skipping.`);
-          }
-
-          try {
-            return `${external}@${require(packageJsonFile).version}`;
-          } catch (err) {
-            console.warn(
-              `Warning: Failed to read package.json for external dependency "${external}": ${err}. Skipping.`,
-            );
+          } else {
+            try {
+              return `${external}@${require(packageJsonFile).version}`;
+            } catch {
+              console.warn(`Warning: Failed to read package.json for external dependency "${external}".`);
+            }
           }
 
           return "";

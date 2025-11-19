@@ -99,12 +99,14 @@ Container.singleton(Environment, () => {
     sentryKey: process.env.SENTRY_KEY,
     axiomToken: process.env.AXIOM_TOKEN,
     axiomOrgId: process.env.AXIOM_ORG_ID,
+    logsFolder: resolve(userDataFolder, "Logs"),
   };
 
   ensureDirSync(env.embedderCacheFolder);
   ensureDirSync(env.embedderModelsFolder);
   ensureDirSync(env.storiesFolder);
   ensureDirSync(env.databaseDataFolder);
+  ensureDirSync(env.logsFolder);
 
   return env;
 });

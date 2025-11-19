@@ -81,6 +81,10 @@ export type Environment = {
    * The Axiom organization ID.
    */
   readonly axiomOrgId?: string;
+  /**
+   * The folder where logs are stored.
+   */
+  readonly logsFolder: string;
 };
 
 export namespace Environment {}

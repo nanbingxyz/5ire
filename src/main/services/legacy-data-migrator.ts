@@ -41,9 +41,7 @@ export class LegacyDataMigrator extends Stateful.Persistable<LegacyDataMigrator.
     const client = this.#database.client;
 
     if (this.state.migrated.collections) {
-      return logger.info(
-        `Migrate collections completed at ${this.state.migrated.collections.time} (total ${this.state.migrated.collections.total}). No migration needed.`,
-      );
+      return logger.info(`Migrate collections (total ${this.state.migrated.collections.total}). No migration needed.`);
     }
 
     const migratedCollections: string[] = [];
@@ -96,7 +94,7 @@ export class LegacyDataMigrator extends Stateful.Persistable<LegacyDataMigrator.
 
     if (this.state.migrated.documents) {
       return logger.info(
-        `Migrate documents completed at ${this.state.migrated.documents.time} (total ${this.state.migrated.documents.total}). No migration needed.`,
+        `Migrate documents completed (total ${this.state.migrated.documents.total}). No migration needed.`,
       );
     }
 
@@ -192,7 +190,7 @@ export class LegacyDataMigrator extends Stateful.Persistable<LegacyDataMigrator.
 
     if (this.state.migrated.documentChunks) {
       return logger.info(
-        `Migrate document chunks completed at ${this.state.migrated.documentChunks.time} (total ${this.state.migrated.documentChunks.total}). No migration needed.`,
+        `Migrate document chunks completed (total ${this.state.migrated.documentChunks.total}). No migration needed.`,
       );
     }
 
@@ -306,7 +304,7 @@ export class LegacyDataMigrator extends Stateful.Persistable<LegacyDataMigrator.
 
     if (this.state.migrated.transitionChatCollections) {
       return logger.info(
-        `Migrate transitional chat collections completed at ${this.state.migrated.transitionChatCollections.time} (total ${this.state.migrated.transitionChatCollections.total}). No migration needed.`,
+        `Migrate transitional chat collections completed (total ${this.state.migrated.transitionChatCollections.total}). No migration needed.`,
       );
     }
 

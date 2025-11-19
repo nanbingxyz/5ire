@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { Axiom } from "@axiomhq/js";
 import { captureException, captureMessage, init } from "@sentry/electron/main";
 import { asError } from "catch-unknown";
@@ -5,6 +6,7 @@ import { default as logger } from "electron-log";
 import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
 
+const LOGGER_INITIALIZED = false;
 let SENTRY_INITIALIZED = false;
 let AXIOM_INITIALIZED = false;
 let AXIOM_INSTANCE = null as Axiom | null;
@@ -18,6 +20,22 @@ export class Logger {
   #environment = Container.inject(Environment);
 
   constructor() {
+    if (!LOGGER_INITIALIZED) {
+      logger.transports.file.level = "info";
+      logger.transports.file.format = "[{y}-{m}-{d} {h}:{i}:{s}.{ms}] [{level}] {text}";
+      logger.transports.file.resolvePath = () => {
+        const date = new Date();
+        const name = [date.getFullYear(), `0${date.getMonth() + 1}`.slice(-2), `0${date.getDate()}`.slice(-2)].join(
+          "-",
+        );
+
+        return join(this.#environment.logsFolder, `${name}.log`);
+      };
+      logger.transports.file.maxSize = Infinity;
+
+      logger.transports.console.useStyles = true;
+    }
+
     if (!SENTRY_INITIALIZED && this.#environment.mode === "production" && this.#environment.sentryDsn) {
       init({
         dsn: this.#environment.sentryDsn,

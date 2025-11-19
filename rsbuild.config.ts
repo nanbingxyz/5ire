@@ -2,6 +2,7 @@ import { resolve } from "node:path";
 import { defineConfig, type EnvironmentConfig, type RsbuildConfig } from "@rsbuild/core";
 import { pluginReact } from "@rsbuild/plugin-react";
 import { pluginSass } from "@rsbuild/plugin-sass";
+import { RsdoctorRspackPlugin } from "@rsdoctor/rspack-plugin";
 import { config } from "dotenv";
 import { ProductionDependenciesInstallerPlugin } from "./scripts/build/production-dependencies-installer";
 
@@ -145,10 +146,11 @@ export default defineConfig(async ({ command }): Promise<RsbuildConfig> => {
           optimization: {
             minimize: isCommandBuild,
           },
+          plugins: [isCommandBuild && new RsdoctorRspackPlugin({})],
         },
       },
       dev: {
-        writeToDisk: false,
+        writeToDisk: true,
       },
       plugins: [pluginReact(), pluginSass()],
     };
@@ -219,7 +221,7 @@ export default defineConfig(async ({ command }): Promise<RsbuildConfig> => {
       rspack: {
         ignoreWarnings: [
           (error) => {
-            if (error.file?.includes("/node_modules/")) {
+            if (error.message?.includes("/node_modules/")) {
               return true;
             }
 
