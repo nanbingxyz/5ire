@@ -1,8 +1,9 @@
 import { default as ElectronStore } from "electron-store";
-import { applyPatches, type Draft, enablePatches, freeze, type Patch, produce, produceWithPatches } from "immer";
-import { pack, unpack } from "msgpackr";
+import { applyPatches, type Draft, enableMapSet, enablePatches, freeze, type Patch, produceWithPatches } from "immer";
+import { Encoder } from "msgpackr";
 
 enablePatches();
+enableMapSet();
 
 /**
  * A generic observable state container base class.
@@ -213,10 +214,10 @@ export namespace Stateful {
         name: options.name,
         cwd: options.directory,
         serialize: (value) => {
-          return Buffer.from(pack(value)).toString("hex");
+          return Buffer.from(Persistable.#encoder.pack(value)).toString("hex");
         },
         deserialize: (value) => {
-          return unpack(Buffer.from(value, "hex"));
+          return Persistable.#encoder.unpack(Buffer.from(value, "hex"));
         },
         fileExtension: "store",
       });
@@ -230,6 +231,14 @@ export namespace Stateful {
         persistor.set(state);
       });
     }
+
+    /**
+     * The `msgpackr` encoder instance.
+     * @private
+     */
+    static #encoder = new Encoder({
+      structuredClone: true,
+    });
   }
 
   export namespace Persistable {
