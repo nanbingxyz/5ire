@@ -104,7 +104,11 @@ export class Downloader {
         };
       })
       .catch((error) => {
-        logger.capture(error, `Failed to download file: ${options.url}`);
+        if (!options.signal?.aborted) {
+          logger.capture(error, {
+            reason: `Failed to download file: ${options.url}`,
+          });
+        }
 
         throw error;
       })

@@ -17,9 +17,9 @@ export class PromptManager {
         .insert(schema.prompt)
         .values({
           name: options.name,
-          roleDefinition: options.roleDefinition,
+          roleDefinitionTemplate: options.roleDefinitionTemplate,
           instructionTemplate: options.instructionTemplate,
-          applicableModels: options.applicableModels,
+          mergeStrategy: options.mergeStrategy,
         })
         .returning()
         .execute()
@@ -44,9 +44,9 @@ export class PromptManager {
         .update(schema.prompt)
         .set({
           name: options.name,
-          roleDefinition: options.roleDefinition,
+          roleDefinitionTemplate: options.roleDefinitionTemplate,
           instructionTemplate: options.instructionTemplate,
-          applicableModels: options.applicableModels,
+          mergeStrategy: options.mergeStrategy,
         })
         .where(eq(schema.prompt.id, options.id))
         .returning()
@@ -102,7 +102,7 @@ export class PromptManager {
 export namespace PromptManager {
   export type CreatePromptOptions = Pick<
     PromptInsert,
-    "name" | "roleDefinition" | "instructionTemplate" | "applicableModels" | "mergeStrategy"
+    "name" | "roleDefinitionTemplate" | "instructionTemplate" | "mergeStrategy"
   >;
 
   export type UpdatePromptOptions = CreatePromptOptions & {
