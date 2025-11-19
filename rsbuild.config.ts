@@ -46,15 +46,36 @@ export default defineConfig(async ({ command }): Promise<RsbuildConfig> => {
         from: "drizzle/migrations",
         to: "migrations",
       },
+      {
+        from: `node_modules/onnxruntime-node/bin/napi-v3/${process.platform}/${process.arch}`,
+        to: `bin/onnxruntime/${process.platform}/${process.arch}`,
+      },
     ];
 
     const externals: string[] = [
-      "onnxruntime-node",
-      "sharp",
-      "@lancedb/lancedb",
+      "@lancedb/lancedb-darwin-x64",
+      "@lancedb/lancedb-darwin-arm64",
+      "@lancedb/lancedb-linux-x64-gnu",
+      "@lancedb/lancedb-linux-arm64-gnu",
+      "@lancedb/lancedb-linux-x64-musl",
+      "@lancedb/lancedb-linux-arm64-musl",
+      "@lancedb/lancedb-win32-x64-msvc",
+      "@lancedb/lancedb-win32-arm64-msvc",
+
+      "@napi-rs/canvas-linux-x64-gnu",
+      "@napi-rs/canvas-darwin-x64",
+      "@napi-rs/canvas-win32-x64-msvc",
+      "@napi-rs/canvas-linux-arm-gnueabihf",
+      "@napi-rs/canvas-linux-x64-musl",
+      "@napi-rs/canvas-linux-arm64-gnu",
+      "@napi-rs/canvas-linux-arm64-musl",
+      "@napi-rs/canvas-darwin-arm64",
+      "@napi-rs/canvas-android-arm64",
+      "@napi-rs/canvas-linux-riscv64-gnu",
+
       "better-sqlite3",
-      "pdf-parse",
       "@electric-sql/pglite",
+      "sharp",
     ];
 
     const config: EnvironmentConfig = {
@@ -120,6 +141,9 @@ export default defineConfig(async ({ command }): Promise<RsbuildConfig> => {
         rspack: {
           output: {
             publicPath: isCommandBuild ? "./" : undefined,
+          },
+          optimization: {
+            minimize: isCommandBuild,
           },
         },
       },
@@ -188,6 +212,8 @@ export default defineConfig(async ({ command }): Promise<RsbuildConfig> => {
         root: "output",
       },
       cleanDistPath: true,
+      sourceMap: isCommandDev,
+      minify: isCommandBuild,
     },
     tools: {
       rspack: {

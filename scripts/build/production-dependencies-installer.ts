@@ -1,9 +1,9 @@
 import { execSync as execute } from "node:child_process";
 import { lstat, readFile, symlink, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
-import { join } from "node:path";
-
+import { join, resolve } from "node:path";
 import type { Rspack } from "@rsbuild/core";
+import { existsSync } from "fs-extra";
 
 /**
  * A Rspack plugin that automates handling Node.js dependencies for Electron projects.
@@ -120,38 +120,37 @@ export class ProductionDependenciesInstallerPlugin implements Rspack.RspackPlugi
         return fn();
       }
 
-      const external = this.options.externals || [];
-      const dependencies = packageJson.dependencies as Record<string, string>;
+      const externals = this.options.externals || [];
+      const packages = externals
+        .map((external) => {
+          const packageJsonFile = resolve(process.cwd(), "node_modules", external, "package.json");
 
-      for (let index = 0; index < external.length; index++) {
-        const item = external[index];
-        const version = dependencies[item];
+          if (!existsSync(packageJsonFile)) {
+            console.warn(`Warning: Cannot find package.json for external dependency "${external}". Skipping.`);
+          }
 
-        if (!version) {
-          return fn(
-            new Error(
-              `Cannot determine version for external dependency "${item}". Ensure it is listed in dependencies.`,
-            ),
-          );
-        }
+          try {
+            return `${external}@${require(packageJsonFile).version}`;
+          } catch (err) {
+            console.warn(
+              `Warning: Failed to read package.json for external dependency "${external}": ${err}. Skipping.`,
+            );
+          }
 
-        external[index] = `${item}@${version}`;
-      }
+          return "";
+        })
+        .filter(Boolean);
 
       try {
-        if (external.length) {
-          execute(`npm install ${external.join(" ")}`, {
-            cwd: dist,
-            encoding: "utf-8",
-            stdio: "inherit",
-          });
-
-          execute(`npx electron-builder install-app-deps`, {
+        if (packages.length) {
+          execute(`npm install ${packages.join(" ")}`, {
             cwd: dist,
             encoding: "utf-8",
             stdio: "inherit",
           });
         }
+
+        console.log(`Installed ${packages.length} external dependencies in output.`);
 
         return fn();
       } catch (err) {
