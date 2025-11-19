@@ -1,6 +1,6 @@
 import { basename } from "node:path";
 import { fileURLToPath } from "node:url";
-import { and, cosineDistance, eq, inArray } from "drizzle-orm";
+import { and, cosineDistance, eq, inArray, type SQL } from "drizzle-orm";
 import { default as memoize } from "memoizee";
 import { SUPPORTED_DOCUMENT_URL_SCHEMAS } from "@/main/constants";
 import { Database } from "@/main/database";
@@ -462,6 +462,11 @@ export class DocumentManager {
     }
   }
 
+  /**
+   * List collections associated with a target entity
+   * @param options Options containing the target entity ID and association type
+   * @returns Promise<Array> List of associated collections with their document counts
+   */
   async listAssociatedCollections(options: DocumentManager.ListAssociatedCollectionsOptions) {
     const schema = this.#database.schema;
     const client = this.#database.client;
@@ -478,8 +483,6 @@ export class DocumentManager {
     };
 
     if (options.type === "conversation") {
-      console.log(this.#legacyDataMigrator.state.transitional);
-
       const ids = this.#legacyDataMigrator.state.transitional.chatCollections?.get(options.target) || [];
 
       return client.select(select).from(schema.collection).where(inArray(schema.collection.id, ids)).execute();
@@ -488,6 +491,15 @@ export class DocumentManager {
     return [];
   }
 
+  /**
+   * Query document chunks based on given options
+   *
+   * This method uses embedding vector technology to search for document chunks based on semantic similarity.
+   * It supports filtering the search scope by document IDs or collection IDs, and can limit the number of returned results.
+   *
+   * @param options Query options
+   * @returns An array containing matching document chunks, each element includes chunk ID, text content, URL, document name, and distance information
+   */
   async queryChunks(options: DocumentManager.QueryChunksOptions) {
     const logger = this.#logger.scope("QueryChunks");
 
@@ -531,7 +543,7 @@ export class DocumentManager {
         text: schema.documentChunk.text,
         url: schema.document.url,
         name: schema.document.name,
-        distance: cosineDistance(schema.documentChunk.embedding, vector),
+        distance: cosineDistance(schema.documentChunk.embedding, vector) as SQL<number>,
       })
       .from(schema.documentChunk)
       .innerJoin(schema.document, eq(schema.documentChunk.documentId, schema.document.id))
@@ -678,9 +690,21 @@ export namespace DocumentManager {
   };
 
   export type QueryChunksOptions = {
+    /**
+     * Specifies the maximum number of results to return, default is 10, minimum is 1, maximum is 100
+     */
     limit?: number;
+    /**
+     * Specifies which documents to query from
+     */
     documents?: string[];
+    /**
+     * Specifies which collections to query from
+     */
     collections?: string[];
+    /**
+     * The text to search for
+     */
     text: string;
   };
 }
