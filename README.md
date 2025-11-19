@@ -3,7 +3,7 @@
     <img src="https://5ire.app/logo.png" alt="Logo" width="120">
   </a>
   <br />
-
+  <span>(pronounced "fai-er")</span>
    <h1>A Sleek AI Assistant & MCP Client</h1>
    <div>
     <a href="https://modelcontextprotocol.io/clients" target="_blank"><img src="https://badge.mcpx.dev/?type=client" /></a>
