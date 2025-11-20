@@ -27,6 +27,7 @@ import fetch from "node-fetch";
 import path from "path";
 import type { IMCPServer } from "types/mcp";
 import { isValidMCPServer, isValidMCPServerKey } from "utils/validators";
+import { DeepLinkHandlerBridge } from "@/main/bridge/deep-link-handler-bridge";
 import { DocumentEmbedderBridge } from "@/main/bridge/document-embedder-bridge";
 import { DocumentManagerBridge } from "@/main/bridge/document-manager-bridge";
 import { DownloaderBridge } from "@/main/bridge/downloader-bridge";
@@ -146,6 +147,7 @@ Container.singleton(PromptManagerBridge, () => new PromptManagerBridge());
 Container.singleton(URLParser, () => new URLParser());
 Container.singleton(MCPContentConverter, () => new MCPContentConverter());
 Container.singleton(DeepLinkHandler, () => new DeepLinkHandler());
+Container.singleton(DeepLinkHandlerBridge, () => new DeepLinkHandlerBridge());
 
 // init crash reporter
 (() => {

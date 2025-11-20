@@ -5,6 +5,7 @@ import { contextBridge, type IpcRendererEvent, ipcRenderer } from "electron";
 import { platform } from "os";
 import type { ThemeType } from "types/appearance";
 import v8 from "v8";
+import type { DeepLinkHandlerBridge } from "@/main/bridge/deep-link-handler-bridge";
 import type { DocumentEmbedderBridge } from "@/main/bridge/document-embedder-bridge";
 import type { DocumentManagerBridge } from "@/main/bridge/document-manager-bridge";
 import type { DownloaderBridge } from "@/main/bridge/downloader-bridge";
@@ -88,6 +89,10 @@ const BRIDGE = {
   }),
   legacyDataMigrator: connector.connect<LegacyDataMigratorBridge>("legacy-data-migrator", {
     createStateStream: "stream",
+  }),
+  deepLinkHandler: connector.connect<DeepLinkHandlerBridge>("deep-link-handler", {
+    createStateStream: "stream",
+    handled: "async",
   }),
 };
 
