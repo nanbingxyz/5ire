@@ -4,6 +4,7 @@ import { pluginReact } from "@rsbuild/plugin-react";
 import { pluginSass } from "@rsbuild/plugin-sass";
 import { RsdoctorRspackPlugin } from "@rsdoctor/rspack-plugin";
 import { config } from "dotenv";
+import { match } from "ts-pattern";
 import { ProductionDependenciesInstallerPlugin } from "./scripts/build/production-dependencies-installer";
 
 const loadEnvironmentFile = () => {
@@ -53,31 +54,18 @@ export default defineConfig(async ({ command }): Promise<RsbuildConfig> => {
       },
     ];
 
-    const externals: string[] = [
-      "@lancedb/lancedb-darwin-x64",
-      "@lancedb/lancedb-darwin-arm64",
-      "@lancedb/lancedb-linux-x64-gnu",
-      "@lancedb/lancedb-linux-arm64-gnu",
-      "@lancedb/lancedb-linux-x64-musl",
-      "@lancedb/lancedb-linux-arm64-musl",
-      "@lancedb/lancedb-win32-x64-msvc",
-      "@lancedb/lancedb-win32-arm64-msvc",
+    const externals: string[] = ["better-sqlite3", "@electric-sql/pglite", "sharp"];
 
-      "@napi-rs/canvas-linux-x64-gnu",
-      "@napi-rs/canvas-darwin-x64",
-      "@napi-rs/canvas-win32-x64-msvc",
-      "@napi-rs/canvas-linux-arm-gnueabihf",
-      "@napi-rs/canvas-linux-x64-musl",
-      "@napi-rs/canvas-linux-arm64-gnu",
-      "@napi-rs/canvas-linux-arm64-musl",
-      "@napi-rs/canvas-darwin-arm64",
-      "@napi-rs/canvas-android-arm64",
-      "@napi-rs/canvas-linux-riscv64-gnu",
-
-      "better-sqlite3",
-      "@electric-sql/pglite",
-      "sharp",
-    ];
+    if (process.platform === "win32") {
+      externals.push(`@lancedb/lancedb-win32-${process.arch}-msvc`);
+      externals.push(`@napi-rs/canvas-win32-${process.arch}-msvc`);
+    } else if (process.platform === "linux") {
+      externals.push(`@lancedb/lancedb-linux-${process.arch}-gnu`);
+      externals.push(`@napi-rs/canvas-linux-${process.arch}-gnu`);
+    } else if (process.platform === "darwin") {
+      externals.push(`@lancedb/lancedb-darwin-${process.arch}`);
+      externals.push(`@napi-rs/canvas-darwin-${process.arch}`);
+    }
 
     const config: EnvironmentConfig = {
       source: {

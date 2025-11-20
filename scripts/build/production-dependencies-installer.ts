@@ -1,23 +1,43 @@
 import { execSync as execute } from "node:child_process";
-import { lstat, readFile, symlink, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { join, resolve } from "node:path";
 import type { Rspack } from "@rsbuild/core";
+import { default as chalk } from "chalk";
 import { existsSync } from "fs-extra";
+
+const log = {
+  info: (message: string) => {
+    console.log(chalk.green("  -"), chalk.gray(message));
+  },
+  warning: (message: string) => {
+    console.log(chalk.yellow("  -"), chalk.yellow(message));
+  },
+};
 
 /**
  * A Rspack plugin that automates handling Node.js dependencies for Electron projects.
  *
- * After the build is done, it copies package.json and lockfile to the output directory and can:
- * - Create a node_modules symlink in development mode
- * - Generate nodemon.json for Electron debugging
- * - Install specified external dependencies into the output directory
+ * After the build is done, it:
+ * - Creates a new package.json in the output directory with selected fields from the original
+ * - Installs specified external dependencies into the output directory using npm
+ * - Runs electron-builder install-app-deps to handle native dependencies
+ * - In development mode, generates nodemon.json for Electron debugging
  */
 export class ProductionDependenciesInstallerPlugin implements Rspack.RspackPluginInstance {
   constructor(private options: ProductionDependenciesInstallerPlugin.Options) {}
 
   apply(compiler: Rspack.Compiler) {
+    let first = true;
+
     compiler.hooks.done.tapAsync("ProductionDependenciesInstallerPlugin", async (_, fn) => {
+      if (first) {
+        first = false;
+      } else {
+        log.info("Skipping production dependencies installer plugin.");
+        return fn();
+      }
+
       const { output, context } = compiler.options;
 
       if (!context) {
@@ -27,9 +47,11 @@ export class ProductionDependenciesInstallerPlugin implements Rspack.RspackPlugi
       const require = createRequire(__dirname);
 
       let electron = "";
+      let electronVersion = "";
 
       try {
         electron = require("electron");
+        electronVersion = require("electron/package.json").version;
       } catch {}
 
       if (!electron) {
@@ -47,8 +69,6 @@ export class ProductionDependenciesInstallerPlugin implements Rspack.RspackPlugi
         return fn(new Error(`Failed to read the main package.json at ${packageJsonPath}.`));
       }
 
-      const packagesLockFile = join(context, "package-lock.json");
-
       try {
         await writeFile(
           join(dist, "package.json"),
@@ -59,36 +79,58 @@ export class ProductionDependenciesInstallerPlugin implements Rspack.RspackPlugi
               version: packageJson.version,
               type: packageJson.type,
               main: "./main.cjs",
+              build: this.options.dev
+                ? {
+                    electronVersion,
+                  }
+                : {},
             },
             null,
             2,
           ),
         );
-
-        await writeFile(join(dist, "package-lock.json"), await readFile(packagesLockFile));
       } catch (err) {
         return fn(new Error(`Failed to prepare output directory with package.json or lockfile: ${err}`));
       }
 
-      if (this.options.dev) {
-        try {
-          const target = join(context, "node_modules");
-          const link = join(dist, "node_modules");
+      const externals = this.options.externals || [];
+      const packages = externals
+        .map((external) => {
+          const packageJsonFile = resolve(process.cwd(), "node_modules", external, "package.json");
 
-          let exists = false;
-
-          try {
-            const stat = await lstat(link);
-            exists = stat.isSymbolicLink() || stat.isDirectory();
-          } catch {}
-
-          if (!exists) {
-            await symlink(target, link, "junction");
+          if (!existsSync(packageJsonFile)) {
+            log.warning(`Cannot find package.json for external dependency "${external}". Skipping.`);
+          } else {
+            try {
+              return `${external}@${require(packageJsonFile).version}`;
+            } catch {
+              log.warning(`Failed to read package.json for external dependency "${external}".`);
+            }
           }
-        } catch (err) {
-          return fn(new Error(`Failed to create node_modules symlink in dist: ${err}`));
-        }
 
+          return "";
+        })
+        .filter(Boolean);
+
+      if (packages.length) {
+        log.info(`Installing ${packages.length} external dependencies in output...`);
+
+        try {
+          execute(`npm install ${packages.join(" ")} --only=production`, {
+            cwd: dist,
+            stdio: "ignore",
+          });
+
+          execute("npx electron-builder install-app-deps", {
+            cwd: dist,
+            stdio: "ignore",
+          });
+        } catch (err) {
+          return fn(new Error(`Failed to install external dependencies in output: ${err}`));
+        }
+      }
+
+      if (this.options.dev) {
         try {
           const command = [electron];
 
@@ -116,44 +158,9 @@ export class ProductionDependenciesInstallerPlugin implements Rspack.RspackPlugi
         } catch (err) {
           return fn(new Error(`Failed to write nodemon.json in dist: ${err}`));
         }
-
-        return fn();
       }
 
-      const externals = this.options.externals || [];
-      const packages = externals
-        .map((external) => {
-          const packageJsonFile = resolve(process.cwd(), "node_modules", external, "package.json");
-
-          if (!existsSync(packageJsonFile)) {
-            console.warn(`Warning: Cannot find package.json for external dependency "${external}". Skipping.`);
-          } else {
-            try {
-              return `${external}@${require(packageJsonFile).version}`;
-            } catch {
-              console.warn(`Warning: Failed to read package.json for external dependency "${external}".`);
-            }
-          }
-
-          return "";
-        })
-        .filter(Boolean);
-
-      try {
-        if (packages.length) {
-          execute(`npm install ${packages.join(" ")}`, {
-            cwd: dist,
-            encoding: "utf-8",
-            stdio: "inherit",
-          });
-        }
-
-        console.log(`Installed ${packages.length} external dependencies in output.`);
-
-        return fn();
-      } catch (err) {
-        return fn(new Error(`Failed to install external dependencies in output: ${err}`));
-      }
+      return fn();
     });
   }
 }
@@ -165,13 +172,13 @@ export namespace ProductionDependenciesInstallerPlugin {
   export type Options = {
     /**
      * List of external dependencies to install in output.
-     * Each dependency must be declared in package.json dependencies.
+     * These dependencies will be installed with their versions from the main node_modules.
      */
     externals?: string[];
 
     /**
      * Whether to enable development mode.
-     * If true, it will create a node_modules symlink and generate nodemon.json.
+     * If true, it will generate nodemon.json for Electron debugging.
      */
     dev?: boolean;
 
