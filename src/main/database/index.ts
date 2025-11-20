@@ -83,26 +83,13 @@ export class Database {
     const client = drizzle(driver, {
       schema,
       logger: {
-        logQuery: (query, params) => {
-          // const normalizedParams = params.map((value) => {
-          //   if (typeof value === "string") {
-          //     try {
-          //       const json = JSON.parse(value);
-          //       if (Array.isArray(json)) {
-          //         if (json.every((item) => typeof item === "number" && Number.isInteger(item))) {
-          //           return `<butter length=${json.length}>`;
-          //         }
-          //         if (json.every((item) => typeof item === "number")) {
-          //           return `<vector length=${json.length}>`;
-          //         }
-          //       }
-          //     } catch {}
-          //   }
-          //
-          //   return value;
-          // });
-          //
-          // clientQueryLogger.verbose(`${query} | Parameters: `, JSON.stringify(normalizedParams));
+        logQuery: (query) => {
+          clientQueryLogger.verbose(
+            query
+              .replace(/[\n\r\t]+/g, " ")
+              .replace(/ {2,}/g, " ")
+              .trim(),
+          );
         },
       },
     });

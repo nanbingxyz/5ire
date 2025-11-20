@@ -44,6 +44,15 @@ export class Updater extends Stateful<Updater.State> {
       url: "https://github.com/nanbingxyz/5ire/releases/latest/download/",
     });
     autoUpdater.autoInstallOnAppQuit = true;
+
+    const autoUpdaterLogger = this.#logger.scope("AutoUpdater");
+
+    autoUpdater.logger = {
+      debug: autoUpdaterLogger.debug.bind(autoUpdaterLogger),
+      error: autoUpdaterLogger.error.bind(autoUpdaterLogger),
+      info: autoUpdaterLogger.info.bind(autoUpdaterLogger),
+      warn: autoUpdaterLogger.warning.bind(autoUpdaterLogger),
+    };
   }
 
   /**
@@ -86,7 +95,9 @@ export class Updater extends Stateful<Updater.State> {
         }
       })
       .catch((error) => {
-        logger.capture(error, "Failed to check for updates");
+        logger.capture(error, {
+          reason: "Failed to check for updates",
+        });
 
         this.update((draft) => {
           draft.status = {
@@ -154,7 +165,9 @@ export class Updater extends Stateful<Updater.State> {
     return autoUpdater
       .downloadUpdate(cancellationToken)
       .catch((error) => {
-        logger.capture(error, "Failed to download updates");
+        logger.capture(error, {
+          reason: "Failed to download updates",
+        });
         this.emitter.emit("updates-download-failed", {
           message: asError(error).message,
         });

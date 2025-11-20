@@ -1,13 +1,15 @@
+import { execSync } from "node:child_process";
+import { join } from "node:path";
 import { notarize } from "@electron/notarize";
-import { execSync } from "child_process";
 import { build } from "electron-builder";
+import { existsSync, readdirSync, rmSync } from "fs-extra";
 
 build({
   config: {
     productName: "5ire",
     appId: "app.5ire.desktop",
     compression: "maximum",
-    asar: true,
+    asar: false,
     asarUnpack: ["**/node_modules/**/*"],
     protocols: [
       {
@@ -17,27 +19,41 @@ build({
     ],
     electronLanguages: ["zh_CN", "en"],
     files: [
-      "dist",
-      "package.json",
       "!**/node_modules/**/*.map",
-      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme,LICENSE,test.js}",
+      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme,LICENSE,test.js,license}",
       "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
       "!**/node_modules/*.d.ts",
       "!**/node_modules/.bin",
       "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj,md,txt}",
-      "!.editorconfig",
       "!**/._*",
       "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
       "!**/{__pycache__,docs, thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
       "!**/{appveyor.yml,.travis.yml,circle.yml}",
       "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}",
-      "!**/src/**",
-      "!**/source/**",
-      "!**/node_modules/@xenova/transformers/dist/**",
-      "**/node_modules/@xenova/transformers/src/**",
-      "**/node_modules/textract/lib/extractors/**",
     ],
     // afterPack: ".erb/scripts/remove-useless.js",
+    afterPack: async (ctx) => {
+      if (process.platform === "darwin") {
+        const resources = join(
+          ctx.appOutDir,
+          `${ctx.packager.appInfo.productName}.app`,
+          "Contents",
+          "Frameworks",
+          "Electron Framework.framework",
+          "Resources",
+        );
+
+        if (existsSync(resources)) {
+          const items = readdirSync(resources);
+
+          for (const item of items) {
+            if (item.endsWith(".lproj") && item !== `en.lproj` && item !== `zh_CN.lproj`) {
+              rmSync(join(resources, item), { force: true, recursive: true });
+            }
+          }
+        }
+      }
+    },
     // afterSign: ".erb/scripts/notarize.js",
     afterSign: async (ctx) => {
       if (ctx.electronPlatformName !== "darwin") {
@@ -145,17 +161,8 @@ build({
       artifactName: "${productName}-${version}-${arch}.${ext}",
     },
     directories: {
-      buildResources: "assets",
       output: "release/build",
+      app: "output",
     },
-    extraResources: [
-      ".env",
-      "./assets/**",
-      "./public/locales/**",
-      {
-        from: "./public/images",
-        to: "./images",
-      },
-    ],
   },
 });

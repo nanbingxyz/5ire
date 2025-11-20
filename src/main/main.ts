@@ -20,6 +20,7 @@ import {
   shell,
 } from "electron";
 import Store from "electron-store";
+import { default as fixPath } from "fix-path";
 import { ensureDirSync } from "fs-extra";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import fetch from "node-fetch";
@@ -69,6 +70,11 @@ dotenv.config({
   path: app.isPackaged ? path.join(process.resourcesPath, ".env") : path.resolve(process.cwd(), ".env"),
 });
 
+// Fix the $PATH on macOS and Linux when running inside Electron.
+// This ensures that executables installed via package managers like Homebrew
+// are available in the PATH for child processes spawned by the application.
+fixPath();
+
 Container.singleton(Environment, () => {
   let userDataFolder = app.getPath("userData");
 
@@ -99,12 +105,14 @@ Container.singleton(Environment, () => {
     sentryKey: process.env.SENTRY_KEY,
     axiomToken: process.env.AXIOM_TOKEN,
     axiomOrgId: process.env.AXIOM_ORG_ID,
+    logsFolder: resolve(userDataFolder, "Logs"),
   };
 
   ensureDirSync(env.embedderCacheFolder);
   ensureDirSync(env.embedderModelsFolder);
   ensureDirSync(env.storiesFolder);
   ensureDirSync(env.databaseDataFolder);
+  ensureDirSync(env.logsFolder);
 
   return env;
 });

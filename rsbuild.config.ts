@@ -2,7 +2,9 @@ import { resolve } from "node:path";
 import { defineConfig, type EnvironmentConfig, type RsbuildConfig } from "@rsbuild/core";
 import { pluginReact } from "@rsbuild/plugin-react";
 import { pluginSass } from "@rsbuild/plugin-sass";
+import { RsdoctorRspackPlugin } from "@rsdoctor/rspack-plugin";
 import { config } from "dotenv";
+import { match } from "ts-pattern";
 import { ProductionDependenciesInstallerPlugin } from "./scripts/build/production-dependencies-installer";
 
 const loadEnvironmentFile = () => {
@@ -46,16 +48,24 @@ export default defineConfig(async ({ command }): Promise<RsbuildConfig> => {
         from: "drizzle/migrations",
         to: "migrations",
       },
+      {
+        from: `node_modules/onnxruntime-node/bin/napi-v3/${process.platform}/${process.arch}`,
+        to: `bin/onnxruntime/${process.platform}/${process.arch}`,
+      },
     ];
 
-    const externals: string[] = [
-      "onnxruntime-node",
-      "sharp",
-      "@lancedb/lancedb",
-      "better-sqlite3",
-      "pdf-parse",
-      "@electric-sql/pglite",
-    ];
+    const externals: string[] = ["better-sqlite3", "@electric-sql/pglite", "sharp"];
+
+    if (process.platform === "win32") {
+      externals.push(`@lancedb/lancedb-win32-${process.arch}-msvc`);
+      externals.push(`@napi-rs/canvas-win32-${process.arch}-msvc`);
+    } else if (process.platform === "linux") {
+      externals.push(`@lancedb/lancedb-linux-${process.arch}-gnu`);
+      externals.push(`@napi-rs/canvas-linux-${process.arch}-gnu`);
+    } else if (process.platform === "darwin") {
+      externals.push(`@lancedb/lancedb-darwin-${process.arch}`);
+      externals.push(`@napi-rs/canvas-darwin-${process.arch}`);
+    }
 
     const config: EnvironmentConfig = {
       source: {
@@ -121,10 +131,14 @@ export default defineConfig(async ({ command }): Promise<RsbuildConfig> => {
           output: {
             publicPath: isCommandBuild ? "./" : undefined,
           },
+          optimization: {
+            minimize: isCommandBuild,
+          },
+          plugins: [isCommandBuild && new RsdoctorRspackPlugin({})],
         },
       },
       dev: {
-        writeToDisk: false,
+        writeToDisk: true,
       },
       plugins: [pluginReact(), pluginSass()],
     };
@@ -188,12 +202,14 @@ export default defineConfig(async ({ command }): Promise<RsbuildConfig> => {
         root: "output",
       },
       cleanDistPath: true,
+      sourceMap: isCommandDev,
+      minify: isCommandBuild,
     },
     tools: {
       rspack: {
         ignoreWarnings: [
           (error) => {
-            if (error.file?.includes("/node_modules/")) {
+            if (error.message?.includes("/node_modules/")) {
               return true;
             }
 

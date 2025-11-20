@@ -1,0 +1,12 @@
+diff --git a/node_modules/onnxruntime-node/dist/binding.js b/node_modules/onnxruntime-node/dist/binding.js
+index 0fb3ccb..5164177 100644
+--- a/node_modules/onnxruntime-node/dist/binding.js
++++ b/node_modules/onnxruntime-node/dist/binding.js
+@@ -6,5 +6,5 @@ exports.binding = void 0;
+ // export native binding
+ exports.binding = 
+ // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/no-var-requires
+-require(`../bin/napi-v3/${process.platform}/${process.arch}/onnxruntime_binding.node`);
++(typeof __non_webpack_require__ === 'function' ? __non_webpack_require__ : require)(`./bin/onnxruntime/${process.platform}/${process.arch}/onnxruntime_binding.node`);
+ //# sourceMappingURL=binding.js.map
+\ No newline at end of file

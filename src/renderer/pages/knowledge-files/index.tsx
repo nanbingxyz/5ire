@@ -66,10 +66,10 @@ const ImportButton = () => {
           </DialogContent>
           <DialogActions>
             <DialogTrigger disableButtonEnhancement>
-              <Button appearance="secondary">Close</Button>
+              <Button appearance="secondary">{t("Common.Cancel")}</Button>
             </DialogTrigger>
             <Button appearance="primary" onClick={() => navigate("/settings")}>
-              Go Settings
+              {t("Common.GoSettings")}
             </Button>
           </DialogActions>
         </DialogBody>
@@ -99,8 +99,8 @@ export default function KnowledgeFiles() {
       <div className="page-top-bar" />
       <div className="page-header">
         <div className="flex items-center justify-between w-full">
-          <h1 className="text-2xl flex-shrink-0 mr-6">{collection?.name}</h1>
-          <div className="flex justify-end w-full items-center gap-2">
+          <h1 className="text-2xl flex-shrink-0 mr-6 truncate flex-1">{collection?.name}</h1>
+          <div className="flex justify-end items-center gap-2">
             <Button appearance="subtle" onClick={() => navigate(-1)}>
               {t("Common.Back")}
             </Button>

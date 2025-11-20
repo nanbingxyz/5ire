@@ -372,5 +372,6 @@
   "Updater.DownloadingUpdates": "Downloading updates",
   "Updater.InstallNow": "Install now",
   "Updater.InstallAfterRestart": "{version} will be installed after you restart the app",
-  "Updater.ManualDownload": "Download manually"
+  "Updater.ManualDownload": "Download manually",
+  "Common.GoSettings": "Go to settings"
 }
