@@ -40,6 +40,7 @@ import { UpdaterBridge } from "@/main/bridge/updater-bridge";
 import { Database } from "@/main/database";
 import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
+import { DeepLinkHandler } from "@/main/services/deep-link-handler";
 import { DocumentEmbedder } from "@/main/services/document-embedder";
 import { DocumentExtractor } from "@/main/services/document-extractor";
 import { DocumentManager } from "@/main/services/document-manager";
@@ -106,6 +107,7 @@ Container.singleton(Environment, () => {
     axiomToken: process.env.AXIOM_TOKEN,
     axiomOrgId: process.env.AXIOM_ORG_ID,
     logsFolder: resolve(userDataFolder, "Logs"),
+    deepLinkProtocol: app.isPackaged ? "app.5ire" : "dev.5ire",
   };
 
   ensureDirSync(env.embedderCacheFolder);
@@ -143,6 +145,7 @@ Container.singleton(PromptManager, () => new PromptManager());
 Container.singleton(PromptManagerBridge, () => new PromptManagerBridge());
 Container.singleton(URLParser, () => new URLParser());
 Container.singleton(MCPContentConverter, () => new MCPContentConverter());
+Container.singleton(DeepLinkHandler, () => new DeepLinkHandler());
 
 // init crash reporter
 (() => {
@@ -166,13 +169,7 @@ let pendingInstallTool: any = null;
 let mainWindow: BrowserWindow | null = null;
 const protocol = app.isPackaged ? "app.5ire" : "dev.5ire";
 
-if (process.defaultApp) {
-  if (process.argv.length >= 2) {
-    app.setAsDefaultProtocolClient(protocol, process.execPath, [path.resolve(process.argv[1])]);
-  }
-} else {
-  app.setAsDefaultProtocolClient(protocol);
-}
+Container.inject(DeepLinkHandler).setAsDefaultProtocolClient();
 
 const onDeepLink = (link: string) => {
   const logger = Container.inject(Logger).scope("Main:OnDeepLink");
