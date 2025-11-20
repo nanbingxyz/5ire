@@ -4,9 +4,11 @@ import type { Database as SqliteDB } from "better-sqlite3";
 import { isNotNull } from "drizzle-orm";
 import type { Draft } from "immer";
 import { Database } from "@/main/database";
+import type { ServerInsert } from "@/main/database/types";
 import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
 import { Stateful } from "@/main/internal/stateful";
+import { LegacyServersConfigLoader } from "@/main/services/legacy-servers-config-loader";
 import { LegacyVectorDatabaseLoader } from "@/main/services/legacy-vector-database-loader";
 import { Logger } from "@/main/services/logger";
 
@@ -20,6 +22,7 @@ export class LegacyDataMigrator extends Stateful.Persistable<LegacyDataMigrator.
   #database = Container.inject(Database);
   #environment = Container.inject(Environment);
   #legacyVectorDatabaseLoader = Container.inject(LegacyVectorDatabaseLoader);
+  #legacyServersConfigLoader = Container.inject(LegacyServersConfigLoader);
 
   #iterateLegacyDatabaseTable<T>(database: SqliteDB, table: string) {
     const exists = database
@@ -365,6 +368,79 @@ export class LegacyDataMigrator extends Stateful.Persistable<LegacyDataMigrator.
     );
   }
 
+  async #migrateServersConfig(context: LegacyDataMigrator.Context) {
+    const logger = this.#logger.scope("MigrateServersConfig");
+    const schema = this.#database.schema;
+    const client = this.#database.client;
+
+    if (this.state.migrated.serversConfig) {
+      return logger.info(
+        `Migrate servers config completed (total ${this.state.migrated.serversConfig.total}). No migration needed.`,
+      );
+    }
+
+    const config = await this.#legacyServersConfigLoader.load();
+
+    const migratedServers: string[] = [];
+
+    if (config && config.length > 0) {
+      for (const server of config) {
+        let data: ServerInsert;
+
+        if (server.command) {
+          data = {
+            transport: "stdio",
+            endpoint: [server.command, ...(server.args || [])].join(" "),
+            label: server.name || server.key,
+            config: server.env || {},
+            description: server.description,
+            approvalPolicy: server.approvalPolicy,
+            active: server.isActive,
+          };
+        } else {
+          data = {
+            transport: "http-streamable",
+            endpoint: server.url || "",
+            label: server.name || server.key,
+            config: server.headers || {},
+            description: server.description,
+            approvalPolicy: server.approvalPolicy,
+            active: server.isActive,
+          };
+
+          await fetch(data.endpoint, { headers: data.config, signal: AbortSignal.timeout(5000) })
+            .then((res) => {
+              if (res.status === 200 && res.headers.get("content-type")?.startsWith("text/event-stream")) {
+                data.transport = "sse";
+              }
+            })
+            .catch((error) => {
+              logger.warning(`Failed to get remote server transport type: "${data.endpoint}"`, error);
+            });
+        }
+
+        await client
+          .insert(schema.server)
+          .values(data)
+          .execute()
+          .then(() => {
+            migratedServers.push(server.key);
+          })
+          .catch((error) => {
+            logger.warning(`Failed to insert server "${server.key}"`, error);
+          });
+      }
+    }
+
+    this.update((draft) => {
+      draft.migrated.serversConfig = {
+        total: 0,
+        time: new Date(),
+      };
+    });
+    return logger.info(`Migrate servers config completed (total ${migratedServers.length}). No migration needed.`);
+  }
+
   /**
    * Execute database migration
    *
@@ -447,7 +523,7 @@ export namespace LegacyDataMigrator {
      */
     migrated: Partial<
       Record<
-        "collections" | "documents" | "documentChunks" | "transitionChatCollections",
+        "collections" | "documents" | "documentChunks" | "transitionChatCollections" | "serversConfig",
         {
           time: Date;
           total: number;
