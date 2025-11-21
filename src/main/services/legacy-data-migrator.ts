@@ -340,7 +340,7 @@ export class LegacyDataMigrator extends Stateful.Persistable<LegacyDataMigrator.
         continue;
       }
 
-      const chatCollections = this.state.transitional.chatCollections || new Map<string, string[]>();
+      const chatCollections = new Map<string, string[]>(this.state.transitional.chatCollections?.entries() || []);
       const collectionIds = chatCollections.get(item.chatId) || [];
 
       collectionIds.push(collection.id);
