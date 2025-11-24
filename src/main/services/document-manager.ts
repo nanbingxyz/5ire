@@ -495,6 +495,25 @@ export class DocumentManager {
   }
 
   /**
+   * Update the target entity of associated collections
+   * @param options Options containing the old target entity ID, new target entity ID and association type
+   * @returns Promise<void>
+   */
+  async updateAssociatedCollectionsTarget(options: DocumentManager.UpdateAssociatedCollectionsTargetOptions) {
+    if (options.type === "conversation") {
+      return this.#legacyDataMigrator.updateTransitional((draft) => {
+        const chatCollections = draft.chatCollections || new Map<string, string[]>();
+        const collections = chatCollections.get(options.oldTarget) || [];
+
+        chatCollections.set(options.newTarget, collections);
+        chatCollections.delete(options.oldTarget);
+
+        draft.chatCollections = new Map(chatCollections);
+      });
+    }
+  }
+
+  /**
    * Query document chunks based on given options
    *
    * This method uses embedding vector technology to search for document chunks based on semantic similarity.
@@ -690,6 +709,21 @@ export namespace DocumentManager {
      * Association type
      */
     type: "conversation";
+  };
+
+  export type UpdateAssociatedCollectionsTargetOptions = {
+    /**
+     * Association type
+     */
+    type: "conversation";
+    /**
+     * New target entity ID
+     */
+    newTarget: string;
+    /**
+     * Old target entity ID
+     */
+    oldTarget: string;
   };
 
   export type QueryChunksOptions = {

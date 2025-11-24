@@ -25,9 +25,7 @@ import SplitPane, { Pane } from "split-pane-react";
 import useAppearanceStore from "stores/useAppearanceStore";
 import useChatKnowledgeStore from "stores/useChatKnowledgeStore";
 import useChatStore from "stores/useChatStore";
-import useKnowledgeStore from "stores/useKnowledgeStore";
 import useUsageStore from "stores/useUsageStore";
-import type { ICollectionFile } from "types/knowledge";
 import eventBus from "utils/bus";
 import { extractCitationIds, getNormalContent, getReasoningContent } from "utils/util";
 import { isBlank } from "utils/validators";
@@ -266,10 +264,14 @@ export default function Chat() {
             folderId: folder?.id || null,
           },
           async (newChat: IChat) => {
-            const knowledgeCollections = moveChatCollections(TEMP_CHAT_ID, newChat.id);
-            await setChatCollections(newChat.id, knowledgeCollections);
+            await window.bridge.documentManager.updateAssociatedCollectionsTarget({
+              type: "conversation",
+              oldTarget: TEMP_CHAT_ID,
+              newTarget: newChat.id,
+            });
           },
         );
+
         $chatId = $chat.id;
         setActiveChatId($chatId);
         navigate(`/chats/${$chatId}`);
