@@ -16,6 +16,7 @@ export class DocumentManagerBridge extends Bridge.define("document-manager", () 
     associateCollection: service.associateCollection.bind(service),
     disassociateCollection: service.disassociateCollection.bind(service),
     listAssociatedCollections: service.listAssociatedCollections.bind(service),
+    updateAssociatedCollectionsTarget: service.updateAssociatedCollectionsTarget.bind(service),
     liveCollections: () => {
       const abort = new AbortController();
 

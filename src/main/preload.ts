@@ -76,6 +76,7 @@ const BRIDGE = {
     associateCollection: "async",
     disassociateCollection: "async",
     listAssociatedCollections: "async",
+    updateAssociatedCollectionsTarget: "async",
   }),
   documentEmbedder: connector.connect<DocumentEmbedderBridge>("document-embedder", {
     createStateStream: "stream",
