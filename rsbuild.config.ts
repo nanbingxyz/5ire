@@ -165,6 +165,9 @@ export default defineConfig(async ({ command }): Promise<RsbuildConfig> => {
               type: "module",
             },
           },
+          optimization: {
+            minimize: isCommandBuild,
+          },
         },
         htmlPlugin: false,
       },
