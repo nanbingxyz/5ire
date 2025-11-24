@@ -83,7 +83,7 @@ export class ProductionDependenciesInstallerPlugin implements Rspack.RspackPlugi
                 ? {
                     electronVersion,
                   }
-                : {},
+                : undefined,
             },
             null,
             2,
@@ -121,10 +121,12 @@ export class ProductionDependenciesInstallerPlugin implements Rspack.RspackPlugi
             stdio: "ignore",
           });
 
-          execute("npx electron-builder install-app-deps", {
-            cwd: dist,
-            stdio: "ignore",
-          });
+          if (this.options.dev) {
+            execute("npx electron-builder install-app-deps", {
+              cwd: dist,
+              stdio: "ignore",
+            });
+          }
         } catch (err) {
           return fn(new Error(`Failed to install external dependencies in output: ${err}`));
         }
