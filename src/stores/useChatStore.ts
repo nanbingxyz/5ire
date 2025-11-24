@@ -1,47 +1,27 @@
-import Debug from 'debug';
-import { create } from 'zustand';
-import { typeid } from 'typeid-js';
-import { produce } from 'immer';
-import {
-  isNil,
-  isNull,
-  isNumber,
-  isPlainObject,
-  isString,
-  isUndefined,
-  pick,
-} from 'lodash';
-import {
-  DEFAULT_MAX_TOKENS,
-  DEFAULT_PROVIDER,
-  DEFAULT_TEMPERATURE,
-  NUM_CTX_MESSAGES,
-  TEMP_CHAT_ID,
-} from 'consts';
-import { date2unix } from 'utils/util';
-import { isBlank, isNotBlank } from 'utils/validators';
-import {
-  IChat,
-  IChatFolder,
-  IChatMessage,
-  IPrompt,
-  IStage,
-} from 'intellichat/types';
-import { isValidTemperature } from 'intellichat/validators';
-import { captureException } from '../renderer/logging';
+import { DEFAULT_MAX_TOKENS, DEFAULT_PROVIDER, DEFAULT_TEMPERATURE, NUM_CTX_MESSAGES, TEMP_CHAT_ID } from "consts";
+import Debug from "debug";
+import { produce } from "immer";
+import type { IChat, IChatFolder, IChatMessage, IPrompt, IStage } from "intellichat/types";
+import { isValidTemperature } from "intellichat/validators";
+import { isNil, isNull, isNumber, isPlainObject, isString, isUndefined, pick } from "lodash";
+import { typeid } from "typeid-js";
+import { date2unix } from "utils/util";
+import { isBlank, isNotBlank } from "utils/validators";
+import { create } from "zustand";
+import { captureException } from "../renderer/logging";
 
-const debug = Debug('5ire:stores:useChatStore');
+const debug = Debug("5ire:stores:useChatStore");
 
 const defaultTempStage = {
-  provider: '',
-  model: '',
-  systemMessage: '',
+  provider: "",
+  model: "",
+  systemMessage: "",
   prompt: null,
-  input: '',
+  input: "",
   maxTokens: DEFAULT_MAX_TOKENS,
   maxCtxMessages: NUM_CTX_MESSAGES,
 };
-let tempStage = window.electron.store.get('stage', defaultTempStage);
+let tempStage = window.electron.store.get("stage", defaultTempStage);
 if (!isPlainObject(tempStage)) {
   tempStage = defaultTempStage;
 } else {
@@ -69,25 +49,17 @@ export interface IChatStore {
   fetchFolder: (limit?: number) => Promise<Record<string, IChatFolder>>;
   selectFolder: (id: string | null) => void;
   createFolder: (name?: string) => Promise<IChatFolder>;
-  updateFolder: (
-    folder: { id: string } & Partial<IChatFolder>,
-  ) => Promise<boolean>;
+  updateFolder: (folder: { id: string } & Partial<IChatFolder>) => Promise<boolean>;
   deleteFolder: (id: string) => Promise<boolean>;
   getCurFolderSettings: () => Partial<IChatFolder>;
   markFolderAsOld: (id: string) => void;
-  updateStates: (
-    chatId: string,
-    states: { loading?: boolean; runningTool?: string | null },
-  ) => void;
+  updateStates: (chatId: string, states: { loading?: boolean; runningTool?: string | null }) => void;
   getKeyword: (chatId: string) => string;
   setKeyword: (chatId: string, keyword: string) => void;
   // chat
   initChat: (chat: Partial<IChat>) => IChat;
   editChat: (chat: Partial<IChat>) => IChat;
-  createChat: (
-    chat: Partial<IChat>,
-    beforeSetCallback?: (chat: IChat) => Promise<void>,
-  ) => Promise<IChat>;
+  createChat: (chat: Partial<IChat>, beforeSetCallback?: (chat: IChat) => Promise<void>) => Promise<IChat>;
   updateChat: (chat: { id: string } & Partial<IChat>) => Promise<boolean>;
   deleteChat: (chatId?: string) => Promise<boolean>;
   fetchChats: (limit?: number) => Promise<IChat[]>;
@@ -96,9 +68,7 @@ export interface IChatStore {
   // message
   createMessage: (message: Partial<IChatMessage>) => Promise<IChatMessage>;
   appendReply: (chatId: string, reply: string, reasoning: string) => void;
-  updateMessage: (
-    message: { id: string } & Partial<IChatMessage>,
-  ) => Promise<boolean>;
+  updateMessage: (message: { id: string } & Partial<IChatMessage>) => Promise<boolean>;
   bookmarkMessage: (id: string, bookmarkId: string | null) => void;
   deleteMessage: (id: string) => Promise<boolean>;
   getCurState: () => { loading: boolean; runningTool: string };
@@ -143,7 +113,7 @@ const useChatStore = create<IChatStore>((set, get) => ({
   fetchFolder: async (limit = 100) => {
     const offset = 0;
     const rows = (await window.electron.db.all(
-      'SELECT id, name, provider, model, systemMessage, temperature, maxTokens, knowledgeCollectionIds, maxCtxMessages FROM folders ORDER BY name ASC  limit ? offset ?',
+      "SELECT id, name, provider, model, systemMessage, temperature, maxTokens, knowledgeCollectionIds, maxCtxMessages FROM folders ORDER BY name ASC  limit ? offset ?",
       [limit, offset],
     )) as IChatFolder[];
     const folders = rows.reduce(
@@ -172,18 +142,19 @@ const useChatStore = create<IChatStore>((set, get) => ({
       }),
     );
   },
-  createFolder: async (name = 'New Folder') => {
+  createFolder: async (name = "New Folder") => {
     const folder = {
-      id: typeid('dir').toString(),
+      id: typeid("dir").toString(),
       name,
       createdAt: date2unix(new Date()),
     } as IChatFolder;
-    const ok = await window.electron.db.run(
-      `INSERT INTO folders (id, name, createdAt) VALUES (?, ?, ?)`,
-      [folder.id, folder.name, folder.createdAt],
-    );
+    const ok = await window.electron.db.run(`INSERT INTO folders (id, name, createdAt) VALUES (?, ?, ?)`, [
+      folder.id,
+      folder.name,
+      folder.createdAt,
+    ]);
     if (!ok) {
-      throw new Error('Write the folder into database failed');
+      throw new Error("Write the folder into database failed");
     }
     folder.isNew = true;
     set(
@@ -194,15 +165,11 @@ const useChatStore = create<IChatStore>((set, get) => ({
     return folder;
   },
   deleteFolder: async (id: string) => {
-    let ok = await window.electron.db.run(`DELETE FROM folders WHERE id = ?`, [
-      id,
-    ]);
+    let ok = await window.electron.db.run(`DELETE FROM folders WHERE id = ?`, [id]);
     if (!ok) {
-      throw new Error('Delete folder failed');
+      throw new Error("Delete folder failed");
     }
-    ok = await window.electron.db.run(`DELETE FROM chats WHERE folderId = ?`, [
-      id,
-    ]);
+    ok = await window.electron.db.run(`DELETE FROM chats WHERE folderId = ?`, [id]);
     set(
       produce((state: IChatStore) => {
         delete state.folders[id];
@@ -219,46 +186,43 @@ const useChatStore = create<IChatStore>((set, get) => ({
     const stats: string[] = [];
     const params: (string | number)[] = [];
     if (isNotBlank(folder.name)) {
-      stats.push('name = ?');
+      stats.push("name = ?");
       $folder.name = folder.name as string;
       params.push($folder.name);
     }
     if (isNotBlank(folder.provider)) {
-      stats.push('provider = ?');
+      stats.push("provider = ?");
       $folder.provider = folder.provider as string;
       params.push($folder.provider);
     }
     if (isNotBlank(folder.model)) {
-      stats.push('model = ?');
+      stats.push("model = ?");
       $folder.model = folder.model as string;
       params.push($folder.model);
     }
     if (isNotBlank(folder.systemMessage)) {
-      stats.push('systemMessage = ?');
+      stats.push("systemMessage = ?");
       $folder.systemMessage = folder.systemMessage as string;
       params.push($folder.systemMessage);
     }
     if (isNumber(folder.temperature)) {
-      stats.push('temperature = ?');
+      stats.push("temperature = ?");
       $folder.temperature = folder.temperature as number;
       params.push($folder.temperature);
     }
     if (isNumber(folder.maxTokens)) {
-      stats.push('maxTokens = ?');
+      stats.push("maxTokens = ?");
       $folder.maxTokens = folder.maxTokens as number;
       params.push($folder.maxTokens);
     }
     if (isNumber(folder.maxCtxMessages)) {
-      stats.push('maxCtxMessages = ?');
+      stats.push("maxCtxMessages = ?");
       $folder.maxCtxMessages = folder.maxCtxMessages as number;
       params.push($folder.maxCtxMessages);
     }
     if (folder.id && stats.length) {
       params.push($folder.id);
-      await window.electron.db.run(
-        `UPDATE folders SET ${stats.join(', ')} WHERE id = ?`,
-        params,
-      );
+      await window.electron.db.run(`UPDATE folders SET ${stats.join(", ")} WHERE id = ?`, params);
       set(
         produce((state: IChatStore) => {
           state.folders[$folder.id] = {
@@ -267,7 +231,7 @@ const useChatStore = create<IChatStore>((set, get) => ({
           };
         }),
       );
-      debug('Update folder ', JSON.stringify($folder));
+      debug("Update folder ", JSON.stringify($folder));
       return true;
     }
     return false;
@@ -289,16 +253,10 @@ const useChatStore = create<IChatStore>((set, get) => ({
     }
     return settings;
   },
-  updateStates: (
-    chatId: string,
-    states: { loading?: boolean; runningTool?: string | null },
-  ) => {
+  updateStates: (chatId: string, states: { loading?: boolean; runningTool?: string | null }) => {
     set(
       produce((state: IChatStore) => {
-        state.states[chatId] = Object.assign(
-          state.states[chatId] || {},
-          states,
-        );
+        state.states[chatId] = Object.assign(state.states[chatId] || {}, states);
       }),
     );
   },
@@ -307,7 +265,7 @@ const useChatStore = create<IChatStore>((set, get) => ({
     return states[chat.id] || {};
   },
   getKeyword: (chatId: string) => {
-    return get().keywords[chatId] || '';
+    return get().keywords[chatId] || "";
   },
   setKeyword: (chatId: string, keyword: string) => {
     set(
@@ -318,8 +276,8 @@ const useChatStore = create<IChatStore>((set, get) => ({
   },
   initChat: (chat: Partial<IChat>) => {
     const $chat = {
-      provider: '',
-      model: '',
+      provider: "",
+      model: "",
       temperature: DEFAULT_TEMPERATURE,
       maxTokens: null,
       maxCtxMessages: NUM_CTX_MESSAGES,
@@ -327,7 +285,7 @@ const useChatStore = create<IChatStore>((set, get) => ({
       ...get().tempStage,
       ...chat,
     } as IChat;
-    debug('Init a chat', $chat);
+    debug("Init a chat", $chat);
     set({ chat: $chat, messages: [] });
     return $chat;
   },
@@ -348,9 +306,7 @@ const useChatStore = create<IChatStore>((set, get) => ({
     if (isNumber(chat.maxCtxMessages) && chat.maxCtxMessages >= 0) {
       $chat.maxCtxMessages = chat.maxCtxMessages;
     }
-    if (
-      isValidTemperature(chat.temperature, chat.provider || DEFAULT_PROVIDER)
-    ) {
+    if (isValidTemperature(chat.temperature, chat.provider || DEFAULT_PROVIDER)) {
       $chat.temperature = chat.temperature;
     }
     if (isNumber(chat.maxTokens) && chat.maxTokens > 0) {
@@ -359,29 +315,26 @@ const useChatStore = create<IChatStore>((set, get) => ({
     if (!isUndefined(chat.prompt)) {
       $chat.prompt = (chat.prompt as IPrompt) || null;
     }
-    $chat.input = chat.input || '';
+    $chat.input = chat.input || "";
     $chat.stream = isNil(chat.stream) ? true : chat.stream;
     set(
       produce((state: IChatStore) => {
         state.chat = { ...state.chat, ...$chat };
       }),
     );
-    console.log('Edit chat', $chat);
+    console.log("Edit chat", $chat);
     return $chat;
   },
-  createChat: async (
-    chat: Partial<IChat>,
-    beforeSetCallback?: (chat: IChat) => Promise<void>,
-  ) => {
+  createChat: async (chat: Partial<IChat>, beforeSetCallback?: (chat: IChat) => Promise<void>) => {
     const $chat = {
       ...get().chat,
       ...chat,
-      id: typeid('chat').toString(),
+      id: typeid("chat").toString(),
       createdAt: date2unix(new Date()),
     } as IChat;
-    debug('Create a chat ', $chat);
+    debug("Create a chat ", $chat);
     let prompt = null;
-    $chat.input = ''; // clear input
+    $chat.input = ""; // clear input
     try {
       prompt = $chat.prompt ? JSON.stringify($chat.prompt) : null;
     } catch (err: any) {
@@ -411,7 +364,7 @@ const useChatStore = create<IChatStore>((set, get) => ({
       ],
     );
     if (!ok) {
-      throw new Error('Write the chat into database failed');
+      throw new Error("Write the chat into database failed");
     }
     if (beforeSetCallback) {
       await beforeSetCallback($chat);
@@ -430,82 +383,77 @@ const useChatStore = create<IChatStore>((set, get) => ({
     const stats: string[] = [];
     const params: (string | number | null)[] = [];
     if (isNotBlank(chat.name)) {
-      stats.push('name = ?');
+      stats.push("name = ?");
       $chat.name = chat.name as string;
       params.push($chat.name);
     }
     if (isNotBlank(chat.summary)) {
-      stats.push('summary = ?');
+      stats.push("summary = ?");
       $chat.summary = chat.summary as string;
       params.push($chat.summary);
     }
     if (isNotBlank(chat.provider)) {
-      stats.push('provider = ?');
+      stats.push("provider = ?");
       $chat.provider = chat.provider as string;
       params.push($chat.provider);
     }
     if (isNotBlank(chat.model)) {
-      stats.push('model = ?');
+      stats.push("model = ?");
       $chat.model = chat.model as string;
       params.push($chat.model);
     }
     if (!isNil(chat.systemMessage)) {
-      stats.push('systemMessage = ?');
+      stats.push("systemMessage = ?");
       $chat.systemMessage = chat.systemMessage as string;
       params.push($chat.systemMessage);
     }
     if (isNumber(chat.maxCtxMessages) && chat.maxCtxMessages >= 0) {
-      stats.push('maxCtxMessages = ?');
+      stats.push("maxCtxMessages = ?");
       $chat.maxCtxMessages = chat.maxCtxMessages;
       params.push($chat.maxCtxMessages);
     }
     if (isNumber(chat.temperature)) {
-      stats.push('temperature = ?');
+      stats.push("temperature = ?");
       $chat.temperature = chat.temperature;
       params.push($chat.temperature);
     }
     if (isNumber(chat.maxTokens) && chat.maxTokens > 0) {
-      stats.push('maxTokens = ?');
+      stats.push("maxTokens = ?");
       $chat.maxTokens = chat.maxTokens;
       params.push($chat.maxTokens);
     }
     if (!isNil(chat.context)) {
-      stats.push('context = ?');
+      stats.push("context = ?");
       chat.context = chat.context as string;
       params.push(chat.context);
     }
     if (!isNil(chat.stream)) {
-      stats.push('stream = ?');
+      stats.push("stream = ?");
       $chat.stream = chat.stream;
       params.push($chat.stream ? 1 : 0);
     }
     if (!isUndefined(chat.input)) {
       $chat.input = chat.input as string;
-      stats.push('input = ?');
+      stats.push("input = ?");
       params.push($chat.input);
     }
     if (!isUndefined(chat.prompt)) {
       try {
         $chat.prompt = chat.prompt;
-        stats.push('prompt = ?');
-        params.push(
-          chat.prompt ? (JSON.stringify(chat.prompt) as string) : null,
-        );
+        stats.push("prompt = ?");
+        params.push(chat.prompt ? (JSON.stringify(chat.prompt) as string) : null);
       } catch (err: any) {
         captureException(err);
       }
     }
     if (!isUndefined(chat.folderId)) {
-      stats.push('folderId = ?');
+      stats.push("folderId = ?");
       $chat.folderId = chat.folderId;
       params.push($chat.folderId);
     }
     if ($chat.id && stats.length) {
       params.push($chat.id);
-      await window.electron.db.run(
-        `UPDATE chats SET ${stats.join(', ')} WHERE id = ?`,
-        params,
-      );
+      await window.electron.db.run(`UPDATE chats SET ${stats.join(", ")} WHERE id = ?`, params);
       const curChat = await get().getChat($chat.id);
       const updatedChat = { ...curChat, ...$chat } as IChat;
       set(
@@ -521,17 +469,17 @@ const useChatStore = create<IChatStore>((set, get) => ({
           });
         }),
       );
-      debug('Update chat ', updatedChat);
+      debug("Update chat ", updatedChat);
       return true;
     }
     return false;
   },
   fetchChat: async (id: string) => {
     const chat = (await window.electron.db.get(
-      'SELECT id, name, summary, provider, model, systemMessage, maxTokens, temperature, context, maxCtxMessages, stream, prompt, input, folderId, createdAt FROM chats where id = ?',
+      "SELECT id, name, summary, provider, model, systemMessage, maxTokens, temperature, context, maxCtxMessages, stream, prompt, input, folderId, createdAt FROM chats where id = ?",
       id,
     )) as IChat;
-    debug('Fetch chat:', chat);
+    debug("Fetch chat:", chat);
     return chat;
   },
   getChat: async (id: string) => {
@@ -540,27 +488,27 @@ const useChatStore = create<IChatStore>((set, get) => ({
     if (!chat) {
       chat = await fetchChat(id);
     }
-    if (chat) {
-      try {
-        chat.prompt = chat.prompt ? JSON.parse(chat.prompt as string) : null;
-      } catch (err: any) {
-        captureException(err);
-      }
-    }
-    debug('Get chat:', chat);
+    // if (chat) {
+    //   try {
+    //     chat.prompt = chat.prompt ? JSON.parse(chat.prompt as string) : null;
+    //   } catch (err: any) {
+    //     captureException(err);
+    //   }
+    // }
+    debug("Get chat:", chat);
     set({ chat });
     return chat;
   },
   fetchChats: async (limit: number = 300, offset = 0) => {
     const rows = (await window.electron.db.all(
-      'SELECT id, name, summary, folderId, provider, model, systemMessage, maxTokens, temperature, maxCtxMessages, stream, prompt, input, createdAt FROM chats ORDER BY createdAt DESC limit ? offset ?',
+      "SELECT id, name, summary, folderId, provider, model, systemMessage, maxTokens, temperature, maxCtxMessages, stream, prompt, input, createdAt FROM chats ORDER BY createdAt DESC limit ? offset ?",
       [limit, offset],
     )) as IChat[];
     const chats = rows.map((chat) => {
       try {
         chat.prompt = chat.prompt ? JSON.parse(chat.prompt as string) : null;
       } catch (err: any) {
-        debug('parse chat.prompt failed', err);
+        debug("parse chat.prompt failed", err);
       }
       return chat;
     });
@@ -573,9 +521,7 @@ const useChatStore = create<IChatStore>((set, get) => ({
     try {
       if (id !== TEMP_CHAT_ID) {
         await window.electron.db.run(`DELETE FROM chats WHERE id = ?`, [id]);
-        await window.electron.db.run(`DELETE FROM messages WHERE chatId = ?`, [
-          id,
-        ]);
+        await window.electron.db.run(`DELETE FROM messages WHERE chatId = ?`, [id]);
         set(
           produce((state: IChatStore) => {
             state.messages = [];
@@ -595,14 +541,14 @@ const useChatStore = create<IChatStore>((set, get) => ({
   },
   createMessage: async (message: Partial<IChatMessage>) => {
     const msg = {
-      id: typeid('msg').toString(),
+      id: typeid("msg").toString(),
       ...message,
       createdAt: date2unix(new Date()),
     } as IChatMessage;
     const columns = Object.keys(msg);
     await window.electron.db.run(
-      `INSERT INTO messages (${columns.join(',')})
-      VALUES(${'?'.repeat(columns.length).split('').join(',')})`,
+      `INSERT INTO messages (${columns.join(",")})
+      VALUES(${"?".repeat(columns.length).split("").join(",")})`,
       Object.values(msg),
     );
     set((state) => ({
@@ -616,9 +562,7 @@ const useChatStore = create<IChatStore>((set, get) => ({
         const message = state.messages.find((msg) => msg.id === msgId);
         if (message) {
           message.reply = message.reply ? `${message.reply}${reply}` : reply;
-          message.reasoning = message.reasoning
-            ? `${message.reasoning}${reasoning}`
-            : reasoning;
+          message.reasoning = message.reasoning ? `${message.reasoning}${reasoning}` : reasoning;
         }
       }),
     );
@@ -628,71 +572,68 @@ const useChatStore = create<IChatStore>((set, get) => ({
     const stats: string[] = [];
     const params: (string | number)[] = [];
     if (isNotBlank(message.prompt)) {
-      stats.push('prompt = ?');
+      stats.push("prompt = ?");
       msg.prompt = message.prompt as string;
       params.push(msg.prompt);
     }
     if (!isUndefined(message.reply)) {
-      stats.push('reply = ?');
+      stats.push("reply = ?");
       msg.reply = message.reply as string;
       params.push(msg.reply);
     }
     if (isNotBlank(message.model)) {
-      stats.push('model = ?');
+      stats.push("model = ?");
       msg.model = message.model as string;
       params.push(msg.model);
     }
     if (isNumber(message.temperature)) {
-      stats.push('temperature = ?');
+      stats.push("temperature = ?");
       msg.temperature = message.temperature as number;
       params.push(msg.temperature);
     }
     if (isNumber(message.inputTokens)) {
-      stats.push('inputTokens = ?');
+      stats.push("inputTokens = ?");
       msg.inputTokens = message.inputTokens as number;
       params.push(msg.inputTokens);
     }
     if (isNumber(message.outputTokens)) {
-      stats.push('outputTokens = ?');
+      stats.push("outputTokens = ?");
       msg.outputTokens = message.outputTokens as number;
       params.push(msg.outputTokens);
     }
     if (!isNil(message.memo)) {
-      stats.push('memo = ?');
+      stats.push("memo = ?");
       msg.memo = message.memo as string;
       params.push(msg.memo);
     }
     if (!isNil(message.isActive)) {
-      stats.push('isActive = ?');
+      stats.push("isActive = ?");
       msg.isActive = message.isActive as boolean;
       params.push(msg.isActive ? 1 : 0);
     }
     if (!isBlank(message.citedFiles)) {
-      stats.push('citedFiles = ?');
+      stats.push("citedFiles = ?");
       msg.citedFiles = message.citedFiles as string;
       params.push(msg.citedFiles);
     }
     if (!isBlank(message.citedChunks)) {
-      stats.push('citedChunks = ?');
+      stats.push("citedChunks = ?");
       msg.citedChunks = message.citedChunks as string;
       params.push(msg.citedChunks);
     }
     if (!isUndefined(message.reasoning)) {
-      stats.push('reasoning = ?');
+      stats.push("reasoning = ?");
       msg.reasoning = message.reasoning as string;
       params.push(msg.reasoning);
     }
     if (isString(message.structuredPrompts)) {
-      stats.push('structuredPrompts = ?');
+      stats.push("structuredPrompts = ?");
       msg.structuredPrompts = message.structuredPrompts;
       params.push(msg.structuredPrompts as string);
     }
     if (message.id && stats.length) {
       params.push(msg.id);
-      await window.electron.db.run(
-        `UPDATE messages SET ${stats.join(', ')} WHERE id = ?`,
-        params,
-      );
+      await window.electron.db.run(`UPDATE messages SET ${stats.join(", ")} WHERE id = ?`, params);
       set(
         produce((state: IChatStore) => {
           const index = state.messages.findIndex((m) => m.id === msg.id);
@@ -701,7 +642,7 @@ const useChatStore = create<IChatStore>((set, get) => ({
           }
         }),
       );
-      debug('Update message ', JSON.stringify(msg));
+      debug("Update message ", JSON.stringify(msg));
       return true;
     }
     return false;
@@ -719,12 +660,9 @@ const useChatStore = create<IChatStore>((set, get) => ({
     );
   },
   deleteMessage: async (id: string) => {
-    const ok = await window.electron.db.run(
-      `DELETE FROM messages WHERE id = ?`,
-      [id],
-    );
+    const ok = await window.electron.db.run(`DELETE FROM messages WHERE id = ?`, [id]);
     if (!ok) {
-      throw new Error('Delete message failed');
+      throw new Error("Delete message failed");
     }
     const messages = [...get().messages];
     if (messages && messages.length) {
@@ -741,7 +679,7 @@ const useChatStore = create<IChatStore>((set, get) => ({
     chatId,
     limit = 100,
     offset = 0,
-    keyword = '',
+    keyword = "",
   }: {
     chatId: string;
     limit?: number;
@@ -757,22 +695,13 @@ const useChatStore = create<IChatStore>((set, get) => ({
     LEFT JOIN bookmarks ON bookmarks.msgId = messages.id
     WHERE messages.chatId = ?`;
     let params = [chatId, limit, offset];
-    if (keyword && keyword.trim() !== '') {
+    if (keyword && keyword.trim() !== "") {
       sql += ` AND (messages.prompt LIKE ? COLLATE NOCASE OR messages.reply LIKE ? COLLATE NOCASE)`;
-      params = [
-        chatId,
-        `%${keyword.trim()}%`,
-        `%${keyword.trim()}%`,
-        limit,
-        offset,
-      ];
+      params = [chatId, `%${keyword.trim()}%`, `%${keyword.trim()}%`, limit, offset];
     }
     sql += `ORDER BY messages.createdAt ASC
     LIMIT ? OFFSET ?`;
-    const messages = (await window.electron.db.all(
-      sql,
-      params,
-    )) as IChatMessage[];
+    const messages = (await window.electron.db.all(sql, params)) as IChatMessage[];
     set({ messages });
     return messages;
   },
@@ -788,13 +717,13 @@ const useChatStore = create<IChatStore>((set, get) => ({
             }
           }
           if (!isUndefined(stage.provider)) {
-            state.tempStage.provider = stage.provider || '';
+            state.tempStage.provider = stage.provider || "";
           }
           if (!isUndefined(stage.model)) {
-            state.tempStage.model = stage.model || '';
+            state.tempStage.model = stage.model || "";
           }
           if (!isUndefined(stage.input)) {
-            state.tempStage.input = stage.input || '';
+            state.tempStage.input = stage.input || "";
           }
           if (!isUndefined(stage.maxCtxMessages)) {
             state.tempStage.maxCtxMessages = stage.maxCtxMessages;
@@ -814,7 +743,7 @@ const useChatStore = create<IChatStore>((set, get) => ({
         }),
       );
       get().editChat({ id: chatId, ...stage });
-      window.electron.store.set('stage', get().tempStage);
+      window.electron.store.set("stage", get().tempStage);
     } else {
       const { updateChat } = get();
       await updateChat({ id: chatId, ...stage });
@@ -827,7 +756,7 @@ const useChatStore = create<IChatStore>((set, get) => ({
       }),
     );
     if (chatId === TEMP_CHAT_ID) {
-      window.electron.store.set('stage', defaultTempStage);
+      window.electron.store.set("stage", defaultTempStage);
     }
   },
 }));
