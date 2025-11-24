@@ -1,7 +1,9 @@
+import { rm } from "node:fs/promises";
 import { join } from "node:path";
 import type { FeatureExtractionPipeline } from "@xenova/transformers/types/pipelines";
 import { asError } from "catch-unknown";
-import { ensureDir, move, rm, stat } from "fs-extra";
+import { ensureDir, move, stat } from "fs-extra";
+
 import { DOCUMENT_EMBEDDING_MODEL_FILES, DOCUMENT_EMBEDDING_MODEL_NAME } from "@/main/constants";
 import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
@@ -166,6 +168,7 @@ export class Embedder extends Stateful<Embedder.State> {
         reason: "Failed to remove embedder model folder",
       });
     });
+
     await ensureDir(this.#environment.embedderModelsFolder).catch((error) => {
       logger.capture(error, {
         reason: "Failed to create embedder model folder",
