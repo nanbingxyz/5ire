@@ -5,6 +5,19 @@ import { Stateful } from "@/main/internal/stateful";
 import MenuBuilder from "@/main/menu";
 import { Logger } from "@/main/services/logger";
 
+const TITLE_BAR_COLORS = {
+  light: {
+    color: "rgba(227, 227, 227, 1)",
+    height: 30,
+    symbolColor: "black",
+  },
+  dark: {
+    color: "rgba(44, 42, 43, 1)",
+    height: 30,
+    symbolColor: "white",
+  },
+};
+
 /**
  * Renderer class is used to manage the application's rendering process and browser window
  * Responsible for creating, configuring and managing Electron's BrowserWindow instances
@@ -41,8 +54,14 @@ export class Renderer extends Stateful<Renderer.State> {
         draft.shouldUseInvertedColorScheme = nativeTheme.shouldUseInvertedColorScheme;
         draft.inForcedColorsMode = nativeTheme.inForcedColorsMode;
         draft.prefersReducedTransparency = nativeTheme.prefersReducedTransparency;
+
+        draft.window?.setTitleBarOverlay(this.#getTitleBarColor());
       });
     });
+  }
+
+  #getTitleBarColor() {
+    return TITLE_BAR_COLORS[nativeTheme.shouldUseDarkColors ? "dark" : "light"];
   }
 
   /**
@@ -68,6 +87,7 @@ export class Renderer extends Stateful<Renderer.State> {
 
     if (process.platform === "win32") {
       options.titleBarStyle = "hidden";
+      options.titleBarOverlay = this.#getTitleBarColor();
     }
 
     if (process.platform === "darwin") {
