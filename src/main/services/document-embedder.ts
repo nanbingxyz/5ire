@@ -213,28 +213,6 @@ export class DocumentEmbedder extends Stateful<DocumentEmbedder.State> {
             };
           });
 
-          const document = await client
-            .update(schema.document)
-            .set({
-              status: "completed",
-              mimetype: result.mimetype,
-              size: result.size,
-            })
-            .where(eq(schema.document.id, id))
-            .returning()
-            .execute()
-            .then((rows) => {
-              if (!rows.length) {
-                return null;
-              }
-
-              return rows[0];
-            });
-
-          if (!document) {
-            return;
-          }
-
           let inserted = 0;
 
           const batch: { text: string; vector: number[] }[] = [];
@@ -287,6 +265,16 @@ export class DocumentEmbedder extends Stateful<DocumentEmbedder.State> {
           } finally {
             result.readline.close();
           }
+
+          await client
+            .update(schema.document)
+            .set({
+              status: "completed",
+              mimetype: result.mimetype,
+              size: result.size,
+            })
+            .where(eq(schema.document.id, id))
+            .execute();
         })
         // Error handling
         .catch(async (error) => {
