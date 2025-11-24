@@ -196,7 +196,7 @@
     "logLevel": "quiet"
   },
   "volta": {
-    "node": "20.10.0",
+    "node": "22.19.0",
     "yarn": "1.22.21"
   },
   "lint-staged": {
