@@ -161,7 +161,10 @@ export class DocumentManager {
 
       for (const url of stringifiedUrls) {
         await tx
-          .$count(schema.document, eq(schema.document.url, url))
+          .$count(
+            schema.document,
+            and(eq(schema.document.url, url), eq(schema.document.collectionId, options.collection)),
+          )
           .then((count) => count > 0)
           .then((exists) => {
             if (exists) {
