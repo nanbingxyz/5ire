@@ -35,3 +35,4 @@ npm-debug.log.*
 
 
 output/
+/.vscode-upload.json
