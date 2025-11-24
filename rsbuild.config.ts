@@ -4,7 +4,6 @@ import { pluginReact } from "@rsbuild/plugin-react";
 import { pluginSass } from "@rsbuild/plugin-sass";
 import { RsdoctorRspackPlugin } from "@rsdoctor/rspack-plugin";
 import { config } from "dotenv";
-import { match } from "ts-pattern";
 import { ProductionDependenciesInstallerPlugin } from "./scripts/build/production-dependencies-installer";
 
 const loadEnvironmentFile = () => {

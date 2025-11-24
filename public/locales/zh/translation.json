@@ -362,5 +362,6 @@
   "Updater.InstallNow": "现在安装",
   "Updater.InstallAfterRestart": "在您重启应用后，将安装版本 {{version}}",
   "Updater.ManualDownload": "手动下载",
-  "Common.GoSettings": "去设置"
+  "Common.GoSettings": "去设置",
+  "Knowledge.Confirmation.DeleteDocument": "该文档和所有相关数据将被删除，且该操作不可撤销。"
 }

@@ -264,7 +264,7 @@ export default function Grid() {
       <ConfirmDialog
         open={!!deletingCollectionId}
         setOpen={() => setDeletingCollectionId(null)}
-        message={t("Knowledge.Confirmation.DeleteCollection")}
+        message={t("Knowledge.Confirmation.DeleteDocument")}
         onConfirm={handleConfirmDelete}
       />
     </div>
