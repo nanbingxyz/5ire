@@ -5,7 +5,7 @@ import { Stateful } from "@/main/internal/stateful";
 import MenuBuilder from "@/main/menu";
 import { Logger } from "@/main/services/logger";
 
-const TITLE_BAR_COLORS = {
+const TITLE_BAR_OVERLAY_STYLES = {
   light: {
     color: "rgba(227, 227, 227, 1)",
     height: 30,
@@ -55,13 +55,13 @@ export class Renderer extends Stateful<Renderer.State> {
         draft.inForcedColorsMode = nativeTheme.inForcedColorsMode;
         draft.prefersReducedTransparency = nativeTheme.prefersReducedTransparency;
 
-        draft.window?.setTitleBarOverlay(this.#getTitleBarColor());
+        draft.window?.setTitleBarOverlay(this.#getTitleBarOverlayStyle());
       });
     });
   }
 
-  #getTitleBarColor() {
-    return TITLE_BAR_COLORS[nativeTheme.shouldUseDarkColors ? "dark" : "light"];
+  #getTitleBarOverlayStyle() {
+    return TITLE_BAR_OVERLAY_STYLES[nativeTheme.shouldUseDarkColors ? "dark" : "light"];
   }
 
   /**
@@ -87,7 +87,7 @@ export class Renderer extends Stateful<Renderer.State> {
 
     if (process.platform === "win32") {
       options.titleBarStyle = "hidden";
-      options.titleBarOverlay = this.#getTitleBarColor();
+      options.titleBarOverlay = this.#getTitleBarOverlayStyle();
     }
 
     if (process.platform === "darwin") {
