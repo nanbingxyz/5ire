@@ -373,5 +373,6 @@
   "Updater.InstallNow": "Install now",
   "Updater.InstallAfterRestart": "{version} will be installed after you restart the app",
   "Updater.ManualDownload": "Download manually",
-  "Common.GoSettings": "Go to settings"
+  "Common.GoSettings": "Go to settings",
+  "Knowledge.Confirmation.DeleteDocument": "The document and all associated data will be deleted and the operation is irrevocable."
 }
