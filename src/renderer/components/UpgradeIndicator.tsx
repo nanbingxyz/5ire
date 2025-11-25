@@ -12,11 +12,7 @@ export default function UpgradeIndicator() {
   };
 
   if (updater.status.type === "idle" || updater.status.type === "not-available") {
-    return (
-      <div className="upgrade-indicator flex justify-center items-center rounded-full pl-1 pr-2 py-0.5 bg-indigo-100 dark:bg-slate-600/50 text-indigo-800 dark:text-indigo-200 text-xs">
-        <span>v{updater.version}</span>
-      </div>
-    );
+    return null;
   }
 
   if (updater.status.type === "checking") {

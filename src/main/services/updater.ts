@@ -44,6 +44,7 @@ export class Updater extends Stateful<Updater.State> {
       url: "https://github.com/nanbingxyz/5ire/releases/latest/download/",
     });
     autoUpdater.autoInstallOnAppQuit = true;
+    autoUpdater.fullChangelog = false;
 
     const autoUpdaterLogger = this.#logger.scope("AutoUpdater");
 
