@@ -18,6 +18,7 @@ import useSettingsStore from '../../stores/useSettingsStore';
 import useAppearanceStore from '../../stores/useAppearanceStore';
 import AppHeader from './layout/AppHeader';
 import AppSidebar from './layout/aside/AppSidebar';
+import StartupHandler from './StartupHandler';
 import Chat from '../pages/chat';
 import Knowledge from '../pages/knowledge';
 import KnowledgeCollectionForm from '../pages/knowledge/CollectionForm';
@@ -137,6 +138,7 @@ export default function FluentApp() {
         <div className="flex-1">
           <Router>
             {isDarwin ? <AppHeader /> : <WindowsTitleBar />}
+            <StartupHandler />
 
             <Toaster toasterId="toaster" limit={5} offset={{ vertical: 25 }} />
             <div
