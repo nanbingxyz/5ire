@@ -3,6 +3,8 @@
  * Supports creating chats with pre-configured settings via command line
  */
 
+import * as logging from './logging';
+
 export interface StartupChatArgs {
   provider?: string;
   model?: string;
@@ -31,7 +33,7 @@ export function parseStartupArgs(argv: string[]): StartupChatArgs | null {
       const parsed = JSON.parse(chatJson);
       return normalizeStartupArgs(parsed);
     } catch (error) {
-      console.error('Failed to parse --chat JSON argument:', error);
+      logging.error('Failed to parse --chat JSON argument:', error);
       return null;
     }
   }
@@ -72,7 +74,7 @@ export function parseStartupArgs(argv: string[]): StartupChatArgs | null {
   const temperatureIndex = argv.indexOf('--temperature');
   if (temperatureIndex !== -1 && temperatureIndex + 1 < argv.length) {
     const temp = parseFloat(argv[temperatureIndex + 1]);
-    if (!isNaN(temp)) {
+    if (!Number.isNaN(temp)) {
       args.temperature = temp;
     }
   }
