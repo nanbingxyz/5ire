@@ -93,15 +93,17 @@ function normalizeStartupArgs(args: StartupChatArgs): StartupChatArgs | null {
   const normalized = { ...args };
   
   // If model contains "Provider:model" format, extract and normalize
-  if (normalized.model && normalized.model.includes(':')) {
-    const modelParts = normalized.model.split(':');
-    if (modelParts.length === 2) {
+  // Use regex to ensure proper format: exactly one colon with non-empty parts
+  if (normalized.model) {
+    const modelMatch = normalized.model.match(/^([^:]+):([^:]+)$/);
+    if (modelMatch) {
+      const [, provider, model] = modelMatch;
       // Only set provider if not already explicitly provided
       if (!normalized.provider) {
-        normalized.provider = modelParts[0];
+        normalized.provider = provider;
       }
       // Always normalize model to remove provider prefix
-      normalized.model = modelParts[1];
+      normalized.model = model;
     }
   }
   

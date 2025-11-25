@@ -33,7 +33,7 @@ export default function StartupHandler() {
           systemMessage: args.system,
           summary: args.summary,
           temperature: args.temperature,
-          input: args.prompt || '',
+          input: args.prompt ?? '',
         });
 
         debug('Created chat from startup args:', chat.id);

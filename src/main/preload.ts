@@ -280,7 +280,17 @@ const electronHandler = {
         temperature?: number;
       }) => void,
     ) {
-      const subscription = (_event: IpcRendererEvent, args: any) => {
+      const subscription = (
+        _event: IpcRendererEvent,
+        args: {
+          provider?: string;
+          model?: string;
+          system?: string;
+          summary?: string;
+          prompt?: string;
+          temperature?: number;
+        },
+      ) => {
         callback(args);
       };
       ipcRenderer.on('startup-new-chat', subscription);

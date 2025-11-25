@@ -155,4 +155,40 @@ describe('main/cli-args', () => {
       model: 'claude-3-sonnet',
     });
   });
+
+  test('should handle model with multiple colons correctly', () => {
+    const argv = ['node', 'app.js', '--new-chat', '--model', 'provider:model:extra'];
+    const result = parseStartupArgs(argv);
+    // Should not extract provider from malformed model format
+    expect(result).toEqual({
+      model: 'provider:model:extra',
+    });
+  });
+
+  test('should handle model with only colon correctly', () => {
+    const argv = ['node', 'app.js', '--new-chat', '--model', ':'];
+    const result = parseStartupArgs(argv);
+    // Should not extract provider from malformed model format
+    expect(result).toEqual({
+      model: ':',
+    });
+  });
+
+  test('should handle model starting with colon', () => {
+    const argv = ['node', 'app.js', '--new-chat', '--model', ':model'];
+    const result = parseStartupArgs(argv);
+    // Should not extract provider from malformed model format
+    expect(result).toEqual({
+      model: ':model',
+    });
+  });
+
+  test('should handle model ending with colon', () => {
+    const argv = ['node', 'app.js', '--new-chat', '--model', 'provider:'];
+    const result = parseStartupArgs(argv);
+    // Should not extract provider from malformed model format
+    expect(result).toEqual({
+      model: 'provider:',
+    });
+  });
 });
