@@ -432,13 +432,14 @@ export class LegacyDataMigrator extends Stateful.Persistable<LegacyDataMigrator.
       }
     }
 
+    logger.info(`Migrate servers config completed (total ${migratedServers.length}).`);
+
     this.update((draft) => {
       draft.migrated.serversConfig = {
         total: 0,
         time: new Date(),
       };
     });
-    return logger.info(`Migrate servers config completed (total ${migratedServers.length}). No migration needed.`);
   }
 
   /**
@@ -474,6 +475,9 @@ export class LegacyDataMigrator extends Stateful.Persistable<LegacyDataMigrator.
       });
       await this.#migrateTransitionalChatCollections(context).catch((error) => {
         logger.error("Failed to migrate transitional chat collections", error);
+      });
+      await this.#migrateServersConfig(context).catch((error) => {
+        logger.error("Failed to migrate servers config", error);
       });
     } finally {
       this.update((draft) => {
