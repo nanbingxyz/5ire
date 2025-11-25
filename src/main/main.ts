@@ -49,6 +49,7 @@ import {
 
 import { loadDocumentFromBuffer } from './docloader';
 import { DocumentLoader } from './next/document-loader/DocumentLoader';
+import { parseStartupArgs, StartupChatArgs } from './cli-args';
 
 dotenv.config({
   path: app.isPackaged
@@ -140,6 +141,7 @@ class AppUpdater {
 }
 let rendererReady = false;
 let pendingInstallTool: any = null;
+let pendingStartupArgs: StartupChatArgs | null = null;
 let downloader: Downloader;
 let mainWindow: BrowserWindow | null = null;
 const protocol = app.isPackaged ? 'app.5ire' : 'dev.5ire';
@@ -252,6 +254,22 @@ const handleDeepLinkOnColdStart = () => {
     }
   });
 };
+
+/**
+ * Handle startup arguments to auto-create chat
+ * @param argv - Command line arguments
+ */
+const handleStartupArgs = (argv: string[]) => {
+  const startupArgs = parseStartupArgs(argv);
+  if (startupArgs) {
+    logging.info('Startup args detected:', startupArgs);
+    if (!rendererReady) {
+      pendingStartupArgs = startupArgs;
+    } else if (mainWindow) {
+      mainWindow.webContents.send('startup-new-chat', startupArgs);
+    }
+  }
+};
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
@@ -269,8 +287,12 @@ if (!gotTheLock) {
     } else {
       createWindow();
     }
-    const link = commandLine.pop();
-    if (link) {
+    
+    // Handle startup arguments for second instance
+    handleStartupArgs(commandLine);
+    
+    const link = commandLine[commandLine.length - 1];
+    if (link && link.startsWith(`${protocol}://`)) {
       onDeepLink(link);
     }
   });
@@ -343,6 +365,9 @@ if (!gotTheLock) {
         },
       );
       axiom.ingest([{ app: 'launch' }]);
+      
+      // Handle startup arguments on cold start
+      handleStartupArgs(process.argv);
     })
     .catch(logging.captureException);
   handleDeepLinkOnColdStart();
@@ -355,6 +380,10 @@ ipcMain.on('install-tool-listener-ready', () => {
   if (pendingInstallTool !== null) {
     mainWindow?.webContents.send('install-tool', pendingInstallTool);
     pendingInstallTool = null;
+  }
+  if (pendingStartupArgs !== null) {
+    mainWindow?.webContents.send('startup-new-chat', pendingStartupArgs);
+    pendingStartupArgs = null;
   }
 });
 
