@@ -291,9 +291,10 @@ if (!gotTheLock) {
     // Handle startup arguments for second instance
     handleStartupArgs(commandLine);
     
-    const link = commandLine[commandLine.length - 1];
-    if (link && link.startsWith(`${protocol}://`)) {
-      onDeepLink(link);
+    // Check if last argument is a deep link (protocol link)
+    const lastArg = commandLine[commandLine.length - 1];
+    if (lastArg && lastArg.startsWith(`${protocol}://`)) {
+      onDeepLink(lastArg);
     }
   });
 

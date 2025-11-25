@@ -92,11 +92,15 @@ export function parseStartupArgs(argv: string[]): StartupChatArgs | null {
 function normalizeStartupArgs(args: StartupChatArgs): StartupChatArgs | null {
   const normalized = { ...args };
   
-  // If model contains "Provider:model" format, extract provider
-  if (normalized.model && !normalized.provider) {
+  // If model contains "Provider:model" format, extract and normalize
+  if (normalized.model && normalized.model.includes(':')) {
     const modelParts = normalized.model.split(':');
     if (modelParts.length === 2) {
-      normalized.provider = modelParts[0];
+      // Only set provider if not already explicitly provided
+      if (!normalized.provider) {
+        normalized.provider = modelParts[0];
+      }
+      // Always normalize model to remove provider prefix
       normalized.model = modelParts[1];
     }
   }

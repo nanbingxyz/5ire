@@ -32,7 +32,7 @@ You can also provide all settings as a JSON object:
 
 ### Provider Derivation
 
-If you specify the model in the format `Provider:model`, the provider will be automatically derived:
+If you specify the model in the format `Provider:model`, the provider will be automatically derived and the model will be normalized:
 
 ```bash
 5ire --new-chat --model anthropic:claude-3-opus
@@ -42,6 +42,13 @@ This is equivalent to:
 
 ```bash
 5ire --new-chat --provider anthropic --model claude-3-opus
+```
+
+**Note:** If you explicitly provide both a provider and a model with the `Provider:model` format, the explicit provider takes precedence, but the model will still be normalized to remove the provider prefix:
+
+```bash
+5ire --new-chat --provider openai --model anthropic:claude-3-opus
+# Results in: provider=openai, model=claude-3-opus
 ```
 
 ## Examples
@@ -114,4 +121,7 @@ Create a fully configured chat:
 - The `--chat` JSON format takes precedence over individual flags if both are provided
 - Temperature values outside the valid range (typically 0.0-2.0) may be adjusted by the provider
 - Invalid JSON in the `--chat` argument will be logged and ignored
-- Provider derivation only works when the model contains a colon (`:`) separator
+- When a model contains the `Provider:model` format:
+  - If no explicit provider is set, the provider will be extracted from the model
+  - The model will always be normalized to remove the provider prefix
+  - An explicit provider takes precedence over a provider in the model format

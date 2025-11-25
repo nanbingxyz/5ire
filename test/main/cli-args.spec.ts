@@ -72,7 +72,7 @@ describe('main/cli-args', () => {
     });
   });
 
-  test('should not override explicit provider when model has "Provider:model" format', () => {
+  test('should normalize model format even when explicit provider is set', () => {
     const argv = [
       'node',
       'app.js',
@@ -85,7 +85,7 @@ describe('main/cli-args', () => {
     const result = parseStartupArgs(argv);
     expect(result).toEqual({
       provider: 'openai',
-      model: 'anthropic:claude-3-opus',
+      model: 'claude-3-opus',
     });
   });
 
