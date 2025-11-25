@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Debug from 'debug';
 import useChatStore from 'stores/useChatStore';
@@ -12,9 +12,17 @@ const debug = Debug('5ire:components:StartupHandler');
 export default function StartupHandler() {
   const navigate = useNavigate();
   const { createChat } = useChatStore();
+  const isProcessingRef = useRef(false);
 
   useEffect(() => {
     const unsubscribe = window.electron.startup.onNewChat(async (args) => {
+      // Prevent race conditions if multiple events arrive quickly
+      if (isProcessingRef.current) {
+        debug('Already processing a startup event, ignoring duplicate');
+        return;
+      }
+
+      isProcessingRef.current = true;
       debug('Received startup args:', args);
 
       try {
@@ -34,6 +42,8 @@ export default function StartupHandler() {
         navigate(`/chats/${chat.id}`);
       } catch (error) {
         debug('Failed to create chat from startup args:', error);
+      } finally {
+        isProcessingRef.current = false;
       }
     });
 
