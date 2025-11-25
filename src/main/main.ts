@@ -288,10 +288,10 @@ if (!gotTheLock) {
       createWindow();
     }
     
-    // Handle startup arguments for second instance
+    // Handle startup arguments first to create chat if needed
     handleStartupArgs(commandLine);
     
-    // Check for deep links in all arguments
+    // Then check for deep links (can coexist with startup args)
     const deepLink = commandLine.find((arg) => arg.startsWith(`${protocol}://`));
     if (deepLink) {
       onDeepLink(deepLink);

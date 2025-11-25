@@ -27,6 +27,7 @@ export default function StartupHandler() {
 
       try {
         // Create chat with the provided arguments
+        // Using nullish coalescing to preserve empty strings if explicitly provided
         const chat = await createChat({
           provider: args.provider,
           model: args.model,
