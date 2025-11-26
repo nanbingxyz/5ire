@@ -1,0 +1,49 @@
+name: Auto Release
+
+on:
+  push:
+    branches:
+      - feature/release-workflow
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, macos-15-intel, windows-latest, ubuntu-latest]
+    name: Release for ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_ID_PASS: ${{ secrets.APPLE_ID_PASS }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+      # https://github.com/electron-userland/electron-builder/issues/3179
+      USE_HARD_LINKS: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.18.0
+
+      - name: Create .env file
+        run: |
+          echo "SUPA_PROJECT_ID=${{ secrets.SUPA_PROJECT_ID }}" > .env
+          echo "SUPA_KEY=${{ secrets.SUPA_KEY }}" >> .env
+          echo "AXIOM_TOKEN=${{ secrets.AXIOM_TOKEN }}" >> .env
+          echo "AXIOM_ORG_ID=${{ secrets.AXIOM_ORG_ID }}" >> .env
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Build
+        run: npm run build
+
+      - name: Package & Publish
+        run: npm run package:publish

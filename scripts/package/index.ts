@@ -4,11 +4,14 @@ import { notarize } from "@electron/notarize";
 import { build } from "electron-builder";
 import { existsSync, readdirSync, rmSync } from "fs-extra";
 
+const publish = process.argv.includes("--publish");
+
 build({
   config: {
     productName: "5ire",
     appId: "app.5ire.desktop",
-    compression: "maximum",
+    // Using maximum compression on Linux can cause excessively long application startup times
+    compression: process.platform === "linux" ? "normal" : "maximum",
     asar: false,
     asarUnpack: ["**/node_modules/**/*"],
     protocols: [
@@ -31,7 +34,6 @@ build({
       "!**/{appveyor.yml,.travis.yml,circle.yml}",
       "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}",
     ],
-    // afterPack: ".erb/scripts/remove-useless.js",
     afterPack: async (ctx) => {
       if (process.platform === "darwin") {
         const resources = join(
@@ -54,7 +56,6 @@ build({
         }
       }
     },
-    // afterSign: ".erb/scripts/notarize.js",
     afterSign: async (ctx) => {
       if (ctx.electronPlatformName !== "darwin") {
         return;
@@ -82,7 +83,6 @@ build({
 
       console.info("Notarization complete");
     },
-    // afterAllArtifactBuild: ".erb/scripts/sign.js",
     afterAllArtifactBuild: async (ctx) => {
       // Check if this is a Linux build by looking for any AppImage
       const isLinux = ctx.artifactPaths.some((artifact) => artifact.endsWith(".AppImage"));
@@ -93,16 +93,16 @@ build({
       }
 
       if (!process.env.GPG_KEY_ID) {
-        throw new Error(
-          "GPG_KEY_ID environment variable must be set to a valid GPG key ID (e.g., F51DE3D45EEFC1387B4469E788BBA7820E939D09)",
-        );
+        console.warn("GPG_KEY_ID environment variable not set, skipping AppImage signing");
+        return [];
       }
 
       // Filter all AppImages from artifactPaths
       const appImages = ctx.artifactPaths.filter((artifact) => artifact.endsWith(".AppImage"));
 
       if (!appImages.length) {
-        throw new Error("No AppImages found in artifact paths");
+        console.warn("No AppImages found in artifact paths, skipping signing");
+        return [];
       }
 
       // Sign each AppImage using forEach
@@ -121,16 +121,10 @@ build({
 
       return [];
     },
+    artifactName: "${productName}-${version}-${os}-${arch}.${ext}",
     mac: {
-      target: {
-        target: "default",
-        arch: ["arm64"],
-      },
+      target: ["dmg"],
       notarize: false,
-      type: "distribution",
-      hardenedRuntime: true,
-      entitlementsInherit: "assets/entitlements.mac.plist",
-      gatekeeperAssess: false,
       electronLanguages: ["zh_CN", "en"],
     },
     dmg: {
@@ -158,11 +152,15 @@ build({
     linux: {
       target: ["AppImage"],
       category: "Development",
-      artifactName: "${productName}-${version}-${arch}.${ext}",
     },
+    appImage: {},
     directories: {
       output: "release/build",
       app: "output",
     },
+    publish: {
+      provider: "github",
+    },
   },
+  publish: publish ? "always" : undefined,
 });
