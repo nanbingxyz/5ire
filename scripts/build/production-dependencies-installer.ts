@@ -84,6 +84,10 @@ export class ProductionDependenciesInstallerPlugin implements Rspack.RspackPlugi
                     electronVersion,
                   }
                 : undefined,
+              repository: packageJson.repository,
+              productName: packageJson.productName,
+              author: packageJson.author,
+              license: packageJson.license,
             },
             null,
             2,
