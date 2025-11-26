@@ -4,10 +4,9 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { ClientCapabilities, Implementation, ServerCapabilities } from "@modelcontextprotocol/sdk/types.js";
 import { asError } from "catch-unknown";
-import { eq } from "drizzle-orm";
+import { eq, isNull, or, type SQL } from "drizzle-orm";
 import { Database } from "@/main/database";
-import type { Server, ServerApprovalPolicy, ServerInsert, ServerTransport } from "@/main/database/types";
-import { Environment } from "@/main/environment";
+import type { Server, ServerInsert } from "@/main/database/types";
 import { Container } from "@/main/internal/container";
 import { Stateful } from "@/main/internal/stateful";
 import { Logger } from "@/main/services/logger";
@@ -20,8 +19,7 @@ const CLIENT_IMPLEMENTATION: Implementation = {
 
 const CLIENT_CAPABILITIES: ClientCapabilities = {};
 
-export class MCPServersManager extends Stateful<MCPServersManager.State> {
-  #environment = Container.inject(Environment);
+export class MCPConnectionsManager extends Stateful<MCPConnectionsManager.State> {
   #logger = Container.inject(Logger).scope("MCPServersManager");
   #database = Container.inject(Database);
 
@@ -42,11 +40,10 @@ export class MCPServersManager extends Stateful<MCPServersManager.State> {
 
     logger.debug("Connecting to mcp server:", server);
 
-    const abort = new AbortController();
-    const connection: MCPServersManager.Connection = {
+    const controller = new AbortController();
+    const connection: MCPConnectionsManager.Connection = {
       type: "connecting",
-      server,
-      abort,
+      controller,
       promise: Promise.resolve()
         .then(() => {
           if (server.transport === "stdio") {
@@ -100,20 +97,20 @@ export class MCPServersManager extends Stateful<MCPServersManager.State> {
                 return data;
               });
 
-              if (abort.signal.aborted) {
+              if (controller.signal.aborted) {
                 return client.close().catch(() => {});
               }
 
               this.update((draft) => {
                 draft.connections[server.id] = {
                   type: "connected",
-                  server,
                   client,
                   capabilities,
+                  projectId: server.projectId || undefined,
                 };
               });
             } catch (e) {
-              if (abort.signal.aborted) {
+              if (controller.signal.aborted) {
                 return;
               }
 
@@ -128,7 +125,6 @@ export class MCPServersManager extends Stateful<MCPServersManager.State> {
           this.update((draft) => {
             draft.connections[server.id] = {
               type: "error",
-              server,
               error: asError(connectError).message,
             };
           });
@@ -137,6 +133,12 @@ export class MCPServersManager extends Stateful<MCPServersManager.State> {
 
     this.update((draft) => {
       draft.connections[server.id] = connection;
+    });
+
+    controller.signal.addEventListener("abort", () => {
+      this.update((draft) => {
+        delete draft.connections[server.id];
+      });
     });
   }
 
@@ -157,7 +159,7 @@ export class MCPServersManager extends Stateful<MCPServersManager.State> {
       });
   }
 
-  async createServer(options: MCPServersManager.CreateServerOptions) {
+  async createServer(options: MCPConnectionsManager.CreateServerOptions) {
     const client = this.#database.client;
     const schema = this.#database.schema;
 
@@ -181,36 +183,135 @@ export class MCPServersManager extends Stateful<MCPServersManager.State> {
       });
   }
 
-  updateServer() {}
+  async updateServer(options: MCPConnectionsManager.UpdateServerOptions) {
+    const client = this.#database.client;
+    const schema = this.#database.schema;
 
-  deleteServer() {}
+    const connection = this.state.connections[options.id];
 
-  activeServer() {}
+    if (connection) {
+      return;
+    }
 
-  inactiveServer() {}
+    await client.update(schema.server).set(options).where(eq(schema.server.id, options.id)).execute();
+  }
 
-  listConnectedServers() {}
+  async deleteServer(options: MCPConnectionsManager.DeleteServerOptions) {
+    const client = this.#database.client;
+    const schema = this.#database.schema;
 
-  listServers() {}
+    const connection = this.state.connections[options.id];
+
+    if (connection) {
+      return;
+    }
+
+    await client.delete(schema.server).where(eq(schema.server.id, options.id)).execute();
+  }
+
+  async activeServer(options: MCPConnectionsManager.ActiveServerOptions) {
+    const client = this.#database.client;
+    const schema = this.#database.schema;
+
+    const connection = this.state.connections[options.id];
+
+    if (connection) {
+      if (connection.type === "connecting") {
+        return connection.promise;
+      }
+      if (connection.type === "connected") {
+        return;
+      }
+    }
+
+    await client
+      .update(schema.server)
+      .set({ active: true })
+      .where(eq(schema.server.id, options.id))
+      .returning()
+      .execute()
+      .then(([server]) => {
+        this.#connect(server);
+      });
+  }
+
+  async inactiveServer(options: MCPConnectionsManager.InactiveServerOptions) {
+    const client = this.#database.client;
+    const schema = this.#database.schema;
+
+    const connection = this.state.connections[options.id];
+
+    this.update((draft) => {
+      delete draft.connections[options.id];
+    });
+
+    if (connection) {
+      if (connection.type === "connecting") {
+        connection.controller.abort();
+      }
+
+      if (connection.type === "connected") {
+        connection.client.close().catch(() => {});
+      }
+    }
+
+    await client.update(schema.server).set({ active: false }).where(eq(schema.server.id, options.id)).execute();
+  }
+
+  async listConnectedServers() {}
+
+  async listServers(options: MCPConnectionsManager.ListServersOptions) {
+    const client = this.#database.client;
+    const schema = this.#database.schema;
+
+    let where: SQL | undefined;
+
+    if (options.projectId) {
+      where = eq(schema.server.projectId, options.projectId);
+
+      if (options.includeGlobal) {
+        where = or(where, isNull(schema.server.projectId));
+      }
+    }
+
+    return client
+      .select()
+      .from(schema.server)
+      .where(where)
+      .then((servers) => {
+        return servers.map((server) => {
+          const connection = this.state.connections[server.id];
+
+          if (connection) {
+            return {
+              ...server,
+              ...{
+                connection,
+              },
+            };
+          }
+
+          return server;
+        });
+      });
+  }
 }
 
-export namespace MCPServersManager {
+export namespace MCPConnectionsManager {
   export type Connection =
     | {
         type: "connected";
-        server: Server;
         client: Client;
         capabilities: ServerCapabilities;
+        projectId?: string;
       }
     | {
         type: "connecting";
-        server: Server;
         promise: Promise<void>;
-        abort: AbortController;
+        controller: AbortController;
       }
     | {
         type: "error";
-        server: Server;
         error: string;
       };
 
@@ -223,5 +324,22 @@ export namespace MCPServersManager {
 
   export type UpdateServerOptions = CreateServerOptions & {
     id: string;
+  };
+
+  export type DeleteServerOptions = {
+    id: string;
+  };
+
+  export type ActiveServerOptions = {
+    id: string;
+  };
+
+  export type InactiveServerOptions = {
+    id: string;
+  };
+
+  export type ListServersOptions = {
+    projectId?: string;
+    includeGlobal?: boolean;
   };
 }
