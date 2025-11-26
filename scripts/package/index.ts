@@ -10,7 +10,8 @@ build({
   config: {
     productName: "5ire",
     appId: "app.5ire.desktop",
-    compression: "maximum",
+    // Using maximum compression on Linux can cause excessively long application startup times
+    compression: process.platform === "linux" ? "normal" : "maximum",
     asar: false,
     asarUnpack: ["**/node_modules/**/*"],
     protocols: [
@@ -152,6 +153,7 @@ build({
       target: ["AppImage"],
       category: "Development",
     },
+    appImage: {},
     directories: {
       output: "release/build",
       app: "output",
