@@ -4,6 +4,8 @@ import { notarize } from "@electron/notarize";
 import { build } from "electron-builder";
 import { existsSync, readdirSync, rmSync } from "fs-extra";
 
+const publish = process.argv.includes("--publish");
+
 build({
   config: {
     productName: "5ire",
@@ -31,7 +33,6 @@ build({
       "!**/{appveyor.yml,.travis.yml,circle.yml}",
       "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}",
     ],
-    // afterPack: ".erb/scripts/remove-useless.js",
     afterPack: async (ctx) => {
       if (process.platform === "darwin") {
         const resources = join(
@@ -54,7 +55,6 @@ build({
         }
       }
     },
-    // afterSign: ".erb/scripts/notarize.js",
     afterSign: async (ctx) => {
       if (ctx.electronPlatformName !== "darwin") {
         return;
@@ -82,7 +82,6 @@ build({
 
       console.info("Notarization complete");
     },
-    // afterAllArtifactBuild: ".erb/scripts/sign.js",
     afterAllArtifactBuild: async (ctx) => {
       // Check if this is a Linux build by looking for any AppImage
       const isLinux = ctx.artifactPaths.some((artifact) => artifact.endsWith(".AppImage"));
@@ -121,16 +120,10 @@ build({
 
       return [];
     },
+    artifactName: "${productName}-${version}-${os}-${arch}.${ext}",
     mac: {
-      target: {
-        target: "default",
-        arch: ["arm64"],
-      },
+      target: ["dmg"],
       notarize: false,
-      type: "distribution",
-      hardenedRuntime: true,
-      entitlementsInherit: "assets/entitlements.mac.plist",
-      gatekeeperAssess: false,
       electronLanguages: ["zh_CN", "en"],
     },
     dmg: {
@@ -158,11 +151,14 @@ build({
     linux: {
       target: ["AppImage"],
       category: "Development",
-      artifactName: "${productName}-${version}-${arch}.${ext}",
     },
     directories: {
       output: "release/build",
       app: "output",
     },
+    publish: {
+      provider: "github",
+    },
   },
+  publish: publish ? "always" : undefined,
 });

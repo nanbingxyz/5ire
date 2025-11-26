@@ -25,6 +25,7 @@
     "dev:start": "npx wait-on http-get://127.0.0.1:33077 file:./output/nodemon.json && cd ./output && npx nodemon",
     "dev": "rimraf ./output/ && concurrently -n R,E -c cyan,magenta \"npm run dev:build\" \"npm run dev:start\"",
     "package": "tsx ./scripts/package/index.ts",
+    "package:publish": "tsx ./scripts/package/index.ts --publish",
     "generate:drizzle": "drizzle-kit generate"
   },
   "jest": {
