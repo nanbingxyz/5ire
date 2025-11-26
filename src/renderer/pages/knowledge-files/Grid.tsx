@@ -112,12 +112,6 @@ const StatusIndicator = (props: StatusIndicatorProps) => {
   );
 };
 
-/**
- * Grid component that displays knowledge collections in a data grid format.
- * Provides functionality for viewing, editing, deleting, pinning, and managing files for collections.
- *
- * @returns {JSX.Element} The rendered grid component
- */
 export default function Grid() {
   const { id } = useParams();
   const { t } = useTranslation();
@@ -150,7 +144,7 @@ export default function Grid() {
       window.bridge.documentManager
         .deleteDocument({ id: deletingCollectionId })
         .then(() => {
-          notifySuccess(t("Knowledge.Notification.CollectionDeleted"));
+          notifySuccess(t("Knowledge.Notification.DocumentDeleted"));
         })
         .catch(console.error);
     }

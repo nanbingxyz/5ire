@@ -26,7 +26,7 @@ import BookmarkNav from "./BookmarkNav";
  */
 export default function Sidebar() {
   const location = useLocation();
-  const { isDarwin, isLinux } = usePlatform();
+  const { isDarwin, isLinux, isWindows } = usePlatform();
   const sidebar = useAppearanceStore((state) => state.sidebar);
   const width = sidebar.hidden ? "w-0" : "w-auto";
   const left = sidebar.hidden ? "md:left-0" : "-left-64 md:left-0";
@@ -68,6 +68,9 @@ export default function Sidebar() {
           collapsed ? width : "w-64 md:w-[17rem]"
         } fixed inset-y-0 top-0 ${collapsed ? leftCollapsed : left} flex flex-col h-full md:relative app-sidebar`,
       )}
+      style={{
+        height: isWindows ? "calc(100vh - 32px)" : undefined,
+      }}
     >
       <div className="flex h-full flex-1 flex-col">
         <GlobalNav collapsed={collapsed} />

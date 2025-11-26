@@ -24,7 +24,8 @@
     "dev:build": "rsbuild dev",
     "dev:start": "npx wait-on http-get://127.0.0.1:33077 file:./output/nodemon.json && cd ./output && npx nodemon",
     "dev": "rimraf ./output/ && concurrently -n R,E -c cyan,magenta \"npm run dev:build\" \"npm run dev:start\"",
-    "package": "tsx ./scripts/package/index.ts",
+    "package": "rimraf ./release && tsx ./scripts/package/index.ts",
+    "package:publish": "rimraf ./release && tsx ./scripts/package/index.ts --publish",
     "generate:drizzle": "drizzle-kit generate"
   },
   "jest": {
@@ -196,7 +197,7 @@
     "logLevel": "quiet"
   },
   "volta": {
-    "node": "20.10.0",
+    "node": "22.19.0",
     "yarn": "1.22.21"
   },
   "lint-staged": {

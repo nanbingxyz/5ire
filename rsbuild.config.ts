@@ -213,7 +213,7 @@ export default defineConfig(async ({ command }): Promise<RsbuildConfig> => {
       rspack: {
         ignoreWarnings: [
           (error) => {
-            if (error.message?.includes("/node_modules/")) {
+            if (error.message?.includes("/node_modules/") || error.message?.includes("\\node_modules\\")) {
               return true;
             }
 
