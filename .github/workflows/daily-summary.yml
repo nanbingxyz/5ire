@@ -13,8 +13,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+
+      - name: Create .env file
+        run: |
+          echo "SUPA_PROJECT_ID=${{ secrets.SUPA_PROJECT_ID }}" > .env
+          echo "SUPA_KEY=${{ secrets.SUPA_KEY }}" >> .env
+          echo "AXIOM_TOKEN=${{ secrets.AXIOM_TOKEN }}" >> .env
+          echo "AXIOM_ORG_ID=${{ secrets.AXIOM_ORG_ID }}" >> .env
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
