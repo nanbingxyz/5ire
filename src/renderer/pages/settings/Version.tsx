@@ -1,12 +1,14 @@
 import { Button } from "@fluentui/react-components";
 import { useTranslation } from "react-i18next";
 import Spinner from "renderer/components/Spinner";
+import useMarkdown from "@/hooks/useMarkdown";
 import { useUpdater } from "@/renderer/next/hooks/remote/use-updater";
 
 export default function Version() {
   const { t } = useTranslation();
 
   const updater = useUpdater();
+  const markdown = useMarkdown();
 
   const renderProgress = (total: number, received: number) => {
     return `${((received / total) * 100).toFixed(1)}%`;
@@ -70,6 +72,13 @@ export default function Version() {
         <div className="flex justify-start gap-2 items-center mt-4">
           {updater.status.type === "available" && (
             <div>
+              {typeof updater.status.updateInfo.releaseNotes === "string" && (
+                <div
+                  // biome-ignore lint/security/noDangerouslySetInnerHtml: xx
+                  dangerouslySetInnerHTML={{ __html: markdown.render(updater.status.updateInfo.releaseNotes) }}
+                  className="mb-4 text-gray-500"
+                />
+              )}
               <Button
                 appearance="primary"
                 onClick={() => {
