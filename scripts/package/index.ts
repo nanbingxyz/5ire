@@ -155,7 +155,7 @@ build({
     },
     appImage: {},
     directories: {
-      output: "release/build",
+      output: "release",
       app: "output",
     },
     publish: {
