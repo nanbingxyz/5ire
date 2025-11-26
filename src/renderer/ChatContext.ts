@@ -41,11 +41,15 @@ const createChatContext = (chatId?: string): IChatContext => {
     const chat = getActiveChat();
     const { getAvailableProvider, getDefaultProvider } =
       useProviderStore.getState();
-    debug(`getProvider: chat(${chat.summary || ''})`, chat.provider);
+    debug(`getProvider: chat(${chat.summary || ''}) provider:`, chat.provider);
     if (chat.provider) {
-      return getAvailableProvider(chat.provider);
+      const provider = getAvailableProvider(chat.provider);
+      debug('Using chat provider:', provider.name);
+      return provider;
     }
-    return getDefaultProvider();
+    const defaultProvider = getDefaultProvider();
+    debug('Using default provider:', defaultProvider.name);
+    return defaultProvider;
   };
 
   /**
@@ -55,9 +59,10 @@ const createChatContext = (chatId?: string): IChatContext => {
   const getModel = () => {
     const chat = getActiveChat();
     const { getAvailableModel, getModelsSync } = useProviderStore.getState();
+    debug(`getModel: chat provider=${chat.provider}, model=${chat.model}`);
     if (chat.provider && chat.model) {
       const model = getAvailableModel(chat.provider, chat.model);
-      debug(`getModel by chat(${chat.provider}/${chat.model})`, model);
+      debug(`getModel by chat(${chat.provider}/${chat.model})`, model.name);
       return model;
     }
     const provider = getProvider();

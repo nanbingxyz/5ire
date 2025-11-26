@@ -3,6 +3,7 @@
  * Supports creating chats with pre-configured settings via command line
  */
 
+import path from 'path';
 import * as logging from './logging';
 
 export interface StartupChatArgs {
@@ -22,62 +23,113 @@ export interface StartupChatArgs {
  * @returns Parsed chat arguments or null if no chat arguments found
  */
 export function parseStartupArgs(argv: string[]): StartupChatArgs | null {
-  // Check if --new-chat flag is present
-  const hasNewChat = argv.includes('--new-chat');
+  // Debug: log the raw argv to understand what we're receiving
+  logging.info('parseStartupArgs received argv:', JSON.stringify(argv, null, 2));
   
-  // Check for --chat JSON argument
+  // Check if --new-chat or --chat flag is present
+  if (!argv.includes('--new-chat') && !argv.includes('--chat')) {
+    return null;
+  }
+  
+  // Handle --chat JSON format
   const chatIndex = argv.indexOf('--chat');
-  if (chatIndex !== -1 && chatIndex + 1 < argv.length) {
+  if (chatIndex !== -1) {
     try {
-      const chatJson = argv[chatIndex + 1];
-      const parsed = JSON.parse(chatJson);
-      return normalizeStartupArgs(parsed);
+      // Find the next non-flag argument after --chat
+      for (let i = chatIndex + 1; i < argv.length; i++) {
+        const arg = argv[i];
+        if (!arg.startsWith('--') && !arg.endsWith('.js') && arg !== '.') {
+          const parsed = JSON.parse(arg);
+          return normalizeStartupArgs(parsed);
+        }
+      }
     } catch (error) {
       logging.error('Failed to parse --chat JSON argument:', error);
       return null;
     }
   }
   
-  // If --new-chat flag is not present, return null
-  if (!hasNewChat) {
-    return null;
-  }
+  // Manual parsing to handle electronmon's scrambled argument order
+  // Strategy: Collect all our flags in order, then collect all non-flag values in order,
+  // then match them up
   
-  // Parse individual flags
-  const args: StartupChatArgs = {};
+  const ourFlags = ['--provider', '--model', '--system', '--summary', '--prompt', '--temperature'];
+  const foundFlags: string[] = [];
+  const values: string[] = [];
   
-  const providerIndex = argv.indexOf('--provider');
-  if (providerIndex !== -1 && providerIndex + 1 < argv.length) {
-    args.provider = argv[providerIndex + 1];
-  }
-  
-  const modelIndex = argv.indexOf('--model');
-  if (modelIndex !== -1 && modelIndex + 1 < argv.length) {
-    args.model = argv[modelIndex + 1];
-  }
-  
-  const systemIndex = argv.indexOf('--system');
-  if (systemIndex !== -1 && systemIndex + 1 < argv.length) {
-    args.system = argv[systemIndex + 1];
-  }
-  
-  const summaryIndex = argv.indexOf('--summary');
-  if (summaryIndex !== -1 && summaryIndex + 1 < argv.length) {
-    args.summary = argv[summaryIndex + 1];
-  }
-  
-  const promptIndex = argv.indexOf('--prompt');
-  if (promptIndex !== -1 && promptIndex + 1 < argv.length) {
-    args.prompt = argv[promptIndex + 1];
-  }
-  
-  const temperatureIndex = argv.indexOf('--temperature');
-  if (temperatureIndex !== -1 && temperatureIndex + 1 < argv.length) {
-    const temp = parseFloat(argv[temperatureIndex + 1]);
-    if (!Number.isNaN(temp)) {
-      args.temperature = temp;
+  // First pass: collect which of our flags are present (in order)
+  for (const arg of argv) {
+    if (ourFlags.includes(arg)) {
+      foundFlags.push(arg);
     }
   }
+  
+  // Second pass: collect all non-flag, non-electron values (in order)
+  argv.forEach((arg, index) => {
+    // Skip flags, loader files, working-directory markers, and the executable itself
+    if (arg.startsWith('--')) {
+      return;
+    }
+    if (arg.endsWith('.js') || arg.endsWith('.cjs') || arg.endsWith('.mjs')) {
+      return;
+    }
+    if (arg === '.' || arg === '..') {
+      return;
+    }
+    if (arg.includes('electron.exe')) {
+      return;
+    }
+
+    // Skip the first entry (the executable path) and any explicit executables
+    if (index === 0) {
+      return;
+    }
+    if (arg.toLowerCase().endsWith('.exe')) {
+      return;
+    }
+    if (process.execPath && path.normalize(arg) === path.normalize(process.execPath)) {
+      return;
+    }
+
+    values.push(arg);
+  });
+  
+  logging.info('Found flags:', foundFlags);
+  logging.info('Found values:', values);
+  
+  // Match flags to values by position
+  const args: StartupChatArgs = {};
+  
+  for (let i = 0; i < foundFlags.length && i < values.length; i++) {
+    const flag = foundFlags[i];
+    const value = values[i];
+    
+    switch (flag) {
+      case '--provider':
+        args.provider = value;
+        break;
+      case '--model':
+        args.model = value;
+        break;
+      case '--system':
+        args.system = value;
+        break;
+      case '--summary':
+        args.summary = value;
+        break;
+      case '--prompt':
+        args.prompt = value;
+        break;
+      case '--temperature':
+        const temp = parseFloat(value);
+        if (!Number.isNaN(temp)) {
+          args.temperature = temp;
+        }
+        break;
+    }
+  }
+  
+  logging.info('Matched args:', args);
   
   return normalizeStartupArgs(args);
 }

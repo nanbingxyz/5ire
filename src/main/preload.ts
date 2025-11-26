@@ -38,6 +38,7 @@ export type Channels =
   | 'close-app'
   | 'mcp-server-loaded'
   | 'install-tool-listener-ready'
+  | 'startup-handler-ready'
   | 'show-context-menu'
   | 'context-menu-command'
   | 'stream-data'

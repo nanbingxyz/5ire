@@ -268,6 +268,7 @@ export default function Chat() {
       const modelCtx = chatContext.getModel();
       const temperature = chatContext.getTemperature();
       const maxTokens = chatContext.getMaxTokens();
+      let currentChat = chatContext.getActiveChat();
 
       let abortController: AbortController | undefined;
 
@@ -309,19 +310,38 @@ export default function Chat() {
           openFolder(folder.id);
         }
         deleteStage(TEMP_CHAT_ID);
+        currentChat = $chat;
       } else {
         if (!msgId) {
-          await updateChat({
-            id: activeChatId,
-            provider: providerCtx.name,
-            model: modelCtx.name,
-            temperature,
-            summary,
-          });
+          const shouldUpdateProvider =
+            !currentChat.provider || currentChat.provider === providerCtx.name;
+          const shouldUpdateModel =
+            !currentChat.model || currentChat.model === modelCtx.name;
+
+          if (shouldUpdateProvider && shouldUpdateModel) {
+            await updateChat({
+              id: activeChatId,
+              provider: providerCtx.name,
+              model: modelCtx.name,
+              temperature,
+              summary,
+            });
+          } else {
+            await updateChat({
+              id: activeChatId,
+              temperature,
+              summary,
+            });
+          }
         }
+        currentChat = chatContext.getActiveChat();
         setKeyword(activeChatId, ''); // clear filter keyword
       }
       updateStates($chatId, { loading: true });
+      const providerNameForMessage =
+        currentChat?.provider || providerCtx.name;
+      const modelNameForMessage = currentChat?.model || modelCtx.name;
+
       const msg = msgId
         ? (messages.find((message) => msgId === message.id) as IChatMessage)
         : await useChatStore.getState().createMessage({
@@ -332,7 +352,7 @@ export default function Chat() {
             structuredPrompts: typeof triggerPrompt === 'string' ? null : '[]',
             reply: '',
             chatId: $chatId,
-            model: modelCtx.label,
+            model: modelNameForMessage,
             temperature,
             maxTokens,
             isActive: 1,
@@ -407,7 +427,7 @@ export default function Chat() {
         id: msg.id,
         reply: '',
         reasoning: '',
-        model: modelCtx.label,
+        model: modelNameForMessage,
         temperature,
         maxTokens,
         isActive: 1,
@@ -581,7 +601,7 @@ ${prompt}
           });
           useUsageStore.getState().create({
             provider: providerCtx.name,
-            model: modelCtx.label,
+            model: modelNameForMessage,
             inputTokens,
             outputTokens,
           });
@@ -628,7 +648,10 @@ ${prompt}
         ],
         msgId,
       );
-      window.electron.ingestEvent([{ app: 'chat' }, { model: modelCtx.label }]);
+      window.electron.ingestEvent([
+        { app: 'chat' },
+        { model: modelNameForMessage },
+      ]);
     },
     [
       activeChatId,
@@ -677,10 +700,18 @@ ${prompt}
       // console.log('message', event);
       // await onSubmit(event.prompt, event.msgId);
     });
+
+    // Listen for startup submit events
+    bus.current.on('startup-submit', async (prompt: string) => {
+      debug('Received startup-submit event with prompt:', prompt);
+      await onSubmit(prompt);
+    });
+
     return () => {
       bus.current.off('retry');
+      bus.current.off('startup-submit');
     };
-  }, [messages]);
+  }, [messages, onSubmit]);
 
   return (
     <div

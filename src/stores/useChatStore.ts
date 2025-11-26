@@ -373,11 +373,16 @@ const useChatStore = create<IChatStore>((set, get) => ({
     chat: Partial<IChat>,
     beforeSetCallback?: (chat: IChat) => Promise<void>,
   ) => {
+    // Start with current chat state but allow explicit null/empty values to override
+    const currentChat = get().chat;
     const $chat = {
-      ...get().chat,
+      ...currentChat,
       ...chat,
       id: typeid('chat').toString(),
       createdAt: date2unix(new Date()),
+      // Ensure provider/model from chat arg override current state even if empty string
+      provider: chat.provider !== undefined ? chat.provider : currentChat.provider,
+      model: chat.model !== undefined ? chat.model : currentChat.model,
     } as IChat;
     debug('Create a chat ', $chat);
     let prompt = null;
@@ -531,7 +536,8 @@ const useChatStore = create<IChatStore>((set, get) => ({
       'SELECT id, name, summary, provider, model, systemMessage, maxTokens, temperature, context, maxCtxMessages, stream, prompt, input, folderId, createdAt FROM chats where id = ?',
       id,
     )) as IChat;
-    debug('Fetch chat:', chat);
+    debug('Fetch chat from DB:', chat);
+    debug('DB chat provider:', chat?.provider, 'model:', chat?.model);
     return chat;
   },
   getChat: async (id: string) => {
