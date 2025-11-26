@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest]
+        os: [macos-latest, macos-15-intel, windows-latest, ubuntu-latest]
     name: Release for ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     env:
