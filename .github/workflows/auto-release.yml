@@ -19,6 +19,8 @@ jobs:
       APPLE_ID_PASS: ${{ secrets.APPLE_ID_PASS }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+      # https://github.com/electron-userland/electron-builder/issues/3179
+      USE_HARD_LINKS: false
     steps:
       - name: Checkout
         uses: actions/checkout@v6
