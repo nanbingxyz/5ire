@@ -47,6 +47,7 @@ if (!isPlainObject(tempStage)) {
 } else {
   tempStage = pick(tempStage, Object.keys(defaultTempStage));
 }
+/* eslint-disable @typescript-eslint/no-unused-vars, no-shadow */
 export interface IChatStore {
   openFolders: string[];
   folders: Record<string, IChatFolder>;
@@ -116,6 +117,7 @@ export interface IChatStore {
   editStage: (chatId: string, stage: Partial<IStage>) => Promise<void>;
   deleteStage: (chatId: string) => void;
 }
+/* eslint-enable @typescript-eslint/no-unused-vars, no-shadow */
 
 const useChatStore = create<IChatStore>((set, get) => ({
   folders: {},
@@ -366,7 +368,7 @@ const useChatStore = create<IChatStore>((set, get) => ({
         state.chat = { ...state.chat, ...$chat };
       }),
     );
-    console.log('Edit chat', $chat);
+    debug('Edit chat', $chat);
     return $chat;
   },
   createChat: async (
@@ -381,7 +383,8 @@ const useChatStore = create<IChatStore>((set, get) => ({
       id: typeid('chat').toString(),
       createdAt: date2unix(new Date()),
       // Ensure provider/model from chat arg override current state even if empty string
-      provider: chat.provider !== undefined ? chat.provider : currentChat.provider,
+      provider:
+        chat.provider !== undefined ? chat.provider : currentChat.provider,
       model: chat.model !== undefined ? chat.model : currentChat.model,
     } as IChat;
     debug('Create a chat ', $chat);

@@ -115,9 +115,10 @@ export default function Chat() {
 
   // The ready state depends only on the status of the model and the provider.
   // When the model or provider changes, call chatContext.isReady() to get the ready state.
+  const readySignature = `${provider ?? ''}:${model ?? ''}`;
   const isReady = useMemo(() => {
     return chatContext.isReady();
-  }, [provider, model, chatContext]);
+  }, [chatContext, readySignature]);
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -167,7 +168,7 @@ export default function Chat() {
       currentRef?.removeEventListener('scroll', handleScroll);
       isUserScrollingRef.current = false;
     };
-  }, []);
+  }, [handleScroll]);
 
   useEffect(() => {
     const initializeChat = async () => {
@@ -338,8 +339,7 @@ export default function Chat() {
         setKeyword(activeChatId, ''); // clear filter keyword
       }
       updateStates($chatId, { loading: true });
-      const providerNameForMessage =
-        currentChat?.provider || providerCtx.name;
+      const providerNameForMessage = currentChat?.provider || providerCtx.name;
       const modelNameForMessage = currentChat?.model || modelCtx.name;
 
       const msg = msgId
@@ -600,7 +600,7 @@ ${prompt}
             ),
           });
           useUsageStore.getState().create({
-            provider: providerCtx.name,
+            provider: providerNameForMessage,
             model: modelNameForMessage,
             inputTokens,
             outputTokens,
@@ -619,7 +619,7 @@ ${prompt}
         updateStates($chatId, { runningTool: toolName });
       });
       chatService.current.onError(async (err: any, aborted: boolean) => {
-        console.error(err);
+        debug('Chat service error:', err);
         if (!aborted) {
           notifyError(err.message || err.error);
         }
@@ -650,7 +650,7 @@ ${prompt}
       );
       window.electron.ingestEvent([
         { app: 'chat' },
-        { model: modelNameForMessage },
+        { provider: providerNameForMessage, model: modelNameForMessage },
       ]);
     },
     [
@@ -663,16 +663,27 @@ ${prompt}
       setKeyword,
       countInput,
       countOutput,
+      countBlobInput,
       updateMessage,
       navigate,
       appendReply,
       notifyError,
       chatContext,
+      deleteStage,
+      folder,
+      moveChatCollections,
+      setChatCollections,
+      openFolder,
+      listChatCollections,
+      t,
+      updateStates,
     ],
   );
 
   useEffect(() => {
-    bus.current.on('retry', async (event: any) => {
+    const eventBusRef = bus.current;
+
+    const handleRetry = async (event: any) => {
       const message = event as IChatMessage;
 
       if (message.structuredPrompts) {
@@ -699,19 +710,22 @@ ${prompt}
 
       // console.log('message', event);
       // await onSubmit(event.prompt, event.msgId);
-    });
+    };
 
     // Listen for startup submit events
-    bus.current.on('startup-submit', async (prompt: string) => {
+    const handleStartupSubmit = async (prompt: string) => {
       debug('Received startup-submit event with prompt:', prompt);
       await onSubmit(prompt);
-    });
+    };
+
+    eventBusRef.on('retry', handleRetry);
+    eventBusRef.on('startup-submit', handleStartupSubmit);
 
     return () => {
-      bus.current.off('retry');
-      bus.current.off('startup-submit');
+      eventBusRef.off('retry', handleRetry);
+      eventBusRef.off('startup-submit', handleStartupSubmit);
     };
-  }, [messages, onSubmit]);
+  }, [onSubmit]);
 
   return (
     <div

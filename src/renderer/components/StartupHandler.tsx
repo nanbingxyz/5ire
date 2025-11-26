@@ -74,17 +74,12 @@ export default function StartupHandler() {
           temperature: args.temperature,
           input: args.prompt ?? '',
         };
-        
+
         debug('Creating chat with data:', chatData);
         const chat = await createChat(chatData);
 
         debug('Created chat from startup args:', chat);
-        debug(
-          'Chat provider:',
-          chat.provider,
-          'Chat model:',
-          chat.model,
-        );
+        debug('Chat provider:', chat.provider, 'Chat model:', chat.model);
 
         // Navigate to the newly created chat
         navigate(`/chats/${chat.id}`);
@@ -97,13 +92,14 @@ export default function StartupHandler() {
           if (resolvedProvider) stageUpdate.provider = resolvedProvider;
           if (resolvedModel) stageUpdate.model = resolvedModel;
           if (args.system) stageUpdate.systemMessage = args.system;
-          if (args.temperature !== undefined) stageUpdate.temperature = args.temperature;
-          
+          if (args.temperature !== undefined)
+            stageUpdate.temperature = args.temperature;
+
           if (Object.keys(stageUpdate).length > 0) {
             await editStage(chat.id, stageUpdate);
             debug('Updated chat stage with:', stageUpdate);
           }
-          
+
           // If a prompt was provided, auto-submit it after context refresh
           if (args.prompt) {
             debug('Auto-submitting initial prompt:', args.prompt);
@@ -125,7 +121,7 @@ export default function StartupHandler() {
     return () => {
       unsubscribe();
     };
-  }, [navigate, createChat]);
+  }, [navigate, createChat, editStage]);
 
   // This component doesn't render anything
   return null;
