@@ -38,11 +38,13 @@ export type Channels =
   | 'close-app'
   | 'mcp-server-loaded'
   | 'install-tool-listener-ready'
+  | 'startup-handler-ready'
   | 'show-context-menu'
   | 'context-menu-command'
   | 'stream-data'
   | 'stream-end'
-  | 'stream-error';
+  | 'stream-error'
+  | 'startup-new-chat';
 
 const electronHandler = {
   upgrade: () => ipcRenderer.invoke('quit-and-upgrade'),
@@ -266,6 +268,36 @@ const electronHandler = {
         file,
         mimeType,
       ) as Promise<DocumentContentPart[]>;
+    },
+  },
+  startup: {
+    onNewChat(
+      callback: (args: {
+        provider?: string;
+        model?: string;
+        system?: string;
+        summary?: string;
+        prompt?: string;
+        temperature?: number;
+      }) => void,
+    ) {
+      const subscription = (
+        _event: IpcRendererEvent,
+        args: {
+          provider?: string;
+          model?: string;
+          system?: string;
+          summary?: string;
+          prompt?: string;
+          temperature?: number;
+        },
+      ) => {
+        callback(args);
+      };
+      ipcRenderer.on('startup-new-chat', subscription);
+      return () => {
+        ipcRenderer.removeListener('startup-new-chat', subscription);
+      };
     },
   },
 };

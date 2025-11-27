@@ -49,6 +49,16 @@ import {
 
 import { loadDocumentFromBuffer } from './docloader';
 import { DocumentLoader } from './next/document-loader/DocumentLoader';
+import { parseStartupArgs, StartupChatArgs } from './cli-args';
+
+// Cache process.argv EARLY before any hooks can modify it
+const originalArgv = [...process.argv];
+
+const CLI_HELP_FLAGS = new Set(['--help', '-h', '/?', '--cli-help']);
+const CLI_HELP_TEXT = `5ire command-line options:\n\nGeneral usage:\n  --help, -h, /?        Show this help and exit\n\nChat creation (pass together with --new-chat):\n  --new-chat            Create the chat before the UI renders\n  --provider <name>     Provider key exactly as configured (e.g. OpenAI)\n  --model <name>        Model name exactly as shown in Providers (e.g. gpt-5-nano)\n  --system <text>       System/system prompt for the assistant\n  --prompt <text>       Initial user message (auto-submitted)\n  --summary <text>      Friendly name for the chat (defaults to prompt preview)\n  --temperature <num>   Temperature override (falls back to provider default)\n\nExamples:\n  5ire.exe --new-chat --provider OpenAI --model gpt-5-nano --system "Be nice" --prompt "Hello" --summary "Demo" --temperature 0.8\n  npm run start:main -- --new-chat --provider OpenAI --model gpt-5-nano --prompt "Hi"\n\nDevelopment reminder: run "npm run start" first (renderer) then "npm run start:main -- <args>" in another terminal.`;
+
+const hasCliHelpFlag = (argv: string[]) =>
+  argv.some((arg) => CLI_HELP_FLAGS.has(arg.split('=')[0].toLowerCase()));
 
 dotenv.config({
   path: app.isPackaged
@@ -59,6 +69,13 @@ dotenv.config({
 logging.init();
 
 logging.info('Main process start...');
+
+if (hasCliHelpFlag(originalArgv)) {
+  console.log(CLI_HELP_TEXT);
+  logging.info(CLI_HELP_TEXT);
+  app.exit(0);
+  process.exit(0);
+}
 
 const isDarwin = process.platform === 'darwin';
 const isWin32 = process.platform === 'win32';
@@ -140,6 +157,8 @@ class AppUpdater {
 }
 let rendererReady = false;
 let pendingInstallTool: any = null;
+const pendingStartupArgs: StartupChatArgs[] = [];
+let startupHandlerReady = false;
 let downloader: Downloader;
 let mainWindow: BrowserWindow | null = null;
 const protocol = app.isPackaged ? 'app.5ire' : 'dev.5ire';
@@ -252,12 +271,55 @@ const handleDeepLinkOnColdStart = () => {
     }
   });
 };
+
+/**
+ * Handle startup arguments to auto-create chat
+ * @param argv - Command line arguments
+ */
+const flushStartupArgs = () => {
+  if (!startupHandlerReady || !mainWindow) {
+    return;
+  }
+  while (pendingStartupArgs.length) {
+    const args = pendingStartupArgs.shift();
+    if (args) {
+      mainWindow.webContents.send('startup-new-chat', args);
+    }
+  }
+};
+
+const enqueueStartupArgs = (args: StartupChatArgs) => {
+  if (startupHandlerReady && mainWindow) {
+    mainWindow.webContents.send('startup-new-chat', args);
+  } else {
+    pendingStartupArgs.push(args);
+  }
+};
+
+const handleStartupArgs = (argv: string[]) => {
+  const startupArgs = parseStartupArgs(argv);
+  if (startupArgs) {
+    logging.info('Startup args detected:', startupArgs);
+    enqueueStartupArgs(startupArgs);
+  }
+};
 const gotTheLock = app.requestSingleInstanceLock();
 
 if (!gotTheLock) {
   app.quit();
 } else {
   app.on('second-instance', (event, commandLine) => {
+    if (hasCliHelpFlag(commandLine)) {
+      dialog.showMessageBox({
+        type: 'info',
+        buttons: ['OK'],
+        title: '5ire CLI Help',
+        message: '5ire command-line options',
+        detail: CLI_HELP_TEXT,
+      });
+      return;
+    }
+
     if (mainWindow) {
       if (mainWindow.isMinimized()) {
         mainWindow.restore();
@@ -269,9 +331,14 @@ if (!gotTheLock) {
     } else {
       createWindow();
     }
-    const link = commandLine.pop();
-    if (link) {
-      onDeepLink(link);
+    
+    // Handle startup arguments first to create chat if needed
+    handleStartupArgs(commandLine);
+    
+    // Then check for deep links (can coexist with startup args)
+    const deepLink = commandLine.find((arg) => arg.startsWith(`${protocol}://`));
+    if (deepLink) {
+      onDeepLink(deepLink);
     }
   });
 
@@ -343,6 +410,10 @@ if (!gotTheLock) {
         },
       );
       axiom.ingest([{ app: 'launch' }]);
+      
+      // Handle startup arguments on cold start
+      // Use originalArgv to avoid electronmon hook interference
+      handleStartupArgs(originalArgv);
     })
     .catch(logging.captureException);
   handleDeepLinkOnColdStart();
@@ -356,6 +427,12 @@ ipcMain.on('install-tool-listener-ready', () => {
     mainWindow?.webContents.send('install-tool', pendingInstallTool);
     pendingInstallTool = null;
   }
+  flushStartupArgs();
+});
+
+ipcMain.on('startup-handler-ready', () => {
+  startupHandlerReady = true;
+  flushStartupArgs();
 });
 
 const activeRequests = new Map<string, AbortController>();
