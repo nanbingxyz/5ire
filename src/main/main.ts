@@ -1,12 +1,13 @@
 /* eslint global-require: off, no-console: off, promise/always-return: off */
 // import 'v8-compile-cache';
 
+import "@/main/setup";
+
 import fs from "node:fs";
 import os from "node:os";
 import { join, resolve } from "node:path";
 import type { Readable } from "node:stream";
 import crypto from "crypto";
-import dotenv from "dotenv";
 import {
   app,
   type BrowserWindow,
@@ -20,7 +21,6 @@ import {
   shell,
 } from "electron";
 import Store from "electron-store";
-import { default as fixPath } from "fix-path";
 import { ensureDirSync } from "fs-extra";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import fetch from "node-fetch";
@@ -65,15 +65,6 @@ import ModuleContext from "./mcp";
 import { DocumentLoader } from "./next/document-loader/DocumentLoader";
 import { initLegacyDatabase } from "./sqlite";
 import { decodeBase64, getFileInfo, getFileType } from "./util";
-
-dotenv.config({
-  path: app.isPackaged ? path.join(process.resourcesPath, ".env") : path.resolve(process.cwd(), ".env"),
-});
-
-// Fix the $PATH on macOS and Linux when running inside Electron.
-// This ensures that executables installed via package managers like Homebrew
-// are available in the PATH for child processes spawned by the application.
-fixPath();
 
 Container.singleton(Environment, () => {
   let userDataFolder = app.getPath("userData");
@@ -850,11 +841,6 @@ ipcMain.handle("DocumentLoader::loadFromURI", (_, url, mimeType) => {
 ipcMain.handle("DocumentLoader::loadFromFilePath", (_, file, mimeType) => {
   return DocumentLoader.loadFromFilePath(file, mimeType);
 });
-
-if (process.env.NODE_ENV !== "production") {
-  const sourceMapSupport = require("source-map-support");
-  sourceMapSupport.install();
-}
 
 const isDebug = process.env.NODE_ENV === "development" || process.env.DEBUG_PROD === "true";
 

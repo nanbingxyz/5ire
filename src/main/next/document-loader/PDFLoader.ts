@@ -1,4 +1,3 @@
-import { PDFParse } from "pdf-parse";
 import type { ContentPart, Loader } from "./DocumentLoader";
 
 /**
@@ -16,7 +15,9 @@ export class PDFLoader implements Loader {
    */
   load = async (buffer: Uint8Array): Promise<ContentPart[]> => {
     try {
-      const result = await new PDFParse({ data: buffer }).getText().then(({ text }) => text);
+      const result = await import("pdf-parse").then(async (mod) => {
+        return new mod.PDFParse({ data: buffer }).getText().then(({ text }) => text);
+      });
 
       return [
         {
