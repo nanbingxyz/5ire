@@ -3,7 +3,7 @@ name: Auto Release
 on:
   push:
     branches:
-      - feature/release-workflow
+      - 0.15.0
     tags:
       - 'v*'
 
@@ -17,12 +17,9 @@ jobs:
     runs-on: ${{ matrix.os }}
     env:
       GH_TOKEN: ${{ github.token }}
-      APPLE_ID: ${{ secrets.APPLE_ID }}
-      APPLE_ID_PASS: ${{ secrets.APPLE_ID_PASS }}
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
       # https://github.com/electron-userland/electron-builder/issues/3179
       USE_HARD_LINKS: false
+
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -45,5 +42,22 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Package & Publish
+      - name: Package & Publish (OSX)
+        if: matrix.os == 'macos-latest' || matrix.os == 'macos-15-intel'
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_ID_PASS: ${{ secrets.APPLE_ID_PASS }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CSC_KEY_LINK: ${{ secrets.CSC_KEY_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: npm run package:publish
+
+      - name: Package & Publish (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+        run: npm run package:publish
+
+      - name: Package & Publish (Windows)
+        if: matrix.os == 'windows-latest'
         run: npm run package:publish
