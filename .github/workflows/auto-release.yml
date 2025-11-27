@@ -29,6 +29,13 @@ jobs:
         with:
           node-version: 22.18.0
 
+      - name: Setup GPG Secret Key
+        if: matrix.os == 'ubuntu-latest'
+        env:
+          GPG_SECRET_KEY: ${{ secrets.GPG_SECRET_KEY }}
+        run: |
+          echo $GPG_SECRET_KEY | base64 --decode | gpg --batch --yes --import
+
       - name: Create .env file
         run: |
           echo "SUPA_PROJECT_ID=${{ secrets.SUPA_PROJECT_ID }}" > .env
