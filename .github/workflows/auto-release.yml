@@ -29,12 +29,19 @@ jobs:
         with:
           node-version: 22.18.0
 
-      - name: Setup GPG Secret Key
+      - name: Import GPG Secret Key
         if: matrix.os == 'ubuntu-latest'
         env:
           GPG_SECRET_KEY: ${{ secrets.GPG_SECRET_KEY }}
         run: |
           echo $GPG_SECRET_KEY | base64 --decode | gpg --batch --yes --import
+
+      - name: Import Apple Code Signing Certificates
+        if: matrix.os == 'macos-latest' || matrix.os == 'macos-15-intel'
+        uses: apple-actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.CSC_KEY_LINK }}
+          p12-password: ${{ secrets.CSC_KEY_PASSWORD }}
 
       - name: Create .env file
         run: |
@@ -55,8 +62,6 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_ID_PASS: ${{ secrets.APPLE_ID_PASS }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          CSC_KEY_LINK: ${{ secrets.CSC_KEY_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
         run: npm run package:publish
 
       - name: Package & Publish (Linux)
