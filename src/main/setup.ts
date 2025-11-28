@@ -1,5 +1,4 @@
 import { join, resolve } from "node:path";
-import { DOMMatrix } from "@napi-rs/canvas";
 import { config as loadEnv } from "dotenv";
 import { app } from "electron";
 import { default as fixPath } from "fix-path";
@@ -15,12 +14,6 @@ loadEnv({
   override: true,
 });
 
-require("source-map-support").install();
-
-// GitHub workflow build artifacts fail to find DOMMatrix at runtime.
-// Define DOMMatrix on the global object to resolve this issue.
-if (!("DOMMatrix" in globalThis)) {
-  Object.defineProperty(globalThis, "DOMMatrix", {
-    value: DOMMatrix,
-  });
+if (!app.isPackaged) {
+  require("source-map-support").install();
 }
