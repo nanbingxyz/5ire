@@ -29,13 +29,6 @@ jobs:
         with:
           node-version: 22.18.0
 
-      - name: Import GPG Secret Key
-        if: matrix.os == 'ubuntu-latest'
-        env:
-          GPG_SECRET_KEY: ${{ secrets.GPG_SECRET_KEY }}
-        run: |
-          echo $GPG_SECRET_KEY | base64 --decode | gpg --batch --yes --import
-
       - name: Import Apple Code Signing Certificates
         if: matrix.os == 'macos-latest' || matrix.os == 'macos-15-intel'
         uses: apple-actions/import-codesign-certs@v3
@@ -67,7 +60,8 @@ jobs:
       - name: Package & Publish (Linux)
         if: matrix.os == 'ubuntu-latest'
         env:
-          GPG_KEY_ID: ${{ secrets.GPG_KEY_ID }}
+          GPG_SECRET_KEY_B64: ${{ secrets.GPG_SECRET_KEY_B64 }}
+          GPG_SECRET_KEY_PASSWORD: ${{ secrets.GPG_SECRET_KEY_PASSWORD }}
         run: npm run package:publish
 
       - name: Package & Publish (Windows)

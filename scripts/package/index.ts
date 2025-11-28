@@ -1,10 +1,86 @@
 import { execSync } from "node:child_process";
-import { join } from "node:path";
+import { createHash } from "node:crypto";
+import { basename, join } from "node:path";
 import { notarize } from "@electron/notarize";
-import { build } from "electron-builder";
-import { existsSync, readdirSync, rmSync } from "fs-extra";
+import { type BuildResult, build } from "electron-builder";
+import { existsSync, readdirSync, readFile, rmSync, writeFile } from "fs-extra";
+import { stringify } from "yaml";
 
 const publish = process.argv.includes("--publish");
+
+const signLinuxAppImages = async (result: BuildResult) => {
+  if (process.platform !== "linux") {
+    return;
+  }
+
+  const appImages = result.artifactPaths.filter((artifact) => artifact.endsWith(".AppImage"));
+
+  if (!appImages.length) {
+    return console.warn("No AppImages found in artifact paths, skipping signing");
+  }
+
+  if (!process.env.GPG_SECRET_KEY_B64) {
+    return console.warn("GPG_SECRET_KEY_B64 environment variable not set, skipping AppImage signing");
+  }
+
+  const secretKey = Buffer.from(process.env.GPG_SECRET_KEY_B64, "base64").toString("utf-8");
+  const secretKeyPassword = process.env.GPG_SECRET_KEY_PASSWORD || "";
+  const secretKeyIdRegex = /^gpg: key (.*?):/;
+
+  const importSecretKeyResult = execSync(`gpg --import --logger-fd 1`, { input: secretKey, encoding: "utf-8" });
+
+  const match = importSecretKeyResult.match(secretKeyIdRegex);
+
+  if (!match?.[1]) {
+    return console.warn(
+      "Failed to extract GPG key ID from imported key. Make sure GPG_SECRET_KEY_B64 contains a valid GPG private key.",
+    );
+  }
+
+  const additionalFiles: string[] = [];
+
+  for (const appImage of appImages) {
+    console.info(`Signing AppImage with key ${match[1]}: ${appImage}`);
+
+    execSync(
+      `gpg --detach-sign --armor --batch --passphrase-fd 0 --pinentry-mode loopback --yes --default-key ${match[1]} "${appImage}"`,
+      {
+        input: `${secretKeyPassword}\n`,
+      },
+    );
+
+    additionalFiles.push(`${appImage}.asc`);
+  }
+
+  return additionalFiles;
+};
+
+const generateManifest = async (result: BuildResult) => {
+  const file = join(result.outDir, `manifest-${process.platform}-${process.arch}.yml`);
+  const content = {
+    files: await Promise.all(
+      result.artifactPaths
+        .filter((artifact) => {
+          return !artifact.endsWith(".blockmap");
+        })
+        .map(async (artifact) => {
+          const content = await readFile(artifact);
+          const sha512 = createHash("sha512").update(content).digest().toString("base64");
+          const size = content.byteLength;
+
+          return {
+            url: basename(artifact),
+            sha512,
+            size,
+          };
+        }),
+    ),
+  };
+
+  await writeFile(file, stringify(content, { aliasDuplicateObjects: false }));
+
+  return [file];
+};
 
 build({
   config: {
@@ -84,44 +160,22 @@ build({
       console.info("Notarization complete");
     },
     afterAllArtifactBuild: async (ctx) => {
-      // Check if this is a Linux build by looking for any AppImage
-      const isLinux = ctx.artifactPaths.some((artifact) => artifact.endsWith(".AppImage"));
+      const additionalFiles: string[] = [];
 
-      if (!isLinux) {
-        console.info("No AppImage found, skipping signing");
-        return [];
-      }
-
-      if (!process.env.GPG_KEY_ID) {
-        console.warn("GPG_KEY_ID environment variable not set, skipping AppImage signing");
-        return [];
-      }
-
-      // Filter all AppImages from artifactPaths
-      const appImages = ctx.artifactPaths.filter((artifact) => artifact.endsWith(".AppImage"));
-
-      if (!appImages.length) {
-        console.warn("No AppImages found in artifact paths, skipping signing");
-        return [];
-      }
-
-      // Sign each AppImage using forEach
-      appImages.forEach((appImagePath) => {
-        console.info(`Signing AppImage with key ${process.env.GPG_KEY_ID}: ${appImagePath}`);
-        try {
-          execSync(`gpg --detach-sign --armor --yes --default-key ${process.env.GPG_KEY_ID} "${appImagePath}"`, {
-            stdio: "inherit",
-          });
-          console.info(`AppImage signed successfully: ${appImagePath}.asc`);
-        } catch (error) {
-          console.error(`Failed to sign AppImage: ${error}`);
-          throw error; // This will stop the build and report the error
+      await signLinuxAppImages(ctx).then((files) => {
+        if (files) {
+          additionalFiles.push(...files);
         }
       });
 
-      return [];
+      await generateManifest(ctx).then((files) => {
+        if (files) {
+          additionalFiles.push(...files);
+        }
+      });
+
+      return additionalFiles;
     },
-    artifactName: "${productName}-${version}-${os}-${arch}.${ext}",
     mac: {
       target: ["dmg", "zip"],
       notarize: false,
@@ -152,8 +206,9 @@ build({
     linux: {
       target: ["AppImage"],
       category: "Development",
+      // biome-ignore lint/suspicious/noTemplateCurlyInString: x
+      artifactName: "${productName}-${version}-${arch}.${ext}",
     },
-    appImage: {},
     directories: {
       output: "release",
       app: "output",
