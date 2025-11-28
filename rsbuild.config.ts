@@ -86,7 +86,7 @@ export default defineConfig(async ({ command }): Promise<RsbuildConfig> => {
             publicPath: "./",
           },
           optimization: {
-            minimize: isCommandBuild,
+            minimize: false,
             splitChunks: {},
           },
           plugins: [
@@ -134,7 +134,7 @@ export default defineConfig(async ({ command }): Promise<RsbuildConfig> => {
             publicPath: isCommandBuild ? "./" : undefined,
           },
           optimization: {
-            minimize: isCommandBuild,
+            minimize: false,
           },
         },
       },
@@ -164,7 +164,7 @@ export default defineConfig(async ({ command }): Promise<RsbuildConfig> => {
             },
           },
           optimization: {
-            minimize: isCommandBuild,
+            minimize: false,
           },
         },
         htmlPlugin: false,
@@ -207,7 +207,7 @@ export default defineConfig(async ({ command }): Promise<RsbuildConfig> => {
       },
       cleanDistPath: true,
       sourceMap: true,
-      minify: isCommandBuild,
+      minify: false,
     },
     tools: {
       rspack: {
