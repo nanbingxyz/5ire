@@ -196,7 +196,7 @@ export default defineConfig(async ({ command }): Promise<RsbuildConfig> => {
         root: "output",
       },
       cleanDistPath: true,
-      sourceMap: true,
+      sourceMap: isCommandDev,
     },
     tools: {
       rspack: {
