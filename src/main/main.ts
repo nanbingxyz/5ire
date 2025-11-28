@@ -3,14 +3,14 @@
 
 import "@/main/setup";
 
+import crypto from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
-import { join, resolve } from "node:path";
+import path, { join, resolve } from "node:path";
 import type { Readable } from "node:stream";
-import crypto from "crypto";
 import {
   app,
-  type BrowserWindow,
+  BrowserWindow,
   crashReporter,
   dialog,
   ipcMain,
@@ -24,9 +24,14 @@ import Store from "electron-store";
 import { ensureDirSync } from "fs-extra";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import fetch from "node-fetch";
-import path from "path";
 import type { IMCPServer } from "types/mcp";
 import { isValidMCPServer, isValidMCPServerKey } from "utils/validators";
+import {
+  KNOWLEDGE_IMPORT_MAX_FILE_SIZE,
+  KNOWLEDGE_IMPORT_MAX_FILES,
+  SUPPORTED_FILE_TYPES,
+  SUPPORTED_IMAGE_TYPES,
+} from "@/consts";
 import { DocumentEmbedderBridge } from "@/main/bridge/document-embedder-bridge";
 import { DocumentManagerBridge } from "@/main/bridge/document-manager-bridge";
 import { DownloaderBridge } from "@/main/bridge/downloader-bridge";
@@ -55,12 +60,6 @@ import { Renderer } from "@/main/services/renderer";
 import { Settings } from "@/main/services/settings";
 import { Updater } from "@/main/services/updater";
 import { URLParser } from "@/main/services/url-parser";
-import {
-  KNOWLEDGE_IMPORT_MAX_FILE_SIZE,
-  KNOWLEDGE_IMPORT_MAX_FILES,
-  SUPPORTED_FILE_TYPES,
-  SUPPORTED_IMAGE_TYPES,
-} from "../consts";
 import ModuleContext from "./mcp";
 import { DocumentLoader } from "./next/document-loader/DocumentLoader";
 import { initLegacyDatabase } from "./sqlite";
@@ -154,7 +153,7 @@ const store = new Store();
 
 let rendererReady = false;
 let pendingInstallTool: any = null;
-let mainWindow: BrowserWindow | null = null;
+
 const protocol = app.isPackaged ? "app.5ire" : "dev.5ire";
 
 if (process.defaultApp) {
@@ -165,12 +164,16 @@ if (process.defaultApp) {
   app.setAsDefaultProtocolClient(protocol);
 }
 
+const getMainWindow = () => {
+  return Container.inject(Renderer).state.window;
+};
+
 const onDeepLink = (link: string) => {
   const logger = Container.inject(Logger).scope("Main:OnDeepLink");
   const { host, hash } = new URL(link);
   if (host === "login-callback") {
     const params = new URLSearchParams(hash.substring(1));
-    mainWindow?.webContents.send("sign-in", {
+    getMainWindow()?.webContents.send("sign-in", {
       accessToken: params.get("access_token"),
       refreshToken: params.get("refresh_token"),
     });
@@ -194,7 +197,7 @@ const onDeepLink = (link: string) => {
           if (!rendererReady) {
             pendingInstallTool = json;
           } else {
-            mainWindow?.webContents.send("install-tool", json);
+            getMainWindow()?.webContents.send("install-tool", json);
           }
           return;
         }
@@ -367,14 +370,6 @@ if (!gotTheLock) {
       });
 
       logger.track({ event: "launch" });
-
-      const renderer = Container.inject(Renderer);
-
-      mainWindow = renderer.state.window;
-
-      renderer.subscribe((state) => {
-        mainWindow = state.window;
-      });
     })
     .catch((error) => {
       const logger = Container.inject(Logger).scope("Main:WhenReadyError");
@@ -403,7 +398,7 @@ if (!gotTheLock) {
 ipcMain.on("install-tool-listener-ready", () => {
   rendererReady = true;
   if (pendingInstallTool !== null) {
-    mainWindow?.webContents.send("install-tool", pendingInstallTool);
+    getMainWindow()?.webContents.send("install-tool", pendingInstallTool);
     pendingInstallTool = null;
   }
 });
@@ -525,20 +520,24 @@ ipcMain.on("set-store", (evt, key, val) => {
   evt.returnValue = val;
 });
 
-ipcMain.on("minimize-app", () => {
-  mainWindow?.minimize();
-});
-ipcMain.on("maximize-app", () => {
-  if (mainWindow?.isMaximized()) {
-    mainWindow?.unmaximize();
-  } else {
-    mainWindow?.maximize();
+ipcMain.on("minimize-app", (event) => {
+  const window = BrowserWindow.fromWebContents(event.sender);
+
+  if (window) {
+    window.minimize();
   }
 });
-ipcMain.on("close-app", () => {
-  if (mainWindow) {
-    mainWindow.destroy();
-    mainWindow = null;
+ipcMain.on("maximize-app", (event) => {
+  const window = BrowserWindow.fromWebContents(event.sender);
+
+  if (window) {
+    window.isMaximized() ? window.unmaximize() : window.maximize();
+  }
+});
+ipcMain.on("close-app", (event) => {
+  const window = BrowserWindow.fromWebContents(event.sender);
+  if (window) {
+    window.destroy();
   }
   if (process.platform !== "darwin") {
     app.quit();
@@ -683,7 +682,7 @@ ipcMain.handle("mcp-init", () => {
     // https://github.com/sindresorhus/fix-path
     logger.info("mcp initialized");
     await mcp.load();
-    mainWindow?.webContents.send("mcp-server-loaded", mcp.getClientNames());
+    getMainWindow()?.webContents.send("mcp-server-loaded", mcp.getClientNames());
   });
 });
 ipcMain.handle("mcp-add-server", (_, server: IMCPServer) => {
@@ -829,7 +828,7 @@ ipcMain.on("show-context-menu", (event, params) => {
     });
   }
   const menu = Menu.buildFromTemplate(template);
-  menu.popup({ window: mainWindow as BrowserWindow, x: params.x, y: params.y });
+  menu.popup({ window: getMainWindow() as BrowserWindow, x: params.x, y: params.y });
 });
 
 ipcMain.handle("DocumentLoader::loadFromBuffer", (_, buffer, mimeType) => {
