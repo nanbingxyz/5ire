@@ -130,6 +130,9 @@ export default defineConfig(async ({ command }): Promise<RsbuildConfig> => {
             publicPath: isCommandBuild ? "./" : undefined,
           },
         },
+        htmlPlugin: {
+          title: "5ire",
+        },
       },
       dev: {
         writeToDisk: true,
