@@ -85,10 +85,6 @@ export default defineConfig(async ({ command }): Promise<RsbuildConfig> => {
             },
             publicPath: "./",
           },
-          optimization: {
-            minimize: isCommandBuild,
-            splitChunks: {},
-          },
           plugins: [
             new ProductionDependenciesInstallerPlugin({
               externals,
@@ -133,9 +129,9 @@ export default defineConfig(async ({ command }): Promise<RsbuildConfig> => {
           output: {
             publicPath: isCommandBuild ? "./" : undefined,
           },
-          optimization: {
-            minimize: isCommandBuild,
-          },
+        },
+        htmlPlugin: {
+          title: "5ire",
         },
       },
       dev: {
@@ -162,9 +158,6 @@ export default defineConfig(async ({ command }): Promise<RsbuildConfig> => {
             library: {
               type: "module",
             },
-          },
-          optimization: {
-            minimize: isCommandBuild,
           },
         },
         htmlPlugin: false,
@@ -207,7 +200,6 @@ export default defineConfig(async ({ command }): Promise<RsbuildConfig> => {
       },
       cleanDistPath: true,
       sourceMap: isCommandDev,
-      minify: isCommandBuild,
     },
     tools: {
       rspack: {

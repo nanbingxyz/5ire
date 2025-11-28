@@ -1,8 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { fromBuffer } from "file-type";
 import { readFile, stat } from "fs-extra";
-import { parseOffice } from "officeparser";
-import { PDFParse } from "pdf-parse";
 import { MAX_DOCUMENT_SIZE, SUPPORTED_DOCUMENT_MIMETYPES } from "@/main/constants";
 import { smartChunk } from "@/main/util";
 
@@ -62,15 +60,19 @@ export class DocumentExtractor {
       case "text":
         return buffer.toString("utf8");
       case "application/pdf":
-        return new PDFParse({ data: buffer }).getText().then(({ text }) => text);
+        return import("pdf-parse").then(async (mod) => {
+          return new mod.PDFParse({ data: buffer }).getText().then(({ text }) => text);
+        });
       default:
-        return new Promise<string>((resolve, reject) => {
-          parseOffice(buffer, (text: string, error: unknown) => {
-            if (error) {
-              return reject(error);
-            }
+        return import("officeparser").then(async (mod) => {
+          return new Promise<string>((resolve, reject) => {
+            mod.parseOffice(buffer, (text: string, error: unknown) => {
+              if (error) {
+                return reject(error);
+              }
 
-            resolve(text);
+              resolve(text);
+            });
           });
         });
     }
