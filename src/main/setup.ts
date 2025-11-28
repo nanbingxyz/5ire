@@ -15,9 +15,7 @@ loadEnv({
   override: true,
 });
 
-if (process.env.NODE_ENV !== "production") {
-  require("source-map-support").install();
-}
+require("source-map-support").install();
 
 // GitHub workflow build artifacts fail to find DOMMatrix at runtime.
 // Define DOMMatrix on the global object to resolve this issue.
