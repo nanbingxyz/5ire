@@ -123,7 +123,7 @@ build({
     },
     artifactName: "${productName}-${version}-${os}-${arch}.${ext}",
     mac: {
-      target: ["dmg"],
+      target: ["dmg", "zip"],
       notarize: false,
       electronLanguages: ["zh_CN", "en"],
     },
