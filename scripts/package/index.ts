@@ -28,7 +28,6 @@ const signLinuxAppImages = async (result: BuildResult) => {
     console.error("[signLinuxAppImages] Decoded secret key does NOT contain BEGIN PGP PRIVATE KEY BLOCK");
   }
   const secretKeyPassword = process.env.GPG_SECRET_KEY_PASSWORD || "";
-  const secretKeyIdRegex = /^gpg: key (.*?):/;
 
   let importSecretKeyResult: string;
 
@@ -50,13 +49,18 @@ const signLinuxAppImages = async (result: BuildResult) => {
     throw err;
   }
 
-  const match = importSecretKeyResult.match(secretKeyIdRegex);
+  const listOutput = execSync("gpg --list-secret-keys --with-colons", {
+    encoding: "utf-8",
+  });
 
-  if (!match?.[1]) {
-    return console.warn(
-      "Failed to extract GPG key ID from imported key. Make sure GPG_SECRET_KEY_B64 contains a valid GPG private key.",
-    );
+  const secLine = listOutput.split("\n").find((line) => line.startsWith("sec:"));
+
+  if (!secLine) {
+    throw new Error("No secret key found after import");
   }
+
+  const keyId = secLine.split(":")[4];
+  console.info(`Using key: ${keyId}`);
 
   const additionalFiles: string[] = [];
 
