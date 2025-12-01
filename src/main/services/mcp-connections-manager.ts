@@ -8,6 +8,7 @@ import { eq, isNull, or, type SQL } from "drizzle-orm";
 import { Database } from "@/main/database";
 import type { Server, ServerInsert } from "@/main/database/types";
 import { Container } from "@/main/internal/container";
+import { Emitter } from "@/main/internal/emitter";
 import { Stateful } from "@/main/internal/stateful";
 import { Logger } from "@/main/services/logger";
 
@@ -22,6 +23,11 @@ const CLIENT_CAPABILITIES: ClientCapabilities = {};
 export class MCPConnectionsManager extends Stateful<MCPConnectionsManager.State> {
   #logger = Container.inject(Logger).scope("MCPServersManager");
   #database = Container.inject(Database);
+  #emitter = Emitter.create<MCPConnectionsManager.Events>();
+
+  get emitter() {
+    return this.#emitter;
+  }
 
   constructor() {
     super(() => {
@@ -101,13 +107,19 @@ export class MCPConnectionsManager extends Stateful<MCPConnectionsManager.State>
                 return client.close().catch(() => {});
               }
 
+              const connected = {
+                type: "connected",
+                client,
+                capabilities,
+                projectId: server.projectId || undefined,
+              } satisfies MCPConnectionsManager.Connection;
+
               this.update((draft) => {
-                draft.connections[server.id] = {
-                  type: "connected",
-                  client,
-                  capabilities,
-                  projectId: server.projectId || undefined,
-                };
+                draft.connections[server.id] = connected;
+              });
+              this.emitter.emit("server-connected", {
+                id: server.id,
+                connection: connected,
               });
             } catch (e) {
               if (controller.signal.aborted) {
@@ -244,6 +256,7 @@ export class MCPConnectionsManager extends Stateful<MCPConnectionsManager.State>
     this.update((draft) => {
       delete draft.connections[options.id];
     });
+    this.emitter.emit("server-disconnected", { id: options.id });
 
     if (connection) {
       if (connection.type === "connecting") {
@@ -255,7 +268,12 @@ export class MCPConnectionsManager extends Stateful<MCPConnectionsManager.State>
       }
     }
 
-    await client.update(schema.server).set({ active: false }).where(eq(schema.server.id, options.id)).execute();
+    await client
+      .update(schema.server)
+      .set({ active: false })
+      .where(eq(schema.server.id, options.id))
+      .execute()
+      .catch(() => {});
   }
 
   async listConnectedServers() {}
@@ -317,6 +335,16 @@ export namespace MCPConnectionsManager {
 
   export type State = {
     connections: Record<string, Connection>;
+  };
+
+  export type Events = {
+    "server-connected": {
+      id: string;
+      connection: Extract<Connection, { type: "connected" }>;
+    };
+    "server-disconnected": {
+      id: string;
+    };
   };
 
   export type CreateServerOptions = Pick<Server, "label" | "config" | "endpoint" | "transport" | "approvalPolicy"> &
