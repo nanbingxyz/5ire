@@ -65,10 +65,10 @@ const signLinuxAppImages = async (result: BuildResult) => {
   const additionalFiles: string[] = [];
 
   for (const appImage of appImages) {
-    console.info(`Signing AppImage with key ${match[1]}: ${appImage}`);
+    console.info(`Signing AppImage with key ${keyId}: ${appImage}`);
 
     execSync(
-      `gpg --detach-sign --armor --batch --passphrase-fd 0 --pinentry-mode loopback --yes --default-key ${match[1]} "${appImage}"`,
+      `gpg --detach-sign --armor --batch --passphrase-fd 0 --pinentry-mode loopback --yes --default-key ${keyId} "${appImage}"`,
       {
         input: `${secretKeyPassword}\n`,
       },
