@@ -49,13 +49,13 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Package & Publish (OSX)
-        if: matrix.os == 'macos-latest' || matrix.os == 'macos-15-intel'
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_ID_PASS: ${{ secrets.APPLE_ID_PASS }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: npm run package:publish
+      # - name: Package & Publish (OSX)
+      #   if: matrix.os == 'macos-latest' || matrix.os == 'macos-15-intel'
+      #   env:
+      #     APPLE_ID: ${{ secrets.APPLE_ID }}
+      #     APPLE_ID_PASS: ${{ secrets.APPLE_ID_PASS }}
+      #     APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      #   run: npm run package:publish
 
       - name: Package & Publish (Linux)
         if: matrix.os == 'ubuntu-latest'
@@ -64,6 +64,6 @@ jobs:
           GPG_SECRET_KEY_PASSWORD: ${{ secrets.GPG_SECRET_KEY_PASSWORD }}
         run: npm run package:publish
 
-      - name: Package & Publish (Windows)
-        if: matrix.os == 'windows-latest'
-        run: npm run package:publish
+      # - name: Package & Publish (Windows)
+      #   if: matrix.os == 'windows-latest'
+      #   run: npm run package:publish

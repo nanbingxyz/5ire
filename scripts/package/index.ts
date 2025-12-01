@@ -24,10 +24,31 @@ const signLinuxAppImages = async (result: BuildResult) => {
   }
 
   const secretKey = Buffer.from(process.env.GPG_SECRET_KEY_B64, "base64").toString("utf-8");
+  if (!secretKey.includes("BEGIN PGP PRIVATE KEY BLOCK")) {
+    console.error("[signLinuxAppImages] Decoded secret key does NOT contain BEGIN PGP PRIVATE KEY BLOCK");
+  }
   const secretKeyPassword = process.env.GPG_SECRET_KEY_PASSWORD || "";
   const secretKeyIdRegex = /^gpg: key (.*?):/;
 
-  const importSecretKeyResult = execSync(`gpg --import --logger-fd 1`, { input: secretKey, encoding: "utf-8" });
+  let importSecretKeyResult: string;
+
+  try {
+    importSecretKeyResult = execSync("gpg --batch --yes --pinentry-mode loopback --import --logger-fd 1", {
+      input: secretKey,
+      encoding: "utf-8",
+    });
+    console.info("[signLinuxAppImages] GPG import stdout:\n", importSecretKeyResult);
+  } catch (err: any) {
+    console.error("[signLinuxAppImages] GPG import failed");
+    console.error("exit code:", err.status);
+    if (err.stdout) {
+      console.error("stdout:", err.stdout.toString());
+    }
+    if (err.stderr) {
+      console.error("stderr:", err.stderr.toString());
+    }
+    throw err;
+  }
 
   const match = importSecretKeyResult.match(secretKeyIdRegex);
 
