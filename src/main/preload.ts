@@ -12,6 +12,8 @@ import type { DownloaderBridge } from "@/main/bridge/downloader-bridge";
 import type { EmbedderBridge } from "@/main/bridge/embedder-bridge";
 import type { EncryptorBridge } from "@/main/bridge/encryptor-bridge";
 import type { LegacyDataMigratorBridge } from "@/main/bridge/legacy-data-migrator-bridge";
+import type { MCPConnectionsManagerBridge } from "@/main/bridge/mcp-connections-manager-bridge";
+import type { MCPToolHandlerBridge } from "@/main/bridge/mcp-tool-handler-bridge";
 import type { PromptManagerBridge } from "@/main/bridge/prompt-manager-bridge";
 import type { RendererBridge } from "@/main/bridge/renderer-bridge";
 import type { SettingsBridge } from "@/main/bridge/settings-bridge";
@@ -94,6 +96,17 @@ const BRIDGE = {
   deepLinkHandler: connector.connect<DeepLinkHandlerBridge>("deep-link-handler", {
     createStateStream: "stream",
     handled: "async",
+  }),
+  mcpConnectionsManager: connector.connect<MCPConnectionsManagerBridge>("mcp-connections-manager", {
+    createServer: "async",
+    deleteServer: "async",
+    updateServer: "async",
+    activeServer: "async",
+    inactiveServer: "async",
+    createConnectionsStateStream: "stream",
+  }),
+  mcpToolHandler: connector.connect<MCPToolHandlerBridge>("mcp-tool-handler", {
+    createToolBundlesStateStream: "stream",
   }),
 };
 

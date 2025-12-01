@@ -39,6 +39,8 @@ import { DownloaderBridge } from "@/main/bridge/downloader-bridge";
 import { EmbedderBridge } from "@/main/bridge/embedder-bridge";
 import { EncryptorBridge } from "@/main/bridge/encryptor-bridge";
 import { LegacyDataMigratorBridge } from "@/main/bridge/legacy-data-migrator-bridge";
+import { MCPConnectionsManagerBridge } from "@/main/bridge/mcp-connections-manager-bridge";
+import { MCPToolHandlerBridge } from "@/main/bridge/mcp-tool-handler-bridge";
 import { PromptManagerBridge } from "@/main/bridge/prompt-manager-bridge";
 import { RendererBridge } from "@/main/bridge/renderer-bridge";
 import { SettingsBridge } from "@/main/bridge/settings-bridge";
@@ -57,7 +59,9 @@ import { LegacyDataMigrator } from "@/main/services/legacy-data-migrator";
 import { LegacyServersConfigLoader } from "@/main/services/legacy-servers-config-loader";
 import { LegacyVectorDatabaseLoader } from "@/main/services/legacy-vector-database-loader";
 import { Logger } from "@/main/services/logger";
+import { MCPConnectionsManager } from "@/main/services/mcp-connections-manager";
 import { MCPContentConverter } from "@/main/services/mcp-content-converter";
+import { MCPToolHandler } from "@/main/services/mcp-tool-handler";
 import { PromptManager } from "@/main/services/prompt-manager";
 import { Renderer } from "@/main/services/renderer";
 import { Settings } from "@/main/services/settings";
@@ -138,6 +142,10 @@ Container.singleton(PromptManager, () => new PromptManager());
 Container.singleton(PromptManagerBridge, () => new PromptManagerBridge());
 Container.singleton(URLParser, () => new URLParser());
 Container.singleton(MCPContentConverter, () => new MCPContentConverter());
+Container.singleton(MCPConnectionsManager, () => new MCPConnectionsManager());
+Container.singleton(MCPToolHandler, () => new MCPToolHandler());
+Container.singleton(MCPConnectionsManagerBridge, () => new MCPConnectionsManagerBridge());
+Container.singleton(MCPToolHandlerBridge, () => new MCPToolHandlerBridge());
 Container.singleton(DeepLinkHandler, () => new DeepLinkHandler());
 Container.singleton(DeepLinkHandlerBridge, () => new DeepLinkHandlerBridge());
 
@@ -304,6 +312,8 @@ if (!gotTheLock) {
       Container.inject(DocumentEmbedderBridge).expose(ipcMain);
       Container.inject(LegacyDataMigratorBridge).expose(ipcMain);
       Container.inject(PromptManagerBridge).expose(ipcMain);
+      Container.inject(MCPConnectionsManagerBridge).expose(ipcMain);
+      Container.inject(MCPToolHandlerBridge).expose(ipcMain);
 
       Container.inject(Embedder)
         .init()
@@ -321,6 +331,12 @@ if (!gotTheLock) {
         .init()
         .catch((err) => {
           logger.error("Failed to init document embedder:", err);
+        });
+
+      Container.inject(MCPConnectionsManager)
+        .init()
+        .catch((error) => {
+          logger.error("Failed to init MCP connections manager:", error);
         });
 
       await Container.inject(Database).ready;

@@ -40,7 +40,7 @@ export class MCPConnectionsManager extends Stateful<MCPConnectionsManager.State>
   async #connect(server: Server) {
     const logger = this.#logger.scope("Connect");
 
-    if (this.state.connections[server.id]?.type !== "error") {
+    if (this.state.connections[server.id]?.status !== "error") {
       return;
     }
 
@@ -48,7 +48,7 @@ export class MCPConnectionsManager extends Stateful<MCPConnectionsManager.State>
 
     const controller = new AbortController();
     const connection: MCPConnectionsManager.Connection = {
-      type: "connecting",
+      status: "connecting",
       controller,
       promise: Promise.resolve()
         .then(() => {
@@ -108,7 +108,7 @@ export class MCPConnectionsManager extends Stateful<MCPConnectionsManager.State>
               }
 
               const connected = {
-                type: "connected",
+                status: "connected",
                 client,
                 capabilities,
                 projectId: server.projectId || undefined,
@@ -136,7 +136,7 @@ export class MCPConnectionsManager extends Stateful<MCPConnectionsManager.State>
 
           this.update((draft) => {
             draft.connections[server.id] = {
-              type: "error",
+              status: "error",
               error: asError(connectError).message,
             };
           });
@@ -228,10 +228,10 @@ export class MCPConnectionsManager extends Stateful<MCPConnectionsManager.State>
     const connection = this.state.connections[options.id];
 
     if (connection) {
-      if (connection.type === "connecting") {
+      if (connection.status === "connecting") {
         return connection.promise;
       }
-      if (connection.type === "connected") {
+      if (connection.status === "connected") {
         return;
       }
     }
@@ -259,11 +259,11 @@ export class MCPConnectionsManager extends Stateful<MCPConnectionsManager.State>
     this.emitter.emit("server-disconnected", { id: options.id });
 
     if (connection) {
-      if (connection.type === "connecting") {
+      if (connection.status === "connecting") {
         connection.controller.abort();
       }
 
-      if (connection.type === "connected") {
+      if (connection.status === "connected") {
         connection.client.close().catch(() => {});
       }
     }
@@ -318,18 +318,18 @@ export class MCPConnectionsManager extends Stateful<MCPConnectionsManager.State>
 export namespace MCPConnectionsManager {
   export type Connection =
     | {
-        type: "connected";
+        status: "connected";
         client: Client;
         capabilities: ServerCapabilities;
         projectId?: string;
       }
     | {
-        type: "connecting";
+        status: "connecting";
         promise: Promise<void>;
         controller: AbortController;
       }
     | {
-        type: "error";
+        status: "error";
         error: string;
       };
 
@@ -340,7 +340,7 @@ export namespace MCPConnectionsManager {
   export type Events = {
     "server-connected": {
       id: string;
-      connection: Extract<Connection, { type: "connected" }>;
+      connection: Extract<Connection, { status: "connected" }>;
     };
     "server-disconnected": {
       id: string;
