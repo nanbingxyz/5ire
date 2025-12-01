@@ -32,6 +32,14 @@ const signLinuxAppImages = async (result: BuildResult) => {
   let importSecretKeyResult: string;
 
   try {
+    // Kill any existing gpg-agent to ensure clean state
+    try {
+      execSync("gpgconf --kill gpg-agent", { encoding: "utf-8" });
+      console.info("[signLinuxAppImages] Killed existing gpg-agent");
+    } catch (e) {
+      // Ignore if no agent was running
+    }
+
     importSecretKeyResult = execSync("gpg --batch --yes --pinentry-mode loopback --import --logger-fd 1", {
       input: secretKey,
       encoding: "utf-8",
@@ -62,19 +70,56 @@ const signLinuxAppImages = async (result: BuildResult) => {
   const keyId = secLine.split(":")[4];
   console.info(`Using key: ${keyId}`);
 
+  // Trust the imported key ultimately
+  try {
+    execSync(`echo "${keyId}:6:" | gpg --import-ownertrust --batch`, {
+      encoding: "utf-8",
+    });
+    console.info(`[signLinuxAppImages] Set ultimate trust for key ${keyId}`);
+  } catch (err: any) {
+    console.warn("[signLinuxAppImages] Failed to set trust level, continuing anyway");
+  }
+
+  // Restart gpg-agent with proper configuration
+  try {
+    execSync("gpg-connect-agent reloadagent /bye", { encoding: "utf-8" });
+    console.info("[signLinuxAppImages] Restarted gpg-agent");
+  } catch (e) {
+    console.warn("[signLinuxAppImages] Failed to restart gpg-agent, continuing anyway");
+  }
+
   const additionalFiles: string[] = [];
 
   for (const appImage of appImages) {
     console.info(`Signing AppImage with key ${keyId}: ${appImage}`);
 
-    execSync(
-      `gpg --detach-sign --armor --batch --passphrase-fd 0 --pinentry-mode loopback --yes --default-key ${keyId} "${appImage}"`,
-      {
-        input: `${secretKeyPassword}\n`,
-      },
-    );
+    try {
+      // Verify key is still available before signing
+      const verifyKey = execSync(`gpg --list-secret-keys ${keyId}`, { encoding: "utf-8" });
+      console.info(`[signLinuxAppImages] Key verification:\n${verifyKey}`);
 
-    additionalFiles.push(`${appImage}.asc`);
+      // Sign with explicit options
+      execSync(
+        `gpg --detach-sign --armor --batch --passphrase-fd 0 --pinentry-mode loopback --yes --default-key ${keyId} "${appImage}"`,
+        {
+          input: `${secretKeyPassword}\n`,
+          encoding: "utf-8",
+        },
+      );
+
+      console.info(`[signLinuxAppImages] Successfully signed: ${appImage}`);
+      additionalFiles.push(`${appImage}.asc`);
+    } catch (err: any) {
+      console.error(`[signLinuxAppImages] Failed to sign ${appImage}`);
+      console.error("exit code:", err.status);
+      if (err.stdout) {
+        console.error("stdout:", err.stdout.toString());
+      }
+      if (err.stderr) {
+        console.error("stderr:", err.stderr.toString());
+      }
+      throw err;
+    }
   }
 
   return additionalFiles;
