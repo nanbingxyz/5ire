@@ -4,7 +4,12 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 import { and, cosineDistance, eq, inArray, type SQL } from "drizzle-orm";
 import { dialog } from "electron";
 import { default as memoize } from "memoizee";
-import { COMMON_TEXTUAL_FILE_MIMETYPES, MAX_DOCUMENT_SIZE, SUPPORTED_DOCUMENT_URL_SCHEMAS } from "@/main/constants";
+import {
+  COMMON_BINARY_DOCUMENT_FILE_MIMETYPES,
+  COMMON_TEXTUAL_FILE_MIMETYPES,
+  MAX_DOCUMENT_SIZE,
+  SUPPORTED_DOCUMENT_URL_SCHEMAS,
+} from "@/main/constants";
 import { Database } from "@/main/database";
 import { Container } from "@/main/internal/container";
 import { Embedder } from "@/main/services/embedder";
@@ -200,7 +205,10 @@ export class DocumentManager {
   }
 
   async importDocumentsFromFileSystem(options: DocumentManager.ImportDocumentsFromFileSystemOptions) {
-    const extensions = [...Object.keys(COMMON_TEXTUAL_FILE_MIMETYPES), ...Object.keys(COMMON_TEXTUAL_FILE_MIMETYPES)];
+    const extensions = [
+      ...Object.keys(COMMON_TEXTUAL_FILE_MIMETYPES),
+      ...Object.keys(COMMON_BINARY_DOCUMENT_FILE_MIMETYPES),
+    ];
 
     const result = await dialog.showOpenDialog({
       properties: ["openFile", "multiSelections"],

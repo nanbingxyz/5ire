@@ -1,6 +1,8 @@
 import { fileURLToPath } from "node:url";
-import { fromBuffer, fromFile } from "file-type";
+import { fromBuffer } from "file-type";
 import { readFile, stat } from "fs-extra";
+import { PDFParse } from "pdf-parse";
+import { CanvasFactory } from "pdf-parse/worker";
 import {
   COMMON_BINARY_DOCUMENT_FILE_MIMETYPES,
   COMMON_TEXTUAL_FILE_MIMETYPES,
@@ -81,7 +83,8 @@ export class DocumentExtractor {
   async #parse(buffer: Buffer, mimetype: string) {
     if (mimetype === "application/pdf") {
       return import("pdf-parse").then(async (mod) => {
-        return new mod.PDFParse({ data: buffer }).getText().then(({ text }) => text);
+        console.log(PDFParse.setWorker());
+        return new mod.PDFParse({ data: buffer, CanvasFactory }).getText().then(({ text }) => text);
       });
     }
 
