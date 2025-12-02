@@ -1,3 +1,5 @@
+import "pdf-parse/worker";
+
 import { join, resolve } from "node:path";
 import { config as loadEnv } from "dotenv";
 import { app } from "electron";
