@@ -7,6 +7,8 @@ import { Logger } from "@/main/services/logger";
 import { MCPConnectionsManager } from "@/main/services/mcp-connections-manager";
 import { MCPContentConverter } from "@/main/services/mcp-content-converter";
 
+const MAX_TOOLS_PAGE = 10;
+
 export class MCPToolHandler extends Stateful<MCPToolHandler.State> {
   #logger = Container.inject(Logger).scope("MCPToolHandler");
   #connectionsManager = Container.inject(MCPConnectionsManager);
@@ -40,6 +42,97 @@ export class MCPToolHandler extends Stateful<MCPToolHandler.State> {
     return null;
   }
 
+  #fetchTools(id: string, connection: Extract<MCPConnectionsManager.Connection, { status: "connected" }>) {
+    const logger = this.#logger.scope("FetchTools");
+    const bundle = this.state.bundles.get(id);
+
+    if (!bundle) {
+      return logger.warning("Bundle not found");
+    }
+
+    if (bundle.status === "loading") {
+      bundle.abortController.abort();
+    }
+
+    const abortController = new AbortController();
+    const promise = Promise.resolve()
+      .then(async () => {
+        let page = 0;
+        let cursor: string | undefined;
+
+        const tools: Tool[] = [];
+
+        while (true) {
+          abortController.signal.throwIfAborted();
+
+          if (page > MAX_TOOLS_PAGE) {
+            logger.error(`Too many tool pages (${page}), stopping fetch with ${tools.length} tools loaded`);
+            break;
+          }
+
+          const result = await connection.client.listTools(
+            {
+              cursor,
+            },
+            {
+              signal: abortController.signal,
+            },
+          );
+
+          tools.push(...result.tools);
+
+          if (!result.nextCursor) {
+            break;
+          }
+
+          cursor = result.nextCursor;
+          page++;
+        }
+
+        return tools;
+      })
+      .then((tools) => {
+        return tools.map((tool) => {
+          return {
+            ...tool,
+            ...{
+              uri: this.#formatToolURI(id, tool),
+            },
+          };
+        });
+      })
+      .then((tools) => {
+        this.update((draft) => {
+          if (draft.bundles.get(id)) {
+            draft.bundles.set(id, {
+              status: "loaded",
+              tools,
+            });
+          }
+        });
+      })
+      .catch((e) => {
+        if (!abortController.signal.aborted) {
+          this.update((draft) => {
+            if (draft.bundles.get(id)) {
+              draft.bundles.set(id, {
+                status: "error",
+                message: asError(e).message,
+              });
+            }
+          });
+        }
+      });
+
+    this.update((draft) => {
+      draft.bundles.set(id, {
+        status: "loading",
+        promise,
+        abortController,
+      });
+    });
+  }
+
   async callTool(uri: string, input?: Record<string, unknown>) {
     const tool = this.#parseToolURI(uri);
 
@@ -63,7 +156,7 @@ export class MCPToolHandler extends Stateful<MCPToolHandler.State> {
       ] satisfies Part.ToolResult["result"];
     }
 
-    if (connection.type !== "connected") {
+    if (connection.status !== "connected") {
       return [
         {
           type: "error",
@@ -82,7 +175,7 @@ export class MCPToolHandler extends Stateful<MCPToolHandler.State> {
       if (structuredContent) {
         resultParts.push({
           type: "text",
-          text: `${JSON.stringify(structuredContent, null, 2)}`,
+          text: `${JSON.stringify(structuredContent)}`,
           format: "json",
         });
       } else {
@@ -108,7 +201,7 @@ export class MCPToolHandler extends Stateful<MCPToolHandler.State> {
       if (isEmpty) {
         resultParts.push({
           type: "text",
-          text: "null",
+          text: `${JSON.stringify({ result: "" })}`,
           format: "json",
         });
       }
@@ -147,97 +240,6 @@ export class MCPToolHandler extends Stateful<MCPToolHandler.State> {
         return;
       }
 
-      const fetchToolList = () => {
-        const logger = this.#logger.scope("FetchToolList");
-        const bundle = this.state.bundles.get(id);
-
-        if (!bundle) {
-          return logger.warning("Bundle not found");
-        }
-
-        if (bundle.status === "loading") {
-          bundle.abortController.abort();
-        }
-
-        const abortController = new AbortController();
-        const promise = Promise.resolve()
-          .then(async () => {
-            let page = 0;
-            let cursor: string | undefined;
-
-            const tools: Tool[] = [];
-
-            while (true) {
-              abortController.signal.throwIfAborted();
-
-              if (page > 10) {
-                logger.error("Too many pages");
-                break;
-              }
-
-              const result = await connection.client.listTools(
-                {
-                  cursor,
-                },
-                {
-                  signal: abortController.signal,
-                },
-              );
-
-              tools.push(...result.tools);
-
-              if (!result.nextCursor) {
-                break;
-              }
-
-              cursor = result.nextCursor;
-              page++;
-            }
-
-            return tools;
-          })
-          .then((tools) => {
-            return tools.map((tool) => {
-              return {
-                ...tool,
-                ...{
-                  uri: this.#formatToolURI(id, tool),
-                },
-              };
-            });
-          })
-          .then((tools) => {
-            this.update((draft) => {
-              if (draft.bundles.get(id)) {
-                draft.bundles.set(id, {
-                  status: "loaded",
-                  tools,
-                });
-              }
-            });
-          })
-          .catch((e) => {
-            if (!abortController.signal.aborted) {
-              this.update((draft) => {
-                if (draft.bundles.get(id)) {
-                  draft.bundles.set(id, {
-                    status: "error",
-                    message: asError(e).message,
-                  });
-                }
-              });
-            }
-          });
-
-        this.update((draft) => {
-          draft.bundles.set(id, {
-            status: "loading",
-            promise,
-            abortController,
-          });
-        });
-      };
-
       this.update((draft) => {
         draft.bundles.set(id, {
           status: "loaded",
@@ -246,10 +248,12 @@ export class MCPToolHandler extends Stateful<MCPToolHandler.State> {
       });
 
       if (connection.capabilities.tools.listChanged) {
-        connection.client.setNotificationHandler(ToolListChangedNotificationSchema, fetchToolList);
+        connection.client.setNotificationHandler(ToolListChangedNotificationSchema, () => {
+          this.#fetchTools(id, connection);
+        });
       }
 
-      fetchToolList();
+      this.#fetchTools(id, connection);
     });
     this.#connectionsManager.emitter.on("server-disconnected", ({ id }) => {
       const bundle = this.state.bundles.get(id);

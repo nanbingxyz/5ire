@@ -5,6 +5,7 @@ import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/
 import type { ClientCapabilities, Implementation, ServerCapabilities } from "@modelcontextprotocol/sdk/types.js";
 import { asError } from "catch-unknown";
 import { eq, isNull, or, type SQL } from "drizzle-orm";
+import { app } from "electron";
 import { Database } from "@/main/database";
 import type { Server, ServerInsert } from "@/main/database/types";
 import { Container } from "@/main/internal/container";
@@ -14,7 +15,7 @@ import { Logger } from "@/main/services/logger";
 
 const CLIENT_IMPLEMENTATION: Implementation = {
   name: "5ire",
-  version: "0.0.1",
+  version: app.getVersion(),
   title: "5ire",
 };
 
@@ -312,6 +313,28 @@ export class MCPConnectionsManager extends Stateful<MCPConnectionsManager.State>
           return server;
         });
       });
+  }
+
+  getConnectedOrThrow(id: string) {
+    const connection = this.state.connections[id];
+
+    if (!connection) {
+      throw new Error(`No connection found for the server. Please check if the server exists and is active.`);
+    }
+
+    if (connection.status === "connecting") {
+      throw new Error(
+        `The server is still connecting. Please wait for the connection to complete or check the server status.`,
+      );
+    }
+
+    if (connection.status === "error") {
+      throw new Error(
+        `Server connection failed: ${connection.error}. Please check the server configuration and network connectivity, then try reconnecting.`,
+      );
+    }
+
+    return connection;
   }
 }
 
