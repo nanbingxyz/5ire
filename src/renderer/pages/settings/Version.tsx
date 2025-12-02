@@ -132,6 +132,7 @@ export default function Version() {
             <div>
               <Button
                 appearance="primary"
+                size="small"
                 onClick={() => {
                   window.bridge.updater.checkForUpdates();
                 }}
