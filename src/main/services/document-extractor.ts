@@ -1,7 +1,11 @@
 import { fileURLToPath } from "node:url";
-import { fromBuffer } from "file-type";
+import { fromBuffer, fromFile } from "file-type";
 import { readFile, stat } from "fs-extra";
-import { MAX_DOCUMENT_SIZE, SUPPORTED_DOCUMENT_MIMETYPES } from "@/main/constants";
+import {
+  COMMON_BINARY_DOCUMENT_FILE_MIMETYPES,
+  COMMON_TEXTUAL_FILE_MIMETYPES,
+  MAX_DOCUMENT_SIZE,
+} from "@/main/constants";
 import { smartChunk } from "@/main/util";
 
 /**
@@ -30,21 +34,40 @@ export class DocumentExtractor {
     }
 
     const buffer = await readFile(path);
-    const type = await fromBuffer(buffer);
 
-    if (!type) {
-      // if is utf-8 encoding, try to decode as utf-8
+    let mimetype = await fromBuffer(buffer).then((info) => info?.mime as string | undefined);
 
+    if (!mimetype) {
+      const ext = path.split(".").pop()?.toLowerCase();
+
+      if (ext) {
+        if (ext in COMMON_TEXTUAL_FILE_MIMETYPES) {
+          // @ts-expect-error
+          mimetype = COMMON_TEXTUAL_FILE_MIMETYPES[ext];
+        }
+
+        if (ext in COMMON_BINARY_DOCUMENT_FILE_MIMETYPES) {
+          // @ts-expect-error
+          mimetype = COMMON_BINARY_DOCUMENT_FILE_MIMETYPES[ext];
+        }
+      }
+    }
+
+    if (!mimetype) {
       throw new Error(`Failed to detect file type: ${url}`);
     }
 
-    // @ts-expect-error
-    if (!SUPPORTED_DOCUMENT_MIMETYPES.includes(type.mime)) {
-      throw new Error(`Unsupported file type: ${type.mime}`);
+    if (
+      ![
+        ...Object.values(COMMON_TEXTUAL_FILE_MIMETYPES),
+        ...Object.values(COMMON_BINARY_DOCUMENT_FILE_MIMETYPES),
+      ].includes(mimetype)
+    ) {
+      throw new Error(`Unsupported file type: ${mimetype}`);
     }
 
     return {
-      mimetype: type.mime as unknown as DocumentExtractor.Mimetype,
+      mimetype: mimetype,
       buffer,
     };
   }
@@ -55,27 +78,28 @@ export class DocumentExtractor {
    * @param mimetype MIME type of the document
    * @returns Promise<string> Parsed text content
    */
-  async #parse(buffer: Buffer, mimetype: DocumentExtractor.Mimetype) {
-    switch (mimetype) {
-      case "text":
-        return buffer.toString("utf8");
-      case "application/pdf":
-        return import("pdf-parse").then(async (mod) => {
-          return new mod.PDFParse({ data: buffer }).getText().then(({ text }) => text);
-        });
-      default:
-        return import("officeparser").then(async (mod) => {
-          return new Promise<string>((resolve, reject) => {
-            mod.parseOffice(buffer, (text: string, error: unknown) => {
-              if (error) {
-                return reject(error);
-              }
+  async #parse(buffer: Buffer, mimetype: string) {
+    if (mimetype === "application/pdf") {
+      return import("pdf-parse").then(async (mod) => {
+        return new mod.PDFParse({ data: buffer }).getText().then(({ text }) => text);
+      });
+    }
 
-              resolve(text);
-            });
+    if (Object.values(COMMON_BINARY_DOCUMENT_FILE_MIMETYPES).includes(mimetype)) {
+      return import("officeparser").then(async (mod) => {
+        return new Promise<string>((resolve, reject) => {
+          mod.parseOffice(buffer, (text: string, error: unknown) => {
+            if (error) {
+              return reject(error);
+            }
+
+            resolve(text);
           });
         });
+      });
     }
+
+    return buffer.toString("utf8");
   }
 
   /**
@@ -116,12 +140,6 @@ export class DocumentExtractor {
 
 export namespace DocumentExtractor {
   /**
-   * Supported document MIME types
-   * Includes types derived from SUPPORTED_DOCUMENT_MIMETYPES constant and text type
-   */
-  export type Mimetype = (typeof SUPPORTED_DOCUMENT_MIMETYPES)[number] | "text";
-
-  /**
    * Extracted document result
    */
   export type Result = {
@@ -132,7 +150,7 @@ export namespace DocumentExtractor {
     /**
      * MIME type of the document
      */
-    mimetype: Mimetype;
+    mimetype: string;
     /**
      * Size of the document in bytes
      */

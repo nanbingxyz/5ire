@@ -1,8 +1,10 @@
+import { stat } from "node:fs/promises";
 import { basename } from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { and, cosineDistance, eq, inArray, type SQL } from "drizzle-orm";
+import { dialog } from "electron";
 import { default as memoize } from "memoizee";
-import { SUPPORTED_DOCUMENT_URL_SCHEMAS } from "@/main/constants";
+import { COMMON_TEXTUAL_FILE_MIMETYPES, MAX_DOCUMENT_SIZE, SUPPORTED_DOCUMENT_URL_SCHEMAS } from "@/main/constants";
 import { Database } from "@/main/database";
 import { Container } from "@/main/internal/container";
 import { Embedder } from "@/main/services/embedder";
@@ -194,6 +196,43 @@ export class DocumentManager {
           }),
         )
         .execute();
+    });
+  }
+
+  async importDocumentsFromFileSystem(options: DocumentManager.ImportDocumentsFromFileSystemOptions) {
+    const extensions = [...Object.keys(COMMON_TEXTUAL_FILE_MIMETYPES), ...Object.keys(COMMON_TEXTUAL_FILE_MIMETYPES)];
+
+    const result = await dialog.showOpenDialog({
+      properties: ["openFile", "multiSelections"],
+      filters: [
+        {
+          name: "Documents",
+          extensions,
+        },
+      ],
+    });
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return;
+    }
+
+    for (const path of result.filePaths) {
+      const extension = path.split(".").pop()?.toLowerCase();
+
+      if (!extension || !extensions.includes(extension)) {
+        throw new Error(`Unsupported file type for ${path}`);
+      }
+
+      await stat(path).then((stats) => {
+        if (stats.size > MAX_DOCUMENT_SIZE) {
+          throw new Error(`File ${path} is too large. Maximum size is ${MAX_DOCUMENT_SIZE / (1024 * 1024)} MB.`);
+        }
+      });
+    }
+
+    return this.importDocuments({
+      collection: options.collection,
+      urls: result.filePaths.map((path) => pathToFileURL(path, { windows: process.platform === "win32" }).toString()),
     });
   }
 
@@ -649,6 +688,16 @@ export namespace DocumentManager {
      * Document URL list
      */
     urls: string[];
+  };
+
+  /**
+   * Import documents from file system options
+   */
+  export type ImportDocumentsFromFileSystemOptions = {
+    /**
+     * Target collection ID
+     */
+    collection: string;
   };
 
   /**

@@ -42,6 +42,7 @@ import { PromptManagerBridge } from "@/main/bridge/prompt-manager-bridge";
 import { RendererBridge } from "@/main/bridge/renderer-bridge";
 import { SettingsBridge } from "@/main/bridge/settings-bridge";
 import { UpdaterBridge } from "@/main/bridge/updater-bridge";
+import { COMMON_TEXTUAL_FILE_MIMETYPES, MAX_DOCUMENT_SIZE } from "@/main/constants";
 import { Database } from "@/main/database";
 import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
@@ -587,13 +588,15 @@ ipcMain.handle("get-system-language", () => {
 // eslint-disable-next-line consistent-return
 ipcMain.handle("select-knowledge-files", async () => {
   const logger = Container.inject(Logger).scope("Main:SelectKnowledgeFiles");
+  const extensions = [...Object.keys(COMMON_TEXTUAL_FILE_MIMETYPES), ...Object.keys(COMMON_TEXTUAL_FILE_MIMETYPES)];
+
   try {
     const result = await dialog.showOpenDialog({
       properties: ["openFile", "multiSelections"],
       filters: [
         {
           name: "Documents",
-          extensions: ["doc", "docx", "pdf", "md", "txt", "csv", "pptx", "xlsx"],
+          extensions,
         },
       ],
     });
@@ -604,22 +607,21 @@ ipcMain.handle("select-knowledge-files", async () => {
     const files = [];
     // eslint-disable-next-line no-restricted-syntax
     for (const filePath of result.filePaths) {
-      // eslint-disable-next-line no-await-in-loop
-      const fileType = await getFileType(filePath);
-      if (!SUPPORTED_FILE_TYPES[fileType]) {
-        dialog.showErrorBox("Error", `Unsupported file type ${fileType} for ${filePath}`);
+      const ext = filePath.split(".").pop()?.toLowerCase();
+
+      if (!ext || !extensions.includes(ext)) {
+        dialog.showErrorBox("Error", `Unsupported file type for ${filePath}`);
         return "[]";
       }
       // eslint-disable-next-line no-await-in-loop
-      const fileInfo: any = await getFileInfo(filePath);
-      if (fileInfo.size > KNOWLEDGE_IMPORT_MAX_FILE_SIZE) {
+      const fileInfo = await getFileInfo(filePath);
+      if (fileInfo.size > MAX_DOCUMENT_SIZE) {
         dialog.showErrorBox(
           "Error",
-          `the size of ${filePath} exceeds the limit (${KNOWLEDGE_IMPORT_MAX_FILE_SIZE / (1024 * 1024)} MB})`,
+          `the size of ${filePath} exceeds the limit (${MAX_DOCUMENT_SIZE / (1024 * 1024)} MB})`,
         );
         return "[]";
       }
-      fileInfo.type = fileType;
       files.push(fileInfo);
     }
     logger.debug(files);
