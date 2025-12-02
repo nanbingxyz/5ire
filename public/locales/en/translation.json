@@ -140,6 +140,7 @@
   "Editor.Toolbar.StreamMode": "Stream Mode",
   "Version.UpdateNow": "Update Now",
   "Version.HasNewVersion": "A new version is available",
+  "Version.NewVersionDownloaded": "A new version has been downloaded",
   "Editor.Toolbar.StreamEnabled": "Streaming mode enabled",
   "Settings.Action.SaveToCloud": "Save to Cloud",
   "Knowledge.Action.AddFiles": "Add files",
