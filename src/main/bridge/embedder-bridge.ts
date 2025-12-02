@@ -1,0 +1,49 @@
+import { Bridge } from "@/main/internal/bridge";
+import { Container } from "@/main/internal/container";
+import { Embedder } from "@/main/services/embedder";
+
+export class EmbedderBridge extends Bridge.define("embedder", () => {
+  const service = Container.inject(Embedder);
+
+  return {
+    removeModel: async () => {
+      return service.removeModel();
+    },
+    downloadModel: async () => {
+      return service.downloadModel();
+    },
+    cancelDownloadModel: async () => {
+      return service.cancelDownloadModel();
+    },
+    createStateStream: () => {
+      const transformStatus = (status: Embedder.Status) => {
+        if (status.type === "ready") {
+          return {
+            type: "ready",
+            running: status.running,
+          } as const;
+        }
+
+        if (status.type === "downloading") {
+          return {
+            type: "downloading",
+            progress: status.progress,
+          } as const;
+        }
+
+        return status;
+      };
+
+      return service.createStream((state) => {
+        return {
+          model: state.model,
+          files: state.files,
+          status: transformStatus(state.status),
+        };
+      });
+    },
+    createEventStream: () => {
+      return service.emitter.createStream();
+    },
+  };
+}) {}

@@ -4,16 +4,18 @@
  *
  * @returns {JSX.Element} The rendered sidebar component with appropriate navigation and styling
  */
-import usePlatform from 'hooks/usePlatform';
-import { useLocation } from 'react-router-dom';
-import useAppearanceStore from 'stores/useAppearanceStore';
-import GlobalNav from './GlobalNav';
-import ChatNav from './ChatNav';
-import AppNav from './AppNav';
-import Footer from './Footer';
 
-import './AppSidebar.scss';
-import BookmarkNav from './BookmarkNav';
+import clsx from "clsx";
+import usePlatform from "hooks/usePlatform";
+import { useLocation } from "react-router-dom";
+import useAppearanceStore from "stores/useAppearanceStore";
+import AppNav from "./AppNav";
+import ChatNav from "./ChatNav";
+import Footer from "./Footer";
+import GlobalNav from "./GlobalNav";
+
+import "./AppSidebar.scss";
+import BookmarkNav from "./BookmarkNav";
 
 /**
  * Main sidebar component that provides navigation for the application.
@@ -24,11 +26,11 @@ import BookmarkNav from './BookmarkNav';
  */
 export default function Sidebar() {
   const location = useLocation();
-  const { isDarwin, isLinux } = usePlatform();
+  const { isDarwin, isLinux, isWindows } = usePlatform();
   const sidebar = useAppearanceStore((state) => state.sidebar);
-  const width = sidebar.hidden ? 'w-0' : 'w-auto';
-  const left = sidebar.hidden ? 'md:left-0' : '-left-64 md:left-0';
-  const leftCollapsed = sidebar.hidden ? '-left-64' : '-left-64 md:left-0';
+  const width = sidebar.hidden ? "w-0" : "w-auto";
+  const left = sidebar.hidden ? "md:left-0" : "-left-64 md:left-0";
+  const leftCollapsed = sidebar.hidden ? "-left-64" : "-left-64 md:left-0";
 
   const collapsed = sidebar.collapsed && !sidebar.folderEditing;
 
@@ -39,11 +41,11 @@ export default function Sidebar() {
    * @returns {JSX.Element} The navigation component corresponding to the active route
    */
   const renderNav = () => {
-    const activeRoute = location.pathname.split('/')[1];
+    const activeRoute = location.pathname.split("/")[1];
     switch (activeRoute) {
-      case 'apps':
+      case "apps":
         return <AppNav collapsed={collapsed} />;
-      case 'bookmarks':
+      case "bookmarks":
         return <BookmarkNav collapsed={collapsed} />;
       default:
         return <ChatNav collapsed={collapsed} />;
@@ -52,20 +54,23 @@ export default function Sidebar() {
 
   renderNav();
 
-  let paddingClass = 'md:pt-0';
+  let paddingClass = "md:pt-0";
   if (isDarwin) {
-    paddingClass = 'darwin pt-10';
+    paddingClass = "darwin pt-10";
   } else if (isLinux) {
-    paddingClass = 'pt-8 md:pt-0';
+    paddingClass = "pt-8 md:pt-0";
   }
 
   return (
     <aside
-      className={`shadow-md md:shadow-none z-10 flex-shrink-0 ${paddingClass} ${
-        collapsed ? width : 'w-64 md:w-[17rem]'
-      } fixed inset-y-0 top-0 ${
-        collapsed ? leftCollapsed : left
-      } flex flex-col h-full md:relative app-sidebar`}
+      className={clsx(
+        `shadow-md md:shadow-none z-10 flex-shrink-0 ${paddingClass} ${
+          collapsed ? width : "w-64 md:w-[17rem]"
+        } fixed inset-y-0 top-0 ${collapsed ? leftCollapsed : left} flex flex-col h-full md:relative app-sidebar`,
+      )}
+      style={{
+        height: isWindows ? "calc(100vh - 32px)" : undefined,
+      }}
     >
       <div className="flex h-full flex-1 flex-col">
         <GlobalNav collapsed={collapsed} />

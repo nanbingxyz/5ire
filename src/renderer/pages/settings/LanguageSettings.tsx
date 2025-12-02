@@ -1,56 +1,26 @@
-import { FormEvent } from 'react';
-import { useTranslation } from 'react-i18next';
-import {
-  RadioGroup,
-  Radio,
-  RadioGroupOnChangeData,
-} from '@fluentui/react-components';
-import { captureException } from '../../logging';
-import { LanguageType } from '../../../types/settings.d';
-import useSettingsStore from '../../../stores/useSettingsStore';
+import { Radio, RadioGroup, type RadioGroupOnChangeData } from "@fluentui/react-components";
+import type { FormEvent } from "react";
+import { useTranslation } from "react-i18next";
+import { useSettings } from "@/renderer/next/hooks/remote/use-settings";
 
 export default function LanguageSettings() {
-  const { t, i18n } = useTranslation();
-  const language = useSettingsStore((state) => state.language);
-  const setLanguage = useSettingsStore((state) => state.setLanguage);
+  const { t } = useTranslation();
 
-  const onLanguageChange = (
-    ev: FormEvent<HTMLDivElement>,
-    data: RadioGroupOnChangeData,
-  ) => {
-    setLanguage(data.value as LanguageType);
-    if (data.value === 'system') {
-      window.electron
-        .getSystemLanguage()
-        .then((_lang) => {
-          i18n.changeLanguage(_lang as LanguageType);
-        })
-        .catch(captureException);
-    } else {
-      i18n.changeLanguage(data.value as LanguageType);
-    }
-    setLanguage(data.value as LanguageType);
+  const settings = useSettings();
+
+  const onLanguageChange = (ev: FormEvent<HTMLDivElement>, data: RadioGroupOnChangeData) => {
+    // @ts-expect-error
+    window.bridge.settingsStore.updateLanguage(data.value);
   };
+
   return (
     <div className="settings-section">
-      <div className="settings-section--header">{t('Common.Language')}</div>
+      <div className="settings-section--header">{t("Common.Language")}</div>
       <div className="py-4 flex-grow">
-        <RadioGroup
-          aria-labelledby={t('Common.Language')}
-          value={language}
-          onChange={onLanguageChange}
-        >
-          <Radio name="language" value="en" label={t('Common.English')} />
-          <Radio
-            name="language"
-            value="zh-CN"
-            label={t('Common.SimpleChinese')}
-          />
-          <Radio
-            name="language"
-            value="system"
-            label={t('Appearance.System')}
-          />
+        <RadioGroup aria-labelledby={t("Common.Language")} value={settings.language} onChange={onLanguageChange}>
+          <Radio name="language" value="en" label={t("Common.English")} />
+          <Radio name="language" value="zh-CN" label={t("Common.SimpleChinese")} />
+          <Radio name="language" value="system" label={t("Appearance.System")} />
         </RadioGroup>
       </div>
     </div>

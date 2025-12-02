@@ -13,7 +13,10 @@
     "allowSyntheticDefaultImports": true,
     "resolveJsonModule": true,
     "allowJs": true,
-    "outDir": ".erb/dll"
+    "outDir": ".erb/dll",
+    "paths": {
+      "@/*": ["./*"]
+    }
   },
   "include": ["src", ".erb/scripts", "scripts", ".eslintrc.js"],
   "exclude": ["test", "release/build", "release/app/dist", ".erb/dll"]

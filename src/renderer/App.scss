@@ -6,9 +6,7 @@
 @use 'sass:meta';
 @import url(./variables.scss);
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 [data-theme='light'] {
   @include meta.load-css('highlight.js/styles/atom-one-light');
@@ -22,7 +20,7 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url(../../assets/fonts/barlow400.woff2) format('woff2');
+  src: url(../assets/fonts/barlow400.woff2) format('woff2');
   unicode-range:
     U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
     U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193,
@@ -33,7 +31,7 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url(../../assets/fonts/JetBrainsMono.woff2) format('woff2');
+  src: url(../assets/fonts/JetBrainsMono.woff2) format('woff2');
   unicode-range:
     U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
     U+0304, U+0308, U+0329, U+2000-206F, U+2074, U+20AC, U+2122, U+2191, U+2193,
@@ -41,8 +39,6 @@
 }
 
 * {
-  margin: 0;
-  padding: 0;
   box-sizing: border-box;
   -webkit-text-size-adjust: 100%;
   -ms-text-size-adjust: 100%;
@@ -197,12 +193,14 @@ main {
   justify-content: flex-start;
   align-items: center;
 }
+
 .tips {
   --tw-text-opacity: 1;
   line-height: 1.4;
   color: rgba(var(--color-text-secondary), var(--tw-text-opacity));
   opacity: 0.6;
 }
+
 .number {
   font-variant-numeric: tabular-nums;
 }
@@ -469,4 +467,12 @@ mark {
       font-size: 16px!important;
     }
   }
+}
+
+.app-region-drag {
+  -webkit-app-region: drag;
+}
+
+.app-region-no-drag {
+  -webkit-app-region: no-drag;
 }

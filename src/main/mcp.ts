@@ -1,32 +1,33 @@
-import path from 'path';
-import fs from 'node:fs';
-import { app } from 'electron';
-import { IMCPConfig, IMCPServer, MCPServerCapability } from 'types/mcp';
-import { isUndefined, keyBy, omitBy } from 'lodash';
-import { purifyServer } from 'utils/mcp';
-import * as logging from './logging';
+import fs from "node:fs";
+import { app } from "electron";
+import { isUndefined, keyBy, omitBy } from "lodash";
+import path from "path";
+import type { IMCPConfig, IMCPServer, MCPServerCapability } from "types/mcp";
+import { purifyServer } from "utils/mcp";
+import { Container } from "@/main/internal/container";
+import { Logger } from "@/main/services/logger";
 
 const CONNECT_TIMEOUT = 60 * 1000 * 5; // 5 minutes
 const LIST_TOOLS_TIMEOUT = 15 * 1000; // 15 seconds
 const RETRIEVE_PROMPTS_TIMEOUT = 15 * 1000; // 15 seconds
 
 export const DEFAULT_INHERITED_ENV_VARS =
-  process.platform === 'win32'
+  process.platform === "win32"
     ? [
-        'APPDATA',
-        'HOMEDRIVE',
-        'HOMEPATH',
-        'LOCALAPPDATA',
-        'PATH',
-        'PROCESSOR_ARCHITECTURE',
-        'SYSTEMDRIVE',
-        'SYSTEMROOT',
-        'TEMP',
-        'USERNAME',
-        'USERPROFILE',
+        "APPDATA",
+        "HOMEDRIVE",
+        "HOMEPATH",
+        "LOCALAPPDATA",
+        "PATH",
+        "PROCESSOR_ARCHITECTURE",
+        "SYSTEMDRIVE",
+        "SYSTEMROOT",
+        "TEMP",
+        "USERNAME",
+        "USERPROFILE",
       ]
     : /* list inspired by the default env inheritance of sudo */
-      ['HOME', 'LOGNAME', 'PATH', 'SHELL', 'TERM', 'USER'];
+      ["HOME", "LOGNAME", "PATH", "SHELL", "TERM", "USER"];
 /**
  * Returns a default environment object including only environment variables deemed safe to inherit.
  */
@@ -37,7 +38,7 @@ export function getDefaultEnvironment() {
     if (value === undefined) {
       return;
     }
-    if (value.startsWith('()')) {
+    if (value.startsWith("()")) {
       // Skip functions, which are a security risk.
       return;
     }
@@ -52,7 +53,7 @@ function validateAndGetProxy(proxyUrl: string): string {
     const url = new URL(proxyUrl);
     return url.toString();
   } catch (error) {
-    logging.error(`Invalid proxy URL: ${proxyUrl}`, error);
+    Container.inject(Logger).error(`Invalid proxy URL: ${proxyUrl}`, error);
     throw new Error(`Invalid proxy URL: ${proxyUrl}`);
   }
 }
@@ -72,6 +73,8 @@ function hasCapability(client: any, capability: string): boolean {
 }
 
 export default class ModuleContext {
+  #logger = Container.inject(Logger).scope("MCP");
+
   private clients: { [key: string]: any } = {};
 
   private Client: any;
@@ -87,42 +90,33 @@ export default class ModuleContext {
   private activeToolCalls: Map<string, AbortController> = new Map();
 
   constructor() {
-    this.cfgPath = path.join(app.getPath('userData'), 'mcp.json');
+    this.cfgPath = path.join(app.getPath("userData"), "mcp.json");
   }
 
   public async init() {
     this.Client = await ModuleContext.importClient();
     this.StdioTransport = await ModuleContext.importStdioTransport();
     this.SSETransport = await ModuleContext.importSSETransport();
-    this.StreamableHTTPTransport =
-      await ModuleContext.importStreamableHTTPTransport();
+    this.StreamableHTTPTransport = await ModuleContext.importStreamableHTTPTransport();
   }
 
   private static async importClient() {
-    const { Client } = await import(
-      '@modelcontextprotocol/sdk/client/index.js'
-    );
+    const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
     return Client;
   }
 
   private static async importStdioTransport() {
-    const { StdioClientTransport } = await import(
-      '@modelcontextprotocol/sdk/client/stdio.js'
-    );
+    const { StdioClientTransport } = await import("@modelcontextprotocol/sdk/client/stdio.js");
     return StdioClientTransport;
   }
 
   private static async importSSETransport() {
-    const { SSEClientTransport } = await import(
-      '@modelcontextprotocol/sdk/client/sse.js'
-    );
+    const { SSEClientTransport } = await import("@modelcontextprotocol/sdk/client/sse.js");
     return SSEClientTransport;
   }
 
   private static async importStreamableHTTPTransport() {
-    const { StreamableHTTPClientTransport } = await import(
-      '@modelcontextprotocol/sdk/client/streamableHttp.js'
-    );
+    const { StreamableHTTPClientTransport } = await import("@modelcontextprotocol/sdk/client/streamableHttp.js");
     return StreamableHTTPClientTransport;
   }
 
@@ -132,7 +126,7 @@ export default class ModuleContext {
       ...mcpSvr,
       ...omitBy({ ...server, isActive: true }, isUndefined),
     } as IMCPServer;
-    logging.debug('MCP Server:', mcpSvr);
+    Container.inject(Logger).scope("MCP").debug("MCP Server:", mcpSvr);
     return mcpSvr;
   }
 
@@ -152,10 +146,10 @@ export default class ModuleContext {
       if (!fs.existsSync(this.cfgPath)) {
         fs.writeFileSync(this.cfgPath, JSON.stringify(defaultConfig, null, 2));
       }
-      const config = JSON.parse(fs.readFileSync(this.cfgPath, 'utf-8'));
+      const config = JSON.parse(fs.readFileSync(this.cfgPath, "utf-8"));
       return !!config.mcpServers[key];
     } catch (err: any) {
-      logging.captureException(err);
+      this.#logger.capture(err);
       return false;
     }
   }
@@ -166,11 +160,11 @@ export default class ModuleContext {
       if (!fs.existsSync(this.cfgPath)) {
         fs.writeFileSync(this.cfgPath, JSON.stringify(defaultConfig, null, 2));
       }
-      const config = JSON.parse(fs.readFileSync(this.cfgPath, 'utf-8'));
+      const config = JSON.parse(fs.readFileSync(this.cfgPath, "utf-8"));
       // migration to new config format
       if (config.servers) {
         if (Array.isArray(config.servers) && !config.mcpServers) {
-          config.mcpServers = keyBy(config.servers, 'key');
+          config.mcpServers = keyBy(config.servers, "key");
         }
         delete config.servers;
         this.putConfig(config);
@@ -179,25 +173,21 @@ export default class ModuleContext {
         config.mcpServers = {};
       }
       // Set key for each server if not already set
-      (Object.entries(config.mcpServers) as [string, IMCPServer][]).forEach(
-        ([key, server]) => {
-          server.key = key;
-          if (server.url) {
-            server.type = 'remote';
-          } else {
-            server.type = 'local';
-          }
-          const client = this.getClient(server.key);
-          if (client) {
-            server.capabilities = Object.keys(
-              client.getServerCapabilities(),
-            ) as MCPServerCapability[];
-          }
-        },
-      );
+      (Object.entries(config.mcpServers) as [string, IMCPServer][]).forEach(([key, server]) => {
+        server.key = key;
+        if (server.url) {
+          server.type = "remote";
+        } else {
+          server.type = "local";
+        }
+        const client = this.getClient(server.key);
+        if (client) {
+          server.capabilities = Object.keys(client.getServerCapabilities()) as MCPServerCapability[];
+        }
+      });
       return config;
     } catch (err: any) {
-      logging.captureException(err);
+      this.#logger.capture(err);
       return defaultConfig;
     }
   }
@@ -212,7 +202,7 @@ export default class ModuleContext {
       fs.writeFileSync(this.cfgPath, JSON.stringify(newConfig, null, 2));
       return true;
     } catch (err: any) {
-      logging.captureException(err);
+      this.#logger.capture(err);
       return false;
     }
   }
@@ -223,10 +213,10 @@ export default class ModuleContext {
       Object.keys(mcpServers).map(async (key: string) => {
         const server = mcpServers[key];
         if (server.isActive) {
-          logging.debug('Activating server:', key);
+          this.#logger.debug("Activating server:", key);
           const { error } = await this.activate(server);
           if (error) {
-            logging.error('Failed to activate server:', key, error);
+            this.#logger.error("Failed to activate server:", key, error);
           }
         }
       }),
@@ -257,7 +247,7 @@ export default class ModuleContext {
     try {
       const client = new this.Client({
         name: server.key,
-        version: '1.0.0',
+        version: "1.0.0",
       });
       const config = this.getConfig();
       const mcpSvr = ModuleContext.getMCPServer(server, config) as IMCPServer;
@@ -274,32 +264,23 @@ export default class ModuleContext {
         // if (mcpSvr.proxy) {
         //   options.proxy = mcpSvr.proxy;
         // }
-        const isSSE = mcpSvr.url.endsWith('sse');
-        const PrimaryTransport = isSSE
-          ? this.SSETransport
-          : this.StreamableHTTPTransport;
-        const SecondaryTransport = isSSE
-          ? this.StreamableHTTPTransport
-          : this.SSETransport;
+        const isSSE = mcpSvr.url.endsWith("sse");
+        const PrimaryTransport = isSSE ? this.SSETransport : this.StreamableHTTPTransport;
+        const SecondaryTransport = isSSE ? this.StreamableHTTPTransport : this.SSETransport;
         try {
           const transport = new PrimaryTransport(new URL(mcpSvr.url), options);
           await client.connect(transport, { timeout: CONNECT_TIMEOUT });
         } catch (error) {
-          logging.captureException(error as Error);
-          console.log(
-            'Streamable HTTP connection failed, falling back to SSE transport',
-          );
-          const transport = new SecondaryTransport(
-            new URL(mcpSvr.url),
-            options,
-          );
+          this.#logger.capture(error as Error);
+          console.log("Streamable HTTP connection failed, falling back to SSE transport");
+          const transport = new SecondaryTransport(new URL(mcpSvr.url), options);
           await client.connect(transport, { timeout: CONNECT_TIMEOUT });
         }
       } else {
         const { command, args, env, proxy } = mcpSvr;
         let cmd: string = command as string;
-        if (command === 'npx') {
-          cmd = process.platform === 'win32' ? `${command}.cmd` : command;
+        if (command === "npx") {
+          cmd = process.platform === "win32" ? `${command}.cmd` : command;
         }
         const mergedEnv = {
           ...getDefaultEnvironment(),
@@ -317,7 +298,7 @@ export default class ModuleContext {
         const transport = new this.StdioTransport({
           command: cmd,
           args,
-          stderr: process.platform === 'win32' ? 'pipe' : 'inherit',
+          stderr: process.platform === "win32" ? "pipe" : "inherit",
           env: mergedEnv,
         });
         await client.connect(transport, { timeout: CONNECT_TIMEOUT });
@@ -326,7 +307,7 @@ export default class ModuleContext {
       this.updateConfigAfterActivation(mcpSvr, config);
       return { error: null };
     } catch (error: any) {
-      logging.captureException(error);
+      this.#logger.capture(error);
       this.deactivate(server.key);
       return { error };
     }
@@ -337,12 +318,12 @@ export default class ModuleContext {
       if (this.clients[key]) {
         await this.clients[key].close();
         delete this.clients[key];
-        logging.debug('Deactivating server:', key);
+        this.#logger.debug("Deactivating server:", key);
       }
       this.updateConfigAfterDeactivation(key, this.getConfig());
       return { error: null };
     } catch (error: any) {
-      logging.captureException(error);
+      this.#logger.capture(error);
       return { error };
     }
   }
@@ -350,7 +331,7 @@ export default class ModuleContext {
   public async close() {
     await Promise.all(
       Object.keys(this.clients).map(async (key) => {
-        logging.info(`Closing MCP Client ${key}`);
+        this.#logger.info(`Closing MCP Client ${key}`);
         await this.clients[key].close();
         delete this.clients[key];
       }),
@@ -361,7 +342,7 @@ export default class ModuleContext {
    * Close & reactivate a client without ping
    */
   private async reconnect(key: string) {
-    logging.info(`Reconnecting MCP Client ${key}`);
+    this.#logger.info(`Reconnecting MCP Client ${key}`);
     const cfg = this.getConfig();
     const server = cfg.mcpServers[key];
     if (!server) throw new Error(`Server ${key} not found`);
@@ -381,13 +362,8 @@ export default class ModuleContext {
    */
   // helper to retry a client call once after reconnect
   // optional timeoutMs to set a timeout for the call
-  private async safeCall(
-    clientKey: string,
-    fn: () => Promise<any>,
-    timeoutMs?: number,
-  ): Promise<any> {
-    if (!this.clients[clientKey])
-      throw new Error(`Client ${clientKey} not found`);
+  private async safeCall(clientKey: string, fn: () => Promise<any>, timeoutMs?: number): Promise<any> {
+    if (!this.clients[clientKey]) throw new Error(`Client ${clientKey} not found`);
     try {
       if (!timeoutMs) {
         return await fn();
@@ -396,7 +372,7 @@ export default class ModuleContext {
         fn(),
         new Promise<any>((resolve, reject) => {
           setTimeout(() => {
-            reject(new Error('invalid_connection'));
+            reject(new Error("invalid_connection"));
           }, timeoutMs);
         }),
       ]);
@@ -414,16 +390,11 @@ export default class ModuleContext {
       clients.map(async (clientKey) => {
         try {
           const client = this.clients[clientKey];
-          if (!hasCapability(client, 'prompts')) {
+          if (!hasCapability(client, "prompts")) {
             return null;
           }
-          const res = await this.safeCall(
-            clientKey,
-            () => client.listPrompts(),
-            timeoutMs,
-          );
-          if (!res?.prompts || !Array.isArray(res.prompts))
-            throw new Error('invalid_response');
+          const res = await this.safeCall(clientKey, () => client.listPrompts(), timeoutMs);
+          if (!res?.prompts || !Array.isArray(res.prompts)) throw new Error("invalid_response");
           return {
             client: clientKey,
             prompts: res.prompts.map((p: any) => ({
@@ -433,7 +404,7 @@ export default class ModuleContext {
             error: null,
           };
         } catch (err: any) {
-          logging.captureException(err);
+          this.#logger.capture(err);
           return { client: clientKey, prompts: [], error: err.message };
         }
       }),
@@ -447,10 +418,8 @@ export default class ModuleContext {
       prompts: results.filter((r) => r !== null),
       error: failedClients.length
         ? {
-            message: key
-              ? `Failed to list prompts for ${key}`
-              : 'Partial failure listing prompts',
-            code: key ? 'list_prompts_failed' : 'partial_failure',
+            message: key ? `Failed to list prompts for ${key}` : "Partial failure listing prompts",
+            code: key ? "list_prompts_failed" : "partial_failure",
             failedClients,
           }
         : null,
@@ -464,7 +433,7 @@ export default class ModuleContext {
         content: [
           {
             error: `MCP Client ${key} not found`,
-            code: 'client_not_found',
+            code: "client_not_found",
             clientName: key,
             promptName: name,
           },
@@ -494,7 +463,7 @@ export default class ModuleContext {
         content: [
           {
             error: `Error getting prompt ${name}: ${err.message}`,
-            code: 'prompt_get_error',
+            code: "prompt_get_error",
             clientName: key,
             promptName: name,
           },
@@ -511,16 +480,11 @@ export default class ModuleContext {
       clients.map(async (clientKey) => {
         try {
           const client = this.clients[clientKey];
-          if (!hasCapability(client, 'tools')) {
+          if (!hasCapability(client, "tools")) {
             return { client: clientKey, tools: [], error: null };
           }
-          const res = await this.safeCall(
-            clientKey,
-            () => client.listTools(),
-            timeoutMs,
-          );
-          if (!res?.tools || !Array.isArray(res.tools))
-            throw new Error('invalid_response');
+          const res = await this.safeCall(clientKey, () => client.listTools(), timeoutMs);
+          if (!res?.tools || !Array.isArray(res.tools)) throw new Error("invalid_response");
           // tag and return successful tools
           return {
             client: clientKey,
@@ -538,17 +502,13 @@ export default class ModuleContext {
     );
     // flatten tools and collect failures
     const tools = results.flatMap((r) => r.tools);
-    const failedClients = results
-      .filter((r) => r.error)
-      .map((r) => ({ client: r.client, error: r.error! }));
+    const failedClients = results.filter((r) => r.error).map((r) => ({ client: r.client, error: r.error! }));
     return {
       tools,
       error: failedClients.length
         ? {
-            message: key
-              ? `Failed to list tools for ${key}`
-              : 'Partial failure listing tools',
-            code: key ? 'list_tools_failed' : 'partial_failure',
+            message: key ? `Failed to list tools for ${key}` : "Partial failure listing tools",
+            code: key ? "list_tools_failed" : "partial_failure",
             failedClients,
           }
         : null,
@@ -572,7 +532,7 @@ export default class ModuleContext {
         content: [
           {
             error: `MCP Client ${client} not found`,
-            code: 'client_not_found',
+            code: "client_not_found",
             clientName: client,
             toolName: name,
           },
@@ -609,7 +569,7 @@ export default class ModuleContext {
         content: [
           {
             error: `Error calling tool ${name}: ${err.message}`,
-            code: 'tool_call_error',
+            code: "tool_call_error",
             clientName: client,
             toolName: name,
           },

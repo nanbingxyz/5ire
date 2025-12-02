@@ -18,8 +18,7 @@ node_modules
 # OSX
 .DS_Store
 
-release/app/dist
-release/build
+release/
 .erb/dll
 
 .idea
@@ -32,3 +31,7 @@ npm-debug.log.*
 .env
 /.crush
 /.testdata
+
+
+output/
+/.vscode-upload.json
