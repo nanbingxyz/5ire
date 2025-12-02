@@ -35,6 +35,7 @@
   "Common.Name": "名稱",
   "Common.Required": "必填",
   "Common.Optional": "可選",
+  "Common.Size": "大小",
   "Tooltip.SystemMessage": "系統訊息有助於設定助理的行為。\n例如，您可以修改助理的個性或提供其在整個對話過程中應如何表現的具體說明。但請注意，系統訊息為可選，如果不使用系統訊息，模型的行為通常與使用「你是有用的助理」等通用訊息相似。",
   "Prompt.Form.ApplicableModels": "適用模型",
   "Prompt.Form.Tooltip.Variable": "變數可以在使用時填寫，語法為：{{name}}。",

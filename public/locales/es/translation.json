@@ -35,6 +35,7 @@
   "Common.Name": "Nombre",
   "Common.Required": "Requerido",
   "Common.Optional": "Opcional",
+  "Common.Size": "Tamaño",
   "Tooltip.SystemMessage": "El mensaje del sistema ayuda a establecer el comportamiento del asistente.\nPor ejemplo, puedes modificar la personalidad del asistente o proporcionar instrucciones específicas sobre cómo debe comportarse durante la conversación. Sin embargo, ten en cuenta que el mensaje del sistema es opcional y el comportamiento del modelo sin un mensaje del sistema probablemente sea similar al uso de un mensaje genérico como \"Eres un asistente útil.\"",
   "Prompt.Form.ApplicableModels": "Modelos Aplicables",
   "Prompt.Form.Tooltip.Variable": "Las variables pueden completarse al usarlas, y la sintaxis para variables es: {{name}}.",

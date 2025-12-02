@@ -27,6 +27,7 @@
   "Common.Cancel": "取消",
   "Common.Required": "必填",
   "Common.Optional": "可选",
+  "Common.Size": "大小",
   "Tooltip.SystemMessage": "系统消息有助于设置助手的行为。 \n例如，您可以修改助手的个性或提供有关其在整个对话过程中应如何表现的具体说明。\n但请注意，系统消息是可选的，没有系统消息的模型行为默认类似于使用通用消息，例如“你是一个有用的助手”。",
   "Prompt.Form.Tooltip.Variable": "变量可以在使用时填写，变量的语法为：{{name}}。",
   "Prompt.Notifications.PromptNotFound": "提示词未找到。",

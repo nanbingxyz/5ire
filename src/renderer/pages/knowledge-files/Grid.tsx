@@ -68,7 +68,9 @@ const StatusIndicator = (props: StatusIndicatorProps) => {
     return (
       <Tooltip
         relationship="description"
-        content={{ children: `${t("Document.ImportFailed")}: ${props.item.error || "Unknown error."}` }}
+        content={{
+          children: `${t("Document.ImportFailed")}: ${props.item.error || "Unknown error."}`,
+        }}
       >
         <DismissCircleColor fontSize="16px" />
       </Tooltip>
@@ -110,6 +112,18 @@ const StatusIndicator = (props: StatusIndicatorProps) => {
       <CircleHintFilled fontSize="16px" />
     </Tooltip>
   );
+};
+
+const formatSize = (item: Document) => {
+  if (item.size === 0) {
+    return "0B";
+  }
+
+  const units = ["B", "KB", "MB", "GB", "TB", "PB"];
+  const i = Math.floor(Math.log(item.size) / Math.log(1024));
+  const value = item.size / 1024 ** i;
+
+  return ` ${value.toFixed(value < 10 && i > 0 ? 1 : 0)} ${units[i]}`;
 };
 
 export default function Grid() {
@@ -167,23 +181,7 @@ export default function Grid() {
       },
       renderCell: (item) => {
         const renderName = () => {
-          const formatSize = () => {
-            if (item.size === 0) {
-              return "0B";
-            }
-
-            const units = ["B", "KB", "MB", "GB", "TB", "PB"];
-            const i = Math.floor(Math.log(item.size) / Math.log(1024));
-            const value = item.size / 1024 ** i;
-
-            return ` ${value.toFixed(value < 10 && i > 0 ? 1 : 0)}${units[i]}`;
-          };
-
-          return (
-            <span className={item.status === "completed" ? "" : "text-gray-300"}>
-              {item.name} <span className="text-gray-400">{item.status === "completed" ? formatSize() : ""}</span>
-            </span>
-          );
+          return <span className={item.status === "completed" ? "" : "text-gray-300"}>{item.name}</span>;
         };
 
         const renderStatus = () => {
@@ -217,6 +215,22 @@ export default function Grid() {
       },
     }),
     createTableColumn({
+      columnId: "size",
+      compare: (a, b) => {
+        return b.size - a.size;
+      },
+      renderHeaderCell: () => {
+        return t("Common.Size");
+      },
+      renderCell: (item) => {
+        return (
+          <TableCellLayout>
+            <span className="text-gray-400">{item.status === "completed" ? formatSize(item) : ""}</span>
+          </TableCellLayout>
+        );
+      },
+    }),
+    createTableColumn({
       columnId: "importTime",
       compare: (a, b) => {
         return b.createTime.getTime() - a.createTime.getTime();
@@ -243,9 +257,37 @@ export default function Grid() {
   const { targetDocument } = useFluent();
   const scrollbarWidth = useScrollbarWidth({ targetDocument });
 
+  const columnSizingOptions = {
+    name: {
+      minWidth: 300,
+      defaultWidth: 400,
+      idealWidth: 600,
+    },
+    size: {
+      minWidth: 80,
+      defaultWidth: 120,
+    },
+    importTime: {
+      defaultWidth: 160,
+      minWidth: 160,
+      idealWidth: 180,
+    },
+  };
   return (
     <div className="w-full">
-      <DataGrid items={items} columns={columns} sortable size="small" className="w-full" getRowId={(item) => item.id}>
+      <DataGrid
+        items={items}
+        columns={columns}
+        sortable
+        size="small"
+        className="w-full"
+        getRowId={(item) => item.id}
+        resizableColumns
+        columnSizingOptions={columnSizingOptions}
+        resizableColumnsOptions={{
+          autoFitColumns: true,
+        }}
+      >
         <DataGridHeader style={{ paddingRight: scrollbarWidth }}>
           <DataGridRow>
             {({ renderHeaderCell }) => <DataGridHeaderCell>{renderHeaderCell()}</DataGridHeaderCell>}
