@@ -24,26 +24,51 @@ const signLinuxAppImages = async (result: BuildResult) => {
   }
 
   const secretKey = Buffer.from(process.env.GPG_SECRET_KEY_B64, "base64").toString("utf-8");
-  const secretKeyPassword = process.env.GPG_SECRET_KEY_PASSWORD || "";
-  const secretKeyIdRegex = /^gpg: key (.*?):/;
-
-  const importSecretKeyResult = execSync(`gpg --import --logger-fd 1`, { input: secretKey, encoding: "utf-8" });
-
-  const match = importSecretKeyResult.match(secretKeyIdRegex);
-
-  if (!match?.[1]) {
-    return console.warn(
-      "Failed to extract GPG key ID from imported key. Make sure GPG_SECRET_KEY_B64 contains a valid GPG private key.",
-    );
+  if (!secretKey.includes("BEGIN PGP PRIVATE KEY BLOCK")) {
+    console.error("[signLinuxAppImages] Decoded secret key does NOT contain BEGIN PGP PRIVATE KEY BLOCK");
   }
+  const secretKeyPassword = process.env.GPG_SECRET_KEY_PASSWORD || "";
+
+  let importSecretKeyResult: string;
+
+  try {
+    importSecretKeyResult = execSync("gpg --batch --yes --pinentry-mode loopback --import --logger-fd 1", {
+      input: secretKey,
+      encoding: "utf-8",
+    });
+    console.info("[signLinuxAppImages] GPG import stdout:\n", importSecretKeyResult);
+  } catch (err: any) {
+    console.error("[signLinuxAppImages] GPG import failed");
+    console.error("exit code:", err.status);
+    if (err.stdout) {
+      console.error("stdout:", err.stdout.toString());
+    }
+    if (err.stderr) {
+      console.error("stderr:", err.stderr.toString());
+    }
+    throw err;
+  }
+
+  const listOutput = execSync("gpg --list-secret-keys --with-colons", {
+    encoding: "utf-8",
+  });
+
+  const secLine = listOutput.split("\n").find((line) => line.startsWith("sec:"));
+
+  if (!secLine) {
+    throw new Error("No secret key found after import");
+  }
+
+  const keyId = secLine.split(":")[4];
+  console.info(`Using key: ${keyId}`);
 
   const additionalFiles: string[] = [];
 
   for (const appImage of appImages) {
-    console.info(`Signing AppImage with key ${match[1]}: ${appImage}`);
+    console.info(`Signing AppImage with key ${keyId}: ${appImage}`);
 
     execSync(
-      `gpg --detach-sign --armor --batch --passphrase-fd 0 --pinentry-mode loopback --yes --default-key ${match[1]} "${appImage}"`,
+      `gpg --detach-sign --armor --batch --passphrase-fd 0 --pinentry-mode loopback --yes --default-key ${keyId} "${appImage}"`,
       {
         input: `${secretKeyPassword}\n`,
       },
