@@ -1,18 +1,25 @@
 import { Container } from "@/main/internal/container";
-import { Logger } from "@/main/services/logger";
 import { MCPConnectionsManager } from "@/main/services/mcp-connections-manager";
-import { MCPContentConverter } from "@/main/services/mcp-content-converter";
 
+/**
+ * Handles completion requests for MCP (Model Completion Protocol) connections.
+ *
+ * This class manages the communication with connected MCP servers to retrieve
+ * completions for prompts or resources based on provided arguments and context.
+ */
 export class MCPCompletionHandler {
-  #logger = Container.inject(Logger).scope("MCPCompletionHandler");
   #connectionsManager = Container.inject(MCPConnectionsManager);
-  #contentConverter = Container.inject(MCPContentConverter);
 
+  /**
+   * Complete a prompt or resource argument.
+   *
+   * @param options - Options for completing a prompt or resource.
+   */
   async complete(options: MCPCompletionHandler.CompleteOptions) {
     const connection = this.#connectionsManager.getConnectedOrThrow(options.server);
 
     if (!connection.capabilities.completions) {
-      return null;
+      return [] as string[];
     }
 
     return connection.client
@@ -34,24 +41,44 @@ export class MCPCompletionHandler {
         context: options.context,
       })
       .then((result) => {
-        return {
-          values: result.completion.values,
-        };
+        return result.completion.values;
       });
   }
-
-  async completeResourceTemplate() {}
 }
 
 export namespace MCPCompletionHandler {
+  /**
+   * Options for completing a prompt or resource argument.
+   */
   export type CompleteOptions = {
+    /**
+     * Type of completion request. Can be "prompt" or "resource".
+     */
     type: "prompt" | "resource";
+    /**
+     * Server ID to complete against.
+     */
     server: string;
+    /**
+     * Reference to the prompt or resource to complete.
+     */
     ref: string;
+    /**
+     * Argument to complete.
+     */
     argument: {
+      /**
+       * Name of the argument to complete.
+       */
       name: string;
+      /**
+       * Value of the argument to complete.
+       */
       value: string;
     };
+    /**
+     * Context to provide to the completion request.
+     */
     context: Record<string, string>;
   };
 }

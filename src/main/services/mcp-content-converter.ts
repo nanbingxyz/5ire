@@ -46,7 +46,7 @@ export class MCPContentConverter {
     if (block.type === "text") {
       const text: Part.Text = {
         type: "text",
-        text: block.text,
+        text: block.text.trim(),
       };
       return text;
     }
@@ -94,6 +94,13 @@ export class MCPContentConverter {
     throw new Error(`Unknown content block type: ${block}`);
   }
 
+  /**
+   * Converts a resource content to the internally used generic Part type.
+   *
+   * @param content - The resource content to convert
+   * @param serverId - The MCP server ID
+   * @param uri - The resource URI
+   */
   convertResourceContent(content: TextResourceContents | BlobResourceContents, serverId: string, uri: string) {
     if ("text" in content) {
       const resource: Part.Resource = {

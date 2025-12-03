@@ -4,28 +4,50 @@ import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js"
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { ClientCapabilities, Implementation, ServerCapabilities } from "@modelcontextprotocol/sdk/types.js";
 import { asError } from "catch-unknown";
-import { eq, isNull, or, type SQL } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { app } from "electron";
+import { isEqual } from "lodash";
 import { Database } from "@/main/database";
-import type { Server, ServerInsert } from "@/main/database/types";
+import type { Server } from "@/main/database/types";
 import { Container } from "@/main/internal/container";
 import { Emitter } from "@/main/internal/emitter";
 import { Stateful } from "@/main/internal/stateful";
 import { Logger } from "@/main/services/logger";
 
+/**
+ * The implementation details of the Model Context Protocol (MCP) client.
+ */
 const CLIENT_IMPLEMENTATION: Implementation = {
   name: "5ire",
   version: app.getVersion(),
   title: "5ire",
 };
 
+/**
+ * The capabilities that the MCP client supports.
+ */
 const CLIENT_CAPABILITIES: ClientCapabilities = {};
 
+/**
+ * Manages connections to Model Context Protocol (MCP) servers.
+ *
+ * This class handles the lifecycle of MCP server connections including:
+ * - Establishing connections via different transports (stdio, sse, http)
+ * - Managing connection states (connecting, connected, error)
+ * - Handling server activation/deactivation
+ * - Providing access to connected clients and their capabilities
+ *
+ * It also manages persistence of server configurations in the database
+ * and emits events when connection states change.
+ */
 export class MCPConnectionsManager extends Stateful<MCPConnectionsManager.State> {
-  #logger = Container.inject(Logger).scope("MCPServersManager");
+  #logger = Container.inject(Logger).scope("MCPConnectionsManager");
   #database = Container.inject(Database);
   #emitter = Emitter.create<MCPConnectionsManager.Events>();
 
+  /**
+   * The emitter for MCP server events.
+   */
   get emitter() {
     return this.#emitter;
   }
@@ -33,15 +55,20 @@ export class MCPConnectionsManager extends Stateful<MCPConnectionsManager.State>
   constructor() {
     super(() => {
       return {
-        connections: {},
+        connections: new Map(),
       };
     });
   }
 
-  async #connect(server: Server) {
+  /**
+   * Establishes a connection to an MCP server with automatic retry logic.
+   *
+   * @param server - The server configuration to connect to
+   */
+  #connect(server: MCPConnectionsManager.ServerSnapshot) {
     const logger = this.#logger.scope("Connect");
 
-    if (this.state.connections[server.id]?.status !== "error") {
+    if (this.state.connections.get(server.id)?.status !== "error") {
       return;
     }
 
@@ -51,6 +78,7 @@ export class MCPConnectionsManager extends Stateful<MCPConnectionsManager.State>
     const connection: MCPConnectionsManager.Connection = {
       status: "connecting",
       controller,
+      serverSnapshot: server,
       promise: Promise.resolve()
         .then(() => {
           if (server.transport === "stdio") {
@@ -113,10 +141,11 @@ export class MCPConnectionsManager extends Stateful<MCPConnectionsManager.State>
                 client,
                 capabilities,
                 projectId: server.projectId || undefined,
+                serverSnapshot: server,
               } satisfies MCPConnectionsManager.Connection;
 
               this.update((draft) => {
-                draft.connections[server.id] = connected;
+                draft.connections.set(server.id, connected);
               });
               this.emitter.emit("server-connected", {
                 id: server.id,
@@ -136,187 +165,139 @@ export class MCPConnectionsManager extends Stateful<MCPConnectionsManager.State>
           });
 
           this.update((draft) => {
-            draft.connections[server.id] = {
+            draft.connections.set(server.id, {
               status: "error",
               error: asError(connectError).message,
-            };
+              serverSnapshot: server,
+            });
           });
         }),
     };
 
     this.update((draft) => {
-      draft.connections[server.id] = connection;
+      draft.connections.set(server.id, connection);
     });
 
     controller.signal.addEventListener("abort", () => {
       this.update((draft) => {
-        delete draft.connections[server.id];
+        draft.connections.delete(server.id);
       });
     });
   }
 
-  async init() {
-    const schema = this.#database.schema;
-    const client = this.#database.client;
-    const logger = this.#logger.scope("Init");
-
-    await client
-      .select()
-      .from(schema.server)
-      .where(eq(schema.server.active, true))
-      .execute()
-      .then((servers) => {
-        logger.info(`Connecting to ${servers.length} mcp servers`);
-
-        return Promise.all(servers.map((server) => this.#connect(server).catch(() => {})));
-      });
-  }
-
-  async createServer(options: MCPConnectionsManager.CreateServerOptions) {
-    const client = this.#database.client;
-    const schema = this.#database.schema;
-
-    if (options.transport !== "stdio") {
-      try {
-        new URL(options.endpoint);
-      } catch {
-        throw new Error("Invalid remote server url");
-      }
-    }
-
-    const data: ServerInsert = options;
-
-    await client
-      .insert(schema.server)
-      .values(data)
-      .returning()
-      .execute()
-      .then(([server]) => {
-        return this.#connect(server);
-      });
-  }
-
-  async updateServer(options: MCPConnectionsManager.UpdateServerOptions) {
-    const client = this.#database.client;
-    const schema = this.#database.schema;
-
-    const connection = this.state.connections[options.id];
+  /**
+   * Disconnects from an MCP server.
+   *
+   * @param id - The ID of the server to disconnect from
+   */
+  #disconnect(id: string) {
+    const connection = this.state.connections.get(id);
 
     if (connection) {
-      return;
-    }
-
-    await client.update(schema.server).set(options).where(eq(schema.server.id, options.id)).execute();
-  }
-
-  async deleteServer(options: MCPConnectionsManager.DeleteServerOptions) {
-    const client = this.#database.client;
-    const schema = this.#database.schema;
-
-    const connection = this.state.connections[options.id];
-
-    if (connection) {
-      return;
-    }
-
-    await client.delete(schema.server).where(eq(schema.server.id, options.id)).execute();
-  }
-
-  async activeServer(options: MCPConnectionsManager.ActiveServerOptions) {
-    const client = this.#database.client;
-    const schema = this.#database.schema;
-
-    const connection = this.state.connections[options.id];
-
-    if (connection) {
-      if (connection.status === "connecting") {
-        return connection.promise;
-      }
       if (connection.status === "connected") {
-        return;
+        connection.client.close().catch(() => {});
+        this.emitter.emit("server-disconnected", { id });
       }
-    }
 
-    await client
-      .update(schema.server)
-      .set({ active: true })
-      .where(eq(schema.server.id, options.id))
-      .returning()
-      .execute()
-      .then(([server]) => {
-        this.#connect(server);
-      });
-  }
-
-  async inactiveServer(options: MCPConnectionsManager.InactiveServerOptions) {
-    const client = this.#database.client;
-    const schema = this.#database.schema;
-
-    const connection = this.state.connections[options.id];
-
-    this.update((draft) => {
-      delete draft.connections[options.id];
-    });
-    this.emitter.emit("server-disconnected", { id: options.id });
-
-    if (connection) {
       if (connection.status === "connecting") {
         connection.controller.abort();
       }
-
-      if (connection.status === "connected") {
-        connection.client.close().catch(() => {});
-      }
     }
 
-    await client
-      .update(schema.server)
-      .set({ active: false })
-      .where(eq(schema.server.id, options.id))
-      .execute()
-      .catch(() => {});
+    this.update((draft) => {
+      draft.connections.delete(id);
+    });
   }
 
-  async listConnectedServers() {}
-
-  async listServers(options: MCPConnectionsManager.ListServersOptions) {
-    const client = this.#database.client;
+  /**
+   * Initializes the MCP connections manager by connecting to all active servers.
+   *
+   * This method retrieves all active servers from the database and attempts to establish
+   * connections to them. It runs during the application startup process to restore
+   * previously configured MCP server connections.
+   *
+   * Connection attempts are made concurrently for all active servers, and any
+   * individual connection failures are caught and logged without stopping the
+   * initialization of other servers.
+   *
+   * The method uses a live query to monitor changes to the active servers list,
+   * automatically connecting to newly added servers and disconnecting from removed ones.
+   */
+  async init() {
     const schema = this.#database.schema;
+    const client = this.#database.client;
+    const driver = this.#database.driver;
+    const logger = this.#logger.scope("Init");
 
-    let where: SQL | undefined;
-
-    if (options.projectId) {
-      where = eq(schema.server.projectId, options.projectId);
-
-      if (options.includeGlobal) {
-        where = or(where, isNull(schema.server.projectId));
-      }
-    }
-
-    return client
-      .select()
+    const query = client
+      .select(
+        Database.utils.aliasedColumns({
+          id: schema.server.id,
+          transport: schema.server.transport,
+          projectId: schema.server.projectId,
+          config: schema.server.config,
+          endpoint: schema.server.endpoint,
+        }),
+      )
       .from(schema.server)
-      .where(where)
-      .then((servers) => {
-        return servers.map((server) => {
-          const connection = this.state.connections[server.id];
+      .where(eq(schema.server.active, true))
+      .orderBy(schema.server.createTime);
 
-          if (connection) {
-            return {
-              ...server,
-              ...{
-                connection,
-              },
+    const sql = query.toSQL();
+
+    await driver.live
+      .changes<Awaited<ReturnType<(typeof query)["execute"]>>[number]>({
+        query: sql.sql,
+        params: sql.params,
+        key: "id",
+      })
+      .then((live) => {
+        const apply = (changes: typeof live.initialChanges) => {
+          for (const change of changes) {
+            const server: MCPConnectionsManager.ServerSnapshot = {
+              id: change.id,
+              transport: change.transport,
+              projectId: change.projectId,
+              config: change.config,
+              endpoint: change.endpoint,
             };
-          }
 
-          return server;
-        });
+            const connection = this.state.connections.get(server.id);
+
+            if (change.__op__ === "DELETE") {
+              if (connection) {
+                this.#disconnect(server.id);
+              }
+            } else {
+              if (connection) {
+                //
+                if (isEqual(connection.serverSnapshot, server)) {
+                  return;
+                }
+              }
+
+              this.#disconnect(server.id);
+              this.#connect(server);
+            }
+          }
+        };
+
+        live.subscribe(apply);
+
+        if (live.initialChanges.length) {
+          logger.info(`Loading and connecting to ${live.initialChanges.length} active MCP servers`);
+          apply(live.initialChanges);
+        }
       });
   }
 
+  /**
+   * Gets a connected MCP server.
+   *
+   * @param id - The ID of the server
+   */
   getConnectedOrThrow(id: string) {
-    const connection = this.state.connections[id];
+    const connection = this.state.connections.get(id);
 
     if (!connection) {
       throw new Error(`No connection found for the server. Please check if the server exists and is active.`);
@@ -339,58 +320,110 @@ export class MCPConnectionsManager extends Stateful<MCPConnectionsManager.State>
 }
 
 export namespace MCPConnectionsManager {
+  /**
+   * Represents a snapshot of an MCP server.
+   */
+  export type ServerSnapshot = Pick<Server, "id" | "transport" | "projectId" | "config" | "endpoint">;
+
+  /**
+   * Represents the connection state of an MCP server.
+   *
+   * The connection can be in one of three states:
+   * - "connected": The server is successfully connected and ready to use
+   * - "connecting": The server is currently establishing a connection
+   * - "error": The server connection has failed
+   */
   export type Connection =
     | {
+        /**
+         * Connection status - indicates the server is successfully connected
+         */
         status: "connected";
+        /**
+         * The MCP client instance for communicating with the server
+         */
         client: Client;
+        /**
+         * Capabilities advertised by the connected server
+         */
         capabilities: ServerCapabilities;
+        /**
+         * Optional project ID associated with this connection
+         */
         projectId?: string;
+        /**
+         * Snapshot of the server configuration
+         */
+        serverSnapshot: ServerSnapshot;
       }
     | {
+        /**
+         * Connection status - indicates the server is currently connecting
+         */
         status: "connecting";
+        /**
+         * Promise that resolves when the connection attempt completes
+         */
         promise: Promise<void>;
+        /**
+         * Controller for aborting the connection attempt
+         */
         controller: AbortController;
+        /**
+         * Snapshot of the server configuration
+         */
+        serverSnapshot: ServerSnapshot;
       }
     | {
+        /**
+         * Connection status - indicates the server connection failed
+         */
         status: "error";
+        /**
+         * Error message describing the connection failure
+         */
         error: string;
+        /**
+         * Snapshot of the server configuration
+         */
+        serverSnapshot: ServerSnapshot;
       };
 
+  /**
+   * The state of the MCP connections manager service
+   */
   export type State = {
-    connections: Record<string, Connection>;
+    /**
+     * A map of server IDs to their connection states
+     */
+    connections: Map<string, Connection>;
   };
 
+  /**
+   * Events emitted by the MCP connections manager service
+   */
   export type Events = {
+    /**
+     * Emitted when a server connection is successfully established
+     */
     "server-connected": {
+      /**
+       * The ID of the server that was connected
+       */
       id: string;
+      /**
+       * The connection state of the server, Can be used to access client methods and server capabilities
+       */
       connection: Extract<Connection, { status: "connected" }>;
     };
+    /**
+     * Emitted when a server connection is disconnected
+     */
     "server-disconnected": {
+      /**
+       * The ID of the server that was disconnected
+       */
       id: string;
     };
-  };
-
-  export type CreateServerOptions = Pick<Server, "label" | "config" | "endpoint" | "transport" | "approvalPolicy"> &
-    Pick<ServerInsert, "description" | "projectId">;
-
-  export type UpdateServerOptions = CreateServerOptions & {
-    id: string;
-  };
-
-  export type DeleteServerOptions = {
-    id: string;
-  };
-
-  export type ActiveServerOptions = {
-    id: string;
-  };
-
-  export type InactiveServerOptions = {
-    id: string;
-  };
-
-  export type ListServersOptions = {
-    projectId?: string;
-    includeGlobal?: boolean;
   };
 }

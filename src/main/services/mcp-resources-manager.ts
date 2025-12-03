@@ -14,18 +14,43 @@ import { MCPConnectionsManager } from "@/main/services/mcp-connections-manager";
 import { MCPContentConverter } from "@/main/services/mcp-content-converter";
 import { URLParser } from "@/main/services/url-parser";
 
+/**
+ * Maximum number of pages to fetch when retrieving resources from an MCP server.
+ */
 const MAX_RESOURCES_PAGE = 20;
+
+/**
+ * Maximum number of pages to fetch when retrieving resource templates from an MCP server.
+ */
 const MAX_RESOURCE_TEMPLATES_PAGE = 4;
 
+/**
+ * Error code returned by the MCP server when a resource is not found
+ */
+const RESOURCE_NOT_FOUND_ERROR_CODE = -32002;
+
+/**
+ * Manages resources from Model Context Protocol (MCP) servers.
+ *
+ * This class handles fetching, storing, and reading resources and resource templates
+ * from connected MCP servers. It maintains a collection of resources for each
+ * server connection and provides methods to access them.
+ */
 export class MCPResourcesManager extends Stateful<MCPResourcesManager.State> {
   #logger = Container.inject(Logger).scope("MCPResourcesManager");
   #connectionsManager = Container.inject(MCPConnectionsManager);
   #contentConverter = Container.inject(MCPContentConverter);
   #urlParser = Container.inject(URLParser);
 
+  /**
+   * Fetches resources and resource templates from an MCP server connection and updates the local collection.
+   *
+   * @param id - The connection ID
+   * @param connection - The active MCP server connection object with client access
+   */
   #fetchResources(id: string, connection: Extract<MCPConnectionsManager.Connection, { status: "connected" }>) {
     const logger = this.#logger.scope("FetchResources");
-    const bundle = this.state.bundles.get(id);
+    const bundle = this.state.collections.get(id);
 
     if (!bundle) {
       return logger.warning("Bundle not found");
@@ -123,8 +148,8 @@ export class MCPResourcesManager extends Stateful<MCPResourcesManager.State> {
       })
       .then(({ resources, resourceTemplates }) => {
         this.update((draft) => {
-          if (draft.bundles.get(id)) {
-            draft.bundles.set(id, {
+          if (draft.collections.get(id)) {
+            draft.collections.set(id, {
               status: "loaded",
               resources,
               resourceTemplates,
@@ -135,8 +160,8 @@ export class MCPResourcesManager extends Stateful<MCPResourcesManager.State> {
       .catch((e) => {
         if (!abortController.signal.aborted) {
           this.update((draft) => {
-            if (draft.bundles.get(id)) {
-              draft.bundles.set(id, {
+            if (draft.collections.get(id)) {
+              draft.collections.set(id, {
                 status: "error",
                 message: asError(e).message,
               });
@@ -146,7 +171,7 @@ export class MCPResourcesManager extends Stateful<MCPResourcesManager.State> {
       });
 
     this.update((draft) => {
-      draft.bundles.set(id, {
+      draft.collections.set(id, {
         status: "loading",
         promise,
         abortController,
@@ -157,7 +182,7 @@ export class MCPResourcesManager extends Stateful<MCPResourcesManager.State> {
   constructor() {
     super(() => {
       return {
-        bundles: new Map(),
+        collections: new Map(),
       };
     });
 
@@ -176,60 +201,122 @@ export class MCPResourcesManager extends Stateful<MCPResourcesManager.State> {
     });
 
     this.#connectionsManager.emitter.on("server-disconnected", ({ id }) => {
-      const bundle = this.state.bundles.get(id);
+      const bundle = this.state.collections.get(id);
 
       if (bundle?.status === "loading") {
         bundle.abortController.abort();
       }
 
       this.update((draft) => {
-        draft.bundles.delete(id);
+        draft.collections.delete(id);
       });
     });
   }
 
-  async readResource(options: MCPResourcesManager.ReadResourceOptions) {
+  /**
+   * Reads a resource from an MCP server connection.
+   *
+   * @param options - The options for reading a resource
+   */
+  async read(options: MCPResourcesManager.ReadOptions) {
     const url = this.#urlParser.parse(options.uri);
 
     if (url?.type !== "external") {
       throw new Error("This resource cannot be accessed.");
     }
 
-    return this.#connectionsManager
-      .getConnectedOrThrow(url.server)
-      .client.readResource({ uri: url.origin })
-      .then((result) => {
-        return this.#contentConverter.convertResourceContent(
-          result.content as TextResourceContents | BlobResourceContents,
-          url.server,
-          url.origin,
-        );
-      });
+    const connection = this.#connectionsManager.getConnectedOrThrow(url.server);
+
+    return connection.client.readResource({ uri: url.origin }).then((result) => {
+      return this.#contentConverter.convertResourceContent(
+        result.content as TextResourceContents | BlobResourceContents,
+        url.server,
+        url.origin,
+      );
+    });
+  }
+
+  /**
+   * Reads a resource from an MCP server connection safely.
+   * Unlike {@link read}, this method returns null instead of throwing an error when the resource is not found.
+   *
+   * @param options - The options for reading a resource
+   */
+  async readSafely(options: MCPResourcesManager.ReadOptions) {
+    try {
+      return await this.read(options);
+    } catch (error) {
+      // Check if the error is a resource not found error
+      if (error instanceof Error && "code" in error && error.code === RESOURCE_NOT_FOUND_ERROR_CODE) {
+        return null;
+      }
+      // Re-throw other errors
+      throw error;
+    }
   }
 }
 
 export namespace MCPResourcesManager {
-  export type ResourcesBundle =
+  /**
+   * Represents a collection of resources and resource templates from an MCP server connection.
+   */
+  export type ResourceCollection =
     | {
+        /**
+         * The resources and resource templates from the MCP server are loaded.
+         */
         status: "loaded";
+        /**
+         * The resources in the collection.
+         */
         resources: Resource[];
-        resourceTemplates: Array<ResourceTemplate & { variableNames: string[] }>;
+        /**
+         * The resource templates in the collection.
+         */
+        resourceTemplates: ResourceTemplate[];
       }
     | {
+        /**
+         * The prompts from the MCP server are loading.
+         */
         status: "loading";
+        /**
+         * The promise that resolves when the collection is loaded.
+         */
         promise: Promise<void>;
+        /**
+         * The abort controller that can be used to cancel the collection load.
+         */
         abortController: AbortController;
       }
     | {
+        /**
+         * Failed to load resources and resource templates from the MCP server.
+         */
         status: "error";
+        /**
+         * The error message.
+         */
         message: string;
       };
 
+  /**
+   * The state of the resource manager service.
+   */
   export type State = {
-    bundles: Map<string, ResourcesBundle>;
+    /**
+     * The collections of resources and resource templates from MCP server connections.
+     */
+    collections: Map<string, ResourceCollection>;
   };
 
-  export type ReadResourceOptions = {
+  /**
+   * Options for reading a resource.
+   */
+  export type ReadOptions = {
+    /**
+     * The URI of the resource to read.
+     */
     uri: string;
   };
 }
