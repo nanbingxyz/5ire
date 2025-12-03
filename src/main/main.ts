@@ -64,6 +64,7 @@ import { MCPToolsManager } from "@/main/services/mcp-tools-manager";
 import { PromptManager } from "@/main/services/prompt-manager";
 import { Renderer } from "@/main/services/renderer";
 import { Settings } from "@/main/services/settings";
+import { ShutdownCoordinator } from "@/main/services/shutdown-coordinator";
 import { Updater } from "@/main/services/updater";
 import { URLParser } from "@/main/services/url-parser";
 import ModuleContext from "./mcp";
@@ -151,6 +152,7 @@ Container.singleton(MCPConnectionsManagerBridge, () => new MCPConnectionsManager
 Container.singleton(MCPServersManagerBridge, () => new MCPServersManagerBridge());
 Container.singleton(DeepLinkHandler, () => new DeepLinkHandler());
 Container.singleton(DeepLinkHandlerBridge, () => new DeepLinkHandlerBridge());
+Container.singleton(ShutdownCoordinator, () => new ShutdownCoordinator());
 
 // init crash reporter
 (() => {
