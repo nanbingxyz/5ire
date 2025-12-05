@@ -68,11 +68,14 @@ export class MCPConnectionsManager extends Stateful<MCPConnectionsManager.State>
   #connect(server: MCPConnectionsManager.ServerSnapshot) {
     const logger = this.#logger.scope("Connect");
 
-    if (this.state.connections.get(server.id)?.status !== "error") {
-      return;
+    {
+      const connection = this.state.connections.get(server.id);
+      if (connection && connection.status !== "error") {
+        return logger.info(`Server already connected: ${server.id} ("${server.endpoint}")`);
+      }
     }
 
-    logger.debug("Connecting to mcp server:", server);
+    logger.info("Connecting to mcp server:", server);
 
     const controller = new AbortController();
     const connection: MCPConnectionsManager.Connection = {
@@ -114,6 +117,10 @@ export class MCPConnectionsManager extends Stateful<MCPConnectionsManager.State>
           let connectError: unknown;
 
           for (let retries = 0; retries < 3; retries++) {
+            if (retries > 0) {
+              logger.info(`Retrying connection to mcp server: ${server.id} ("${server.endpoint}")`);
+            }
+
             await new Promise((resolve) => setTimeout(resolve, 1000 * retries));
 
             try {
@@ -144,6 +151,8 @@ export class MCPConnectionsManager extends Stateful<MCPConnectionsManager.State>
                 serverSnapshot: server,
               } satisfies MCPConnectionsManager.Connection;
 
+              logger.info(`Connected to mcp server: ${server.id} ("${server.endpoint}")`);
+
               this.update((draft) => {
                 draft.connections.set(server.id, connected);
               });
@@ -151,6 +160,8 @@ export class MCPConnectionsManager extends Stateful<MCPConnectionsManager.State>
                 id: server.id,
                 connection: connected,
               });
+
+              return;
             } catch (e) {
               if (controller.signal.aborted) {
                 return;
@@ -161,7 +172,7 @@ export class MCPConnectionsManager extends Stateful<MCPConnectionsManager.State>
           }
 
           logger.capture(connectError, {
-            reason: "Failed to connect to mcp server",
+            reason: `Failed to connect to mcp server: ${server.id} ("${server.endpoint}")`,
           });
 
           this.update((draft) => {
