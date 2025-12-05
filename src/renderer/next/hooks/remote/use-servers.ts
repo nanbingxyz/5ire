@@ -1,3 +1,4 @@
+import { useRef } from "react";
 import { clear, suspend } from "suspend-react";
 import { useStore } from "zustand";
 import { createStateStreamStore } from "@/renderer/next/hooks/remote/utils";
@@ -21,4 +22,8 @@ export const useServers = () => {
 
 export const useServersWithSelector = <T>(selector: (raw: ReturnType<typeof useServers>) => T) => {
   return useStore(suspend(createStore, [key]), selector);
+};
+
+export const useServersRef = () => {
+  return useRef(suspend(createStore, [key]));
 };

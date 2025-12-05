@@ -391,5 +391,9 @@ export namespace MCPToolsManager {
      * The tool input.
      */
     input?: Record<string, unknown>;
+    /**
+     * The conversation ID.
+     */
+    conversationId?: string;
   };
 }
