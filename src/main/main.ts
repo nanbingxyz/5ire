@@ -26,12 +26,7 @@ import { HttpsProxyAgent } from "https-proxy-agent";
 import fetch from "node-fetch";
 import type { IMCPServer } from "types/mcp";
 import { isValidMCPServer, isValidMCPServerKey } from "utils/validators";
-import {
-  KNOWLEDGE_IMPORT_MAX_FILE_SIZE,
-  KNOWLEDGE_IMPORT_MAX_FILES,
-  SUPPORTED_FILE_TYPES,
-  SUPPORTED_IMAGE_TYPES,
-} from "@/consts";
+import { KNOWLEDGE_IMPORT_MAX_FILE_SIZE, SUPPORTED_IMAGE_TYPES } from "@/consts";
 import { DeepLinkHandlerBridge } from "@/main/bridge/deep-link-handler-bridge";
 import { DocumentEmbedderBridge } from "@/main/bridge/document-embedder-bridge";
 import { DocumentManagerBridge } from "@/main/bridge/document-manager-bridge";
@@ -40,7 +35,7 @@ import { EmbedderBridge } from "@/main/bridge/embedder-bridge";
 import { EncryptorBridge } from "@/main/bridge/encryptor-bridge";
 import { LegacyDataMigratorBridge } from "@/main/bridge/legacy-data-migrator-bridge";
 import { MCPConnectionsManagerBridge } from "@/main/bridge/mcp-connections-manager-bridge";
-import { MCPToolHandlerBridge } from "@/main/bridge/mcp-tool-handler-bridge";
+import { MCPServersManagerBridge } from "@/main/bridge/mcp-servers-manager-bridge";
 import { PromptManagerBridge } from "@/main/bridge/prompt-manager-bridge";
 import { RendererBridge } from "@/main/bridge/renderer-bridge";
 import { SettingsBridge } from "@/main/bridge/settings-bridge";
@@ -59,12 +54,17 @@ import { LegacyDataMigrator } from "@/main/services/legacy-data-migrator";
 import { LegacyServersConfigLoader } from "@/main/services/legacy-servers-config-loader";
 import { LegacyVectorDatabaseLoader } from "@/main/services/legacy-vector-database-loader";
 import { Logger } from "@/main/services/logger";
+import { MCPCompletionHandler } from "@/main/services/mcp-completion-handler";
 import { MCPConnectionsManager } from "@/main/services/mcp-connections-manager";
 import { MCPContentConverter } from "@/main/services/mcp-content-converter";
-import { MCPToolHandler } from "@/main/services/mcp-tool-handler";
+import { MCPPromptsManager } from "@/main/services/mcp-prompts-manager";
+import { MCPResourcesManager } from "@/main/services/mcp-resources-manager";
+import { MCPServersManager } from "@/main/services/mcp-servers-manager";
+import { MCPToolsManager } from "@/main/services/mcp-tools-manager";
 import { PromptManager } from "@/main/services/prompt-manager";
 import { Renderer } from "@/main/services/renderer";
 import { Settings } from "@/main/services/settings";
+import { ShutdownCoordinator } from "@/main/services/shutdown-coordinator";
 import { Updater } from "@/main/services/updater";
 import { URLParser } from "@/main/services/url-parser";
 import ModuleContext from "./mcp";
@@ -142,12 +142,17 @@ Container.singleton(PromptManager, () => new PromptManager());
 Container.singleton(PromptManagerBridge, () => new PromptManagerBridge());
 Container.singleton(URLParser, () => new URLParser());
 Container.singleton(MCPContentConverter, () => new MCPContentConverter());
+Container.singleton(MCPServersManager, () => new MCPServersManager());
 Container.singleton(MCPConnectionsManager, () => new MCPConnectionsManager());
-Container.singleton(MCPToolHandler, () => new MCPToolHandler());
+Container.singleton(MCPToolsManager, () => new MCPToolsManager());
+Container.singleton(MCPPromptsManager, () => new MCPPromptsManager());
+Container.singleton(MCPResourcesManager, () => new MCPResourcesManager());
+Container.singleton(MCPCompletionHandler, () => new MCPCompletionHandler());
 Container.singleton(MCPConnectionsManagerBridge, () => new MCPConnectionsManagerBridge());
-Container.singleton(MCPToolHandlerBridge, () => new MCPToolHandlerBridge());
+Container.singleton(MCPServersManagerBridge, () => new MCPServersManagerBridge());
 Container.singleton(DeepLinkHandler, () => new DeepLinkHandler());
 Container.singleton(DeepLinkHandlerBridge, () => new DeepLinkHandlerBridge());
+Container.singleton(ShutdownCoordinator, () => new ShutdownCoordinator());
 
 // init crash reporter
 (() => {
@@ -313,7 +318,7 @@ if (!gotTheLock) {
       Container.inject(LegacyDataMigratorBridge).expose(ipcMain);
       Container.inject(PromptManagerBridge).expose(ipcMain);
       Container.inject(MCPConnectionsManagerBridge).expose(ipcMain);
-      Container.inject(MCPToolHandlerBridge).expose(ipcMain);
+      Container.inject(MCPServersManagerBridge).expose(ipcMain);
 
       Container.inject(Embedder)
         .init()
@@ -333,19 +338,19 @@ if (!gotTheLock) {
           logger.error("Failed to init document embedder:", err);
         });
 
+      await Container.inject(Database).ready;
+      await Container.inject(Renderer).init();
+
+      Container.inject(LegacyDataMigrator)
+        .migrate(legacySqliteDatabase)
+        .catch((error) => {
+          logger.error("Failed to migrate legacy data:", error);
+        });
+
       Container.inject(MCPConnectionsManager)
         .init()
         .catch((error) => {
           logger.error("Failed to init MCP connections manager:", error);
-        });
-
-      await Container.inject(Database).ready;
-      await Container.inject(Renderer).init();
-
-      await Container.inject(LegacyDataMigrator)
-        .migrate(legacySqliteDatabase)
-        .catch((error) => {
-          console.log(error);
         });
 
       app.on("activate", () => {
@@ -599,53 +604,6 @@ ipcMain.handle("get-user-data-path", (_, paths) => {
 
 ipcMain.handle("get-system-language", () => {
   return app.getLocale();
-});
-
-// eslint-disable-next-line consistent-return
-ipcMain.handle("select-knowledge-files", async () => {
-  const logger = Container.inject(Logger).scope("Main:SelectKnowledgeFiles");
-  try {
-    const result = await dialog.showOpenDialog({
-      properties: ["openFile", "multiSelections"],
-      filters: [
-        {
-          name: "Documents",
-          extensions: ["doc", "docx", "pdf", "md", "txt", "csv", "pptx", "xlsx"],
-        },
-      ],
-    });
-    if (result.filePaths.length > KNOWLEDGE_IMPORT_MAX_FILES) {
-      dialog.showErrorBox("Error", `Please not more than ${KNOWLEDGE_IMPORT_MAX_FILES} files a time.`);
-      return "[]";
-    }
-    const files = [];
-    // eslint-disable-next-line no-restricted-syntax
-    for (const filePath of result.filePaths) {
-      // eslint-disable-next-line no-await-in-loop
-      const fileType = await getFileType(filePath);
-      if (!SUPPORTED_FILE_TYPES[fileType]) {
-        dialog.showErrorBox("Error", `Unsupported file type ${fileType} for ${filePath}`);
-        return "[]";
-      }
-      // eslint-disable-next-line no-await-in-loop
-      const fileInfo: any = await getFileInfo(filePath);
-      if (fileInfo.size > KNOWLEDGE_IMPORT_MAX_FILE_SIZE) {
-        dialog.showErrorBox(
-          "Error",
-          `the size of ${filePath} exceeds the limit (${KNOWLEDGE_IMPORT_MAX_FILE_SIZE / (1024 * 1024)} MB})`,
-        );
-        return "[]";
-      }
-      fileInfo.type = fileType;
-      files.push(fileInfo);
-    }
-    logger.debug(files);
-    return JSON.stringify(files);
-  } catch (err: any) {
-    logger.capture(err, {
-      reason: "Failed to select knowledge files",
-    });
-  }
 });
 
 // eslint-disable-next-line consistent-return

@@ -8,10 +8,12 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@fluentui/react-components";
+import { asError } from "catch-unknown";
 import { useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
 import Empty from "renderer/components/Empty";
+import useToast from "@/hooks/useToast";
 import { captureException } from "@/renderer/logging";
 import { useEmbedder } from "@/renderer/next/hooks/remote/use-embedder";
 import { useLiveCollections } from "@/renderer/next/hooks/remote/use-live-collections";
@@ -21,28 +23,18 @@ const ImportButton = () => {
   const { id } = useParams();
   const { t } = useTranslation();
 
+  const toast = useToast();
   const navigate = useNavigate();
   const embedder = useEmbedder();
   const ready = embedder.status.type === "ready";
 
   const handleImport = () => {
-    window.electron.knowledge
-      .selectFiles()
-      .then((data: any) => {
-        const files = JSON.parse(data) as Array<{ path: string }>;
-
-        if (!files.length) {
-          return;
-        }
-
-        window.bridge.documentManager.importDocuments({
-          collection: id!,
-          urls: files.map((file) => `file://${file.path}`),
-        });
-      })
-      .catch((err) => {
+    if (id) {
+      window.bridge.documentManager.importDocumentsFromFileSystem({ collection: id }).catch((err) => {
         captureException(err);
+        toast.notifyError(asError(err).message);
       });
+    }
   };
 
   if (ready) {

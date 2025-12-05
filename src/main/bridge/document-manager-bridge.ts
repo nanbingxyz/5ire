@@ -11,6 +11,7 @@ export class DocumentManagerBridge extends Bridge.define("document-manager", () 
     updateCollection: service.updateCollection.bind(service),
     toggleCollectionPin: service.toggleCollectionPin.bind(service),
     importDocuments: service.importDocuments.bind(service),
+    importDocumentsFromFileSystem: service.importDocumentsFromFileSystem.bind(service),
     deleteDocument: service.deleteDocument.bind(service),
     queryChunks: service.queryChunks.bind(service),
     associateCollection: service.associateCollection.bind(service),

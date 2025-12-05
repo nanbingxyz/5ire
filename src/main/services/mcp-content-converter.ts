@@ -46,7 +46,7 @@ export class MCPContentConverter {
     if (block.type === "text") {
       const text: Part.Text = {
         type: "text",
-        text: block.text,
+        text: block.text.trim(),
       };
       return text;
     }
@@ -84,29 +84,42 @@ export class MCPContentConverter {
     }
 
     if (block.type === "resource") {
-      const content = block.resource as TextResourceContents | BlobResourceContents;
+      return this.convertResourceContent(
+        block.resource as TextResourceContents | BlobResourceContents,
+        serverId,
+        block.resource.uri,
+      );
+    }
 
-      if ("text" in content) {
-        const resource: Part.Resource = {
-          type: "resource",
-          url: this.#convertResourceURI(block.resource.uri, serverId),
-          mimetype: content.mimeType || "text/plain",
-          content: (content as TextResourceContents).text,
-        };
+    throw new Error(`Unknown content block type: ${block}`);
+  }
 
-        return resource;
-      }
-
+  /**
+   * Converts a resource content to the internally used generic Part type.
+   *
+   * @param content - The resource content to convert
+   * @param serverId - The MCP server ID
+   * @param uri - The resource URI
+   */
+  convertResourceContent(content: TextResourceContents | BlobResourceContents, serverId: string, uri: string) {
+    if ("text" in content) {
       const resource: Part.Resource = {
         type: "resource",
-        url: this.#convertResourceURI(block.resource.uri, serverId),
-        mimetype: content.mimeType || "application/octet-stream",
-        content: Buffer.from((content as BlobResourceContents).blob, "base64"),
+        url: this.#convertResourceURI(uri, serverId),
+        mimetype: content.mimeType || "text/plain",
+        content: (content as TextResourceContents).text,
       };
 
       return resource;
     }
 
-    throw new Error(`Unknown content block type: ${block}`);
+    const resource: Part.Resource = {
+      type: "resource",
+      url: this.#convertResourceURI(uri, serverId),
+      mimetype: content.mimeType || "application/octet-stream",
+      content: Buffer.from((content as BlobResourceContents).blob, "base64"),
+    };
+
+    return resource;
   }
 }

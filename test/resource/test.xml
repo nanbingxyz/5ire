@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<root>
+    <name>Test XML File</name>
+    <purpose>This is an XML file for testing .xml file handling</purpose>
+    <data>
+        <item key="key1">value1</item>
+        <item key="key2">value2</item>
+    </data>
+</root>

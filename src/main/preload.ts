@@ -13,7 +13,7 @@ import type { EmbedderBridge } from "@/main/bridge/embedder-bridge";
 import type { EncryptorBridge } from "@/main/bridge/encryptor-bridge";
 import type { LegacyDataMigratorBridge } from "@/main/bridge/legacy-data-migrator-bridge";
 import type { MCPConnectionsManagerBridge } from "@/main/bridge/mcp-connections-manager-bridge";
-import type { MCPToolHandlerBridge } from "@/main/bridge/mcp-tool-handler-bridge";
+import type { MCPServersManagerBridge } from "@/main/bridge/mcp-servers-manager-bridge";
 import type { PromptManagerBridge } from "@/main/bridge/prompt-manager-bridge";
 import type { RendererBridge } from "@/main/bridge/renderer-bridge";
 import type { SettingsBridge } from "@/main/bridge/settings-bridge";
@@ -71,6 +71,7 @@ const BRIDGE = {
     updateCollection: "async",
     toggleCollectionPin: "async",
     importDocuments: "async",
+    importDocumentsFromFileSystem: "async",
     deleteDocument: "async",
     liveCollections: "stream",
     liveDocuments: "stream",
@@ -98,15 +99,27 @@ const BRIDGE = {
     handled: "async",
   }),
   mcpConnectionsManager: connector.connect<MCPConnectionsManagerBridge>("mcp-connections-manager", {
-    createServer: "async",
-    deleteServer: "async",
-    updateServer: "async",
-    activeServer: "async",
-    inactiveServer: "async",
-    createConnectionsStateStream: "stream",
+    createStateStream: "stream",
+    tool: {
+      call: "async",
+      createStateStream: "stream",
+    },
+    prompt: {
+      createStateStream: "stream",
+      get: "async",
+    },
+    resource: {
+      read: "async",
+      createStateStream: "stream",
+    },
   }),
-  mcpToolHandler: connector.connect<MCPToolHandlerBridge>("mcp-tool-handler", {
-    createToolBundlesStateStream: "stream",
+  mcpServersManager: connector.connect<MCPServersManagerBridge>("mcp-servers-manager", {
+    createServer: "async",
+    updateServer: "async",
+    deleteServer: "async",
+    activateServer: "async",
+    deactivateServer: "async",
+    liveServers: "stream",
   }),
 };
 
