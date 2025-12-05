@@ -13,42 +13,35 @@ export class MCPConnectionsManagerBridge extends Bridge.define("mcp-connections-
 
   return {
     createStateStream: () => {
-      const transformConnections = (connections: Map<string, MCPConnectionsManager.Connection>) => {
-        const entries = [...connections.entries()].map(([id, connection]) => {
-          if (connection.status === "connected") {
-            return [
-              id,
-              {
-                status: connection.status,
-                capabilities: connection.capabilities,
-                projectId: connection.projectId,
-              },
-            ];
-          }
+      const transformConnection = (connection: MCPConnectionsManager.Connection) => {
+        if (connection.status === "connected") {
+          return {
+            status: connection.status,
+            capabilities: connection.capabilities,
+            projectId: connection.projectId,
+          };
+        }
 
-          if (connection.status === "connecting") {
-            return [
-              id,
-              {
-                status: connection.status,
-              },
-            ];
-          }
+        if (connection.status === "connecting") {
+          return {
+            status: connection.status,
+          };
+        }
 
-          return [
-            id,
-            {
-              status: connection.status,
-              error: connection.error,
-            },
-          ];
-        });
-
-        return Object.fromEntries(entries);
+        return {
+          status: connection.status,
+          error: connection.error,
+        };
       };
 
       return connectionsManager.createStream((state) => {
-        return transformConnections(state.connections);
+        const r: Record<string, ReturnType<typeof transformConnection>> = {};
+
+        for (const [k, c] of state.connections.entries()) {
+          r[k] = transformConnection(c);
+        }
+
+        return r;
       });
     },
 
