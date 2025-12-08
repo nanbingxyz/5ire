@@ -320,6 +320,9 @@ if (!gotTheLock) {
       Container.inject(MCPConnectionsManagerBridge).expose(ipcMain);
       Container.inject(MCPServersManagerBridge).expose(ipcMain);
 
+      await Container.inject(Database).init();
+      await Container.inject(Renderer).init();
+
       Container.inject(Embedder)
         .init()
         .catch((error) => {
@@ -337,9 +340,6 @@ if (!gotTheLock) {
         .catch((err) => {
           logger.error("Failed to init document embedder:", err);
         });
-
-      await Container.inject(Database).ready;
-      await Container.inject(Renderer).init();
 
       Container.inject(LegacyDataMigrator)
         .migrate(legacySqliteDatabase)
