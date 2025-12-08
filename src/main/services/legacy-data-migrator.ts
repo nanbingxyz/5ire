@@ -368,7 +368,7 @@ export class LegacyDataMigrator extends Stateful.Persistable<LegacyDataMigrator.
     );
   }
 
-  async #migrateServersConfig(context: LegacyDataMigrator.Context) {
+  async #migrateServersConfig(_: LegacyDataMigrator.Context) {
     const logger = this.#logger.scope("MigrateServersConfig");
     const schema = this.#database.schema;
     const client = this.#database.client;
@@ -426,7 +426,7 @@ export class LegacyDataMigrator extends Stateful.Persistable<LegacyDataMigrator.
 
     this.update((draft) => {
       draft.migrated.serversConfig = {
-        total: 0,
+        total: migratedServers.length,
         time: new Date(),
       };
     });
