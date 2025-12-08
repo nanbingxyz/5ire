@@ -71,6 +71,20 @@
       "when": 1763366429472,
       "tag": "0009_luxuriant_talon",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1765164815357,
+      "tag": "0010_hot_professor_monster",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1765165198492,
+      "tag": "0011_swift_eddie_brock",
+      "breakpoints": true
     }
   ]
 }

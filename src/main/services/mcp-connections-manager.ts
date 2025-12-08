@@ -1,5 +1,4 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { SSEClientTransport } from "@modelcontextprotocol/sdk/client/sse.js";
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import type { ClientCapabilities, Implementation, ServerCapabilities } from "@modelcontextprotocol/sdk/types.js";
@@ -61,6 +60,40 @@ export class MCPConnectionsManager extends Stateful<MCPConnectionsManager.State>
   }
 
   /**
+   * Creates a transport client for connecting to an MCP server based on the server's transport configuration.
+   *
+   * @param server - The server configuration containing transport type, endpoint, and optional config
+   * @returns A configured client transport instance ready for MCP communication
+   * @throws {Error} When stdio transport endpoint is invalid or missing command
+   */
+  #transport(server: MCPConnectionsManager.ServerSnapshot) {
+    if (server.transport === "stdio") {
+      const args = server.endpoint.split(" ").filter(Boolean);
+      const command = args.shift();
+
+      if (!command) {
+        throw new Error(`Invalid stdio transport endpoint: ${server.endpoint}`);
+      }
+
+      return new StdioClientTransport({
+        command,
+        args,
+        env: server.config,
+        stderr: "ignore",
+      });
+    }
+
+    const url = new URL(server.endpoint);
+    const requestInit: RequestInit = {
+      headers: server.config,
+    };
+
+    // StreamableHTTPClientTransport can handle both SSE and HTTP Stream transport modes
+    // so SSEClientTransport is no longer needed
+    return new StreamableHTTPClientTransport(url, { requestInit });
+  }
+
+  /**
    * Establishes a connection to an MCP server with automatic retry logic.
    *
    * @param server - The server configuration to connect to
@@ -82,107 +115,78 @@ export class MCPConnectionsManager extends Stateful<MCPConnectionsManager.State>
       status: "connecting",
       controller,
       serverSnapshot: server,
-      promise: Promise.resolve()
-        .then(() => {
-          if (server.transport === "stdio") {
-            const args = server.endpoint.split(" ").filter(Boolean);
-            const command = args.shift();
+      promise: Promise.resolve().then(async () => {
+        let connectError: unknown;
 
-            if (!command) {
-              throw new Error(`Invalid stdio transport endpoint: ${server.endpoint}`);
-            }
+        for (let retries = 0; retries < 3; retries++) {
+          if (retries > 0) {
+            logger.info(`Retrying connection to mcp server: ${server.id} ("${server.endpoint}")`);
+          }
 
-            return new StdioClientTransport({
-              command,
-              args,
-              env: server.config,
-              stderr: "ignore",
+          // Wait for a moment before retrying, increasing the delay with each retry
+          await new Promise((resolve) => setTimeout(resolve, 1000 * retries));
+
+          try {
+            const client = new Client(CLIENT_IMPLEMENTATION, { capabilities: CLIENT_CAPABILITIES });
+            const capabilities = await client.connect(this.#transport(server), {}).then(() => {
+              const data = client.getServerCapabilities();
+
+              if (!data) {
+                return client
+                  .close()
+                  .catch(() => {})
+                  .then(() => {
+                    throw new Error("Server does not support the required capabilities");
+                  });
+              }
+
+              return data;
             });
-          }
 
-          const url = new URL(server.endpoint);
-          const requestInit: RequestInit = {
-            headers: server.config,
-          };
-
-          if (server.transport === "sse") {
-            return new SSEClientTransport(url, { requestInit });
-          } else {
-            return new StreamableHTTPClientTransport(url, { requestInit });
-          }
-        })
-        .then(async (transport) => {
-          const client = new Client(CLIENT_IMPLEMENTATION, { capabilities: CLIENT_CAPABILITIES });
-
-          let connectError: unknown;
-
-          for (let retries = 0; retries < 3; retries++) {
-            if (retries > 0) {
-              logger.info(`Retrying connection to mcp server: ${server.id} ("${server.endpoint}")`);
+            if (controller.signal.aborted) {
+              return client.close().catch(() => {});
             }
 
-            await new Promise((resolve) => setTimeout(resolve, 1000 * retries));
-
-            try {
-              const capabilities = await client.connect(transport, {}).then(() => {
-                const data = client.getServerCapabilities();
-
-                if (!data) {
-                  return client
-                    .close()
-                    .catch(() => {})
-                    .then(() => {
-                      throw new Error("Server does not support the required capabilities");
-                    });
-                }
-
-                return data;
-              });
-
-              if (controller.signal.aborted) {
-                return client.close().catch(() => {});
-              }
-
-              const connected = {
-                status: "connected",
-                client,
-                capabilities,
-                projectId: server.projectId || undefined,
-                serverSnapshot: server,
-              } satisfies MCPConnectionsManager.Connection;
-
-              logger.info(`Connected to mcp server: ${server.id} ("${server.endpoint}")`);
-
-              this.update((draft) => {
-                draft.connections.set(server.id, connected);
-              });
-              this.emitter.emit("server-connected", {
-                id: server.id,
-                connection: connected,
-              });
-
-              return;
-            } catch (e) {
-              if (controller.signal.aborted) {
-                return;
-              }
-
-              connectError = e;
-            }
-          }
-
-          logger.capture(connectError, {
-            reason: `Failed to connect to mcp server: ${server.id} ("${server.endpoint}")`,
-          });
-
-          this.update((draft) => {
-            draft.connections.set(server.id, {
-              status: "error",
-              error: asError(connectError).message,
+            const connected = {
+              status: "connected",
+              client,
+              capabilities,
+              projectId: server.projectId || undefined,
               serverSnapshot: server,
+            } satisfies MCPConnectionsManager.Connection;
+
+            logger.info(`Connected to mcp server: ${server.id} ("${server.endpoint}")`);
+
+            this.update((draft) => {
+              draft.connections.set(server.id, connected);
             });
+            this.emitter.emit("server-connected", {
+              id: server.id,
+              connection: connected,
+            });
+
+            return;
+          } catch (e) {
+            if (controller.signal.aborted) {
+              return;
+            }
+
+            connectError = e;
+          }
+        }
+
+        logger.capture(connectError, {
+          reason: `Failed to connect to mcp server: ${server.id} ("${server.endpoint}")`,
+        });
+
+        this.update((draft) => {
+          draft.connections.set(server.id, {
+            status: "error",
+            error: asError(connectError).message,
+            serverSnapshot: server,
           });
-        }),
+        });
+      }),
     };
 
     this.update((draft) => {
