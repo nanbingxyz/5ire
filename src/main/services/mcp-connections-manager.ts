@@ -281,9 +281,19 @@ export class MCPConnectionsManager extends Stateful<MCPConnectionsManager.State>
               }
             } else {
               if (connection) {
-                //
+                if (change.__op__ === "UPDATE") {
+                  Object.assign(server, connection.serverSnapshot);
+
+                  for (const column of change.__changed_columns__) {
+                    if (column in server) {
+                      // @ts-expect-error
+                      server[column] = change[column];
+                    }
+                  }
+                }
+
                 if (isEqual(connection.serverSnapshot, server)) {
-                  return;
+                  continue;
                 }
               }
 
