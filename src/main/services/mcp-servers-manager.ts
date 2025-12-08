@@ -267,7 +267,7 @@ export namespace MCPServersManager {
   /**
    * Options for updating a MCP server.
    */
-  export type UpdateServerOptions = Omit<CreateServerOptions, "projectId" | "active"> & {
+  export type UpdateServerOptions = Omit<CreateServerOptions, "projectId" | "active" | "transport"> & {
     /**
      * The ID of the server to update.
      */

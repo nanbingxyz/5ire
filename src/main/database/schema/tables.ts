@@ -574,10 +574,9 @@ export const usage = pgTable("usages", usageColumns, (table) => {
 /**
  * MCP server transport protocols
  * - stdio: Standard Input/Output
- * - sse: Server Sent Events
  * - http-streamable: HTTP Streamable
  */
-export const serverTransport = pgEnum("server_transport", ["stdio", "sse", "http-streamable"]);
+export const serverTransport = pgEnum("server_transport", ["stdio", "http-streamable"]);
 
 /**
  * Approval policy when model requests to call tools:

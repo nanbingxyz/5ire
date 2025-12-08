@@ -407,16 +407,6 @@ export class LegacyDataMigrator extends Stateful.Persistable<LegacyDataMigrator.
             approvalPolicy: server.approvalPolicy,
             active: server.isActive,
           };
-
-          await fetch(data.endpoint, { headers: data.config, signal: AbortSignal.timeout(5000) })
-            .then((res) => {
-              if (res.status === 200 && res.headers.get("content-type")?.startsWith("text/event-stream")) {
-                data.transport = "sse";
-              }
-            })
-            .catch((error) => {
-              logger.warning(`Failed to get remote server transport type: "${data.endpoint}"`, error);
-            });
         }
 
         await client
