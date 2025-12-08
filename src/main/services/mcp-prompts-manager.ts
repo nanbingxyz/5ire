@@ -213,6 +213,13 @@ export class MCPPromptsManager extends Stateful<MCPPromptsManager.State> {
         return;
       }
 
+      this.update((draft) => {
+        draft.collections.set(id, {
+          status: "loaded",
+          prompts: [],
+        });
+      });
+
       if (connection.capabilities.prompts.listChanged) {
         connection.client.setNotificationHandler(PromptListChangedNotificationSchema, () => {
           this.#fetchPrompts(id, connection);

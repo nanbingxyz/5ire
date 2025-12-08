@@ -378,5 +378,6 @@
   "Knowledge.Notification.DocumentDeleted": "The document has been removed.",
   "Tools.Transport": "Transport",
   "Common.URLInvalid": "URL is invalid",
-  "Common.Active": "Active"
+  "Common.Active": "Active",
+  "Common.Browse": "Browse"
 }

@@ -130,7 +130,7 @@ const ServerStateIndicator = (props: { id: string }) => {
 export type ServerGridProps = {
   onEdit: (id: string) => void;
   onDelete: (id: string) => void;
-  onInspect: (id: string) => void;
+  onBrowse: (id: string) => void;
 };
 
 export const ServerGrid = (props: ServerGridProps) => {
@@ -142,6 +142,14 @@ export const ServerGrid = (props: ServerGridProps) => {
 
   const servers = useServersWithSelector((raw) => {
     return raw.rows.map((row) => row);
+  });
+
+  const connectedServers = useServerConnectionsWithSelector((raw) => {
+    return Object.entries(raw)
+      .filter(([_, connection]) => connection.status === "connected")
+      .map(([id]) => {
+        return id;
+      });
   });
 
   useEffect(() => {
@@ -235,11 +243,11 @@ export const ServerGrid = (props: ServerGridProps) => {
                           {t("Common.Delete")}
                         </MenuItem>
                         <MenuItem
-                          disabled={!item.active}
+                          disabled={!connectedServers.includes(item.id)}
                           icon={<WrenchScrewdriverIcon />}
-                          onClick={() => props.onInspect(item.id)}
+                          onClick={() => props.onBrowse(item.id)}
                         >
-                          {t("Common.Tools")}
+                          {t("Common.Browse")}
                         </MenuItem>
                       </MenuList>
                     </MenuPopover>

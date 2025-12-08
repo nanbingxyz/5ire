@@ -6,7 +6,7 @@ const key = crypto.randomUUID();
 
 const createStore = async () => {
   return createStateStreamStore({
-    streamLoader: window.bridge.mcpConnectionsManager.resource.createStateStream,
+    streamLoader: window.bridge.mcpConnectionsManager.prompt.createStateStream,
     onDone: () => {
       clear([key]);
     },

@@ -367,5 +367,6 @@
   "Knowledge.Notification.DocumentDeleted": "文档已删除",
   "Tools.Transport": "链接模式",
   "Common.URLInvalid": "URL 地址无效",
-  "Common.Active": "激活"
+  "Common.Active": "激活",
+  "Common.Browse": "浏览"
 }
