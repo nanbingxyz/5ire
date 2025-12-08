@@ -19,7 +19,6 @@ import { useServersWithSelector } from "@/renderer/next/hooks/remote/use-servers
 import { ServerBrowser, type ServerBrowserInstance } from "@/renderer/pages/tool/ServerBrowser";
 import { ServerDeleteConfirm, type ServerDeleteConfirmInstance } from "@/renderer/pages/tool/ServerDeleteConfirm";
 import { ServerEditDialog, type ServerEditDialogInstance } from "@/renderer/pages/tool/ServerEditDialog";
-import DetailDialog from "./DetailDialog";
 import ToolInstallDialog from "./InstallDialog";
 import ToolMarketDrawer from "./MarketDrawer";
 import { ServerGrid } from "./ServerGrid";
@@ -29,10 +28,8 @@ const BuildingShopIcon = bundleIcon(BuildingShopFilled, BuildingShopRegular);
 export default function Tools() {
   const { t } = useTranslation();
   const [mktServer, setMktServer] = useState<IMCPServer | null>(null);
-  const [server] = useState<IMCPServer | null>(null);
   const [marketOpen, setMarketOpen] = useState(false);
   const [installDialogOpen, setInstallDialogOpen] = useState(false);
-  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
 
   const refServerEditDialog = useRef<ServerEditDialogInstance>(null);
   const refServerDeleteConfirm = useRef<ServerDeleteConfirmInstance>(null);
@@ -150,7 +147,6 @@ export default function Tools() {
       {/*  setOpen={setRemoteServerEditDialogOpen}*/}
       {/*  server={server}*/}
       {/*/>*/}
-      {server && <DetailDialog open={detailDialogOpen} setOpen={setDetailDialogOpen} server={server} />}
       {mktServer && <ToolInstallDialog server={mktServer} open={installDialogOpen} setOpen={setInstallDialogOpen} />}
       <ToolMarketDrawer open={marketOpen} setOpen={setMarketOpen} onInstall={installServer} />
 
