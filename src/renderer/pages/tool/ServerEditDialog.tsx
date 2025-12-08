@@ -150,7 +150,6 @@ export const ServerEditDialog = forwardRef<ServerEditDialogInstance>((_, ref) =>
             label: serverLabel,
             endpoint: serverEndpoint,
             approvalPolicy: serverApprovalPolicy,
-            transport: serverTransport,
           });
         } else {
           return window.bridge.mcpServersManager.createServer({
@@ -292,22 +291,6 @@ export const ServerEditDialog = forwardRef<ServerEditDialogInstance>((_, ref) =>
           </RadioGroup>
         </Field>
 
-        {/*transport*/}
-        {serverTransport !== "stdio" && (
-          <Field label={t("Tools.Transport")}>
-            <RadioGroup
-              value={serverTransport}
-              layout="horizontal"
-              onChange={(_, data) => {
-                setServerTransport(data.value as ServerTransport);
-              }}
-            >
-              <Radio key="sse" value="sse" label={"SSE"} />
-              <Radio key="http-streamable" value="http-streamable" label={"HTTP Stream"} />
-            </RadioGroup>
-          </Field>
-        )}
-
         {/*endpoint*/}
         <Field
           label={serverTransport === "stdio" ? t("Tools.Command") : t("Common.URL")}
@@ -323,6 +306,8 @@ export const ServerEditDialog = forwardRef<ServerEditDialogInstance>((_, ref) =>
             maxLength={128}
           />
         </Field>
+
+        {/*config*/}
         <Field label={serverTransport === "stdio" ? t("Tools.EnvVars") : t("Common.HttpHeaders")}>
           <div className="bg-gray-50 dark:bg-neutral-800 border rounded border-base">
             <div className="flex flex-start items-center border-b border-base px-1 py-1">
