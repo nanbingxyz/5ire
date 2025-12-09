@@ -382,5 +382,6 @@
   "Common.Browse": "Browse",
   "Common.RequestHeaders": "Headers",
   "Common.Environments": "Environment variables",
-  "Common.CommandLineArguments": "Arguments"
+  "Common.CommandLineArguments": "Arguments",
+  "Tool.ServerTemplateParseError": "Failed to parse server configuration."
 }

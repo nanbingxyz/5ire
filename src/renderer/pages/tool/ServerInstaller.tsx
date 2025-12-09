@@ -121,7 +121,7 @@ export const ServerInstaller = forwardRef<ServerInstallerInstance>((_, ref) => {
             argument: {},
           });
         } else {
-          // notifyError
+          notifyError(t("Tool.ServerTemplateParseError"));
         }
       },
     };
