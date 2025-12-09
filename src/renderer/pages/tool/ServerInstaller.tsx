@@ -68,9 +68,12 @@ export const ServerInstaller = forwardRef<ServerInstallerInstance>((_, ref) => {
   const { notifyError } = useToast();
 
   const [template, setTemplate] = useState<RequiredServerTemplate>();
-  const [configurationParams, setConfigurationParams] = useState<Record<string, string>>({});
-  const [argumentParams, setArgumentParams] = useState<Record<string, string | string[]>>({});
+  const [configParameters, setConfigParameters] = useState<Record<string, string>>({});
+  const [argumentParameters, setArgumentParameters] = useState<Record<string, string | string[]>>({});
   const [visible, setVisible] = useState(false);
+
+  const [label, setLabel] = useState("");
+  const [labelValidationError, setLabelValidationError] = useState<string | null>(null);
 
   const [errorMessages, setErrorMessages] = useState<Record<"config" | "argument", Record<string, string>>>({
     config: {},
@@ -83,12 +86,14 @@ export const ServerInstaller = forwardRef<ServerInstallerInstance>((_, ref) => {
         const result = ServerTemplateSchema.safeParse(template);
 
         if (result.success) {
+          const name = result.data.name || result.data.key || "New Server";
+
           if (result.data.__type__ === "local") {
             setTemplate({
               __type__: "local",
 
               key: result.data.key || "",
-              name: result.data.name || result.data.key || "New Server",
+              name,
               description: result.data.description || "",
               command: result.data.command,
               args: result.data.args || [],
@@ -99,16 +104,18 @@ export const ServerInstaller = forwardRef<ServerInstallerInstance>((_, ref) => {
               __type__: "remote",
 
               key: result.data.key || "",
-              name: result.data.name || result.data.key || "New Server",
+              name,
               description: result.data.description || "",
               url: result.data.url,
               headers: result.data.headers || {},
             });
           }
 
-          setConfigurationParams({});
-          setArgumentParams({});
+          setConfigParameters({});
+          setArgumentParameters({});
           setVisible(true);
+          setLabel(name);
+          setLabelValidationError(null);
           setErrorMessages({
             config: {},
             argument: {},
@@ -158,7 +165,7 @@ export const ServerInstaller = forwardRef<ServerInstallerInstance>((_, ref) => {
     const configTemplate = template.__type__ === "local" ? template.env : template.headers;
     const config: Record<string, string> = fillConfig(
       configTemplate,
-      omitBy(configurationParams, (value) => {
+      omitBy(configParameters, (value) => {
         return !value || value.length === 0;
       }),
     );
@@ -172,7 +179,7 @@ export const ServerInstaller = forwardRef<ServerInstallerInstance>((_, ref) => {
 
         arguments: fillArgs(
           template.args,
-          omitBy(argumentParams, (value) => {
+          omitBy(argumentParameters, (value) => {
             return !value || value.length === 0;
             // biome-ignore lint/suspicious/noExplicitAny: x
           }) as any,
@@ -188,7 +195,7 @@ export const ServerInstaller = forwardRef<ServerInstallerInstance>((_, ref) => {
         headers: config,
       };
     }
-  }, [template, argumentParams, configurationParams]);
+  }, [template, argumentParameters, configParameters]);
 
   const templatePreview = useMemo(() => {
     if (!templateRendered) {
@@ -231,7 +238,7 @@ export const ServerInstaller = forwardRef<ServerInstallerInstance>((_, ref) => {
     }
 
     for (const variable of variables) {
-      const value = configurationParams[variable.name];
+      const value = configParameters[variable.name];
 
       if (!value?.trim()) {
         result[variable.name] = t("Common.Required");
@@ -252,7 +259,7 @@ export const ServerInstaller = forwardRef<ServerInstallerInstance>((_, ref) => {
     const result: Record<string, string> = {};
 
     for (const variable of variablesInArguments || []) {
-      const value = argumentParams[variable.name];
+      const value = argumentParameters[variable.name];
 
       if (!value) {
         result[variable.name] = t("Common.Required");
@@ -287,6 +294,10 @@ export const ServerInstaller = forwardRef<ServerInstallerInstance>((_, ref) => {
     const configValidationErrors = validateConfigParameters();
     const argumentValidationErrors = validateArgumentParameters();
 
+    if (!label?.trim()) {
+      return setLabelValidationError(t("Common.Required"));
+    }
+
     if (Object.keys(configValidationErrors).length || Object.keys(argumentValidationErrors).length) {
       setErrorMessages({
         config: configValidationErrors,
@@ -306,7 +317,7 @@ export const ServerInstaller = forwardRef<ServerInstallerInstance>((_, ref) => {
     }
 
     const options: MCPServersManager.CreateServerOptions = {
-      label: templateRendered.label,
+      label: label,
       description: templateRendered.description,
       approvalPolicy: "always",
       config: templateRendered.type === "local" ? templateRendered.env : templateRendered.headers,
@@ -335,11 +346,11 @@ export const ServerInstaller = forwardRef<ServerInstallerInstance>((_, ref) => {
   const renderStringInput = (type: "config" | "argument", key: string, placeholder: string) => {
     const setValue = (value: string) => {
       type === "config"
-        ? setConfigurationParams((prev) => ({
+        ? setConfigParameters((prev) => ({
             ...prev,
             [key]: value,
           }))
-        : setArgumentParams((prev) => ({
+        : setArgumentParameters((prev) => ({
             ...prev,
             [key]: value,
           }));
@@ -359,7 +370,7 @@ export const ServerInstaller = forwardRef<ServerInstallerInstance>((_, ref) => {
   const renderListInput = (key: string, placeholder: string) => {
     console.log(key);
     const setValue = (value: string[]) => {
-      setArgumentParams((prev) => ({
+      setArgumentParameters((prev) => ({
         ...prev,
         [key]: value,
       }));
@@ -381,6 +392,24 @@ export const ServerInstaller = forwardRef<ServerInstallerInstance>((_, ref) => {
             {template?.name}
           </DialogTitle>
           <DialogContent>
+            {template && (
+              <Field
+                label={t("Tools.Name")}
+                validationMessage={labelValidationError || undefined}
+                validationState={labelValidationError ? "error" : "none"}
+              >
+                <Input
+                  className="w-full min-w-fit"
+                  placeholder={t("Common.Required")}
+                  value={label}
+                  onChange={(_, data) => {
+                    setLabel(data.value);
+                  }}
+                  maxLength={64}
+                />
+              </Field>
+            )}
+
             {variablesInArguments && variablesInArguments.length > 0 && (
               <div className="mb-4">
                 <div className="text-base font-bold mb-1">{t("Common.CommandLineArguments")}</div>
