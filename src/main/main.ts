@@ -8,6 +8,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path, { join, resolve } from "node:path";
 import type { Readable } from "node:stream";
+import { asError } from "catch-unknown";
 import {
   app,
   BrowserWindow,
@@ -677,16 +678,17 @@ ipcMain.handle("mcp-activate", async (_, server: IMCPServer) => {
 ipcMain.handle("mcp-deactivate", async (_, clientName: string) => {
   return mcp.deactivate(clientName);
 });
-ipcMain.handle("mcp-list-tools", async (_, name: string) => {
+ipcMain.handle("mcp-list-tools", async (_, __: string) => {
   const logger = Container.inject(Logger).scope("Main:MCPListTools");
+  const toolsManager = Container.inject(MCPToolsManager);
   try {
-    return await mcp.listTools(name);
-  } catch (error: any) {
+    return await toolsManager.legacyList();
+  } catch (error) {
     logger.error("Error listing MCP tools:", error);
     return {
       tools: [],
       error: {
-        message: error.message || "Unknown error listing tools",
+        message: asError(error).message || "Unknown error listing tools",
         code: "unexpected_error",
       },
     };
@@ -694,15 +696,21 @@ ipcMain.handle("mcp-list-tools", async (_, name: string) => {
 });
 ipcMain.handle("mcp-call-tool", async (_, args: { client: string; name: string; args: any; requestId?: string }) => {
   const logger = Container.inject(Logger).scope("Main:MCPCallTool");
+  const toolsManager = Container.inject(MCPToolsManager);
   try {
-    return await mcp.callTool(args);
-  } catch (error: any) {
+    return await toolsManager.legacyCall({
+      client: args.client,
+      name: args.name,
+      arguments: args.args,
+      requestId: args.requestId,
+    });
+  } catch (error) {
     logger.error("Error invoking MCP tool:", error);
     return {
       isError: true,
       content: [
         {
-          error: error.message || "Unknown error calling tool",
+          error: asError(error).message || "Unknown error calling tool",
           code: "unexpected_error",
         },
       ],
@@ -710,7 +718,7 @@ ipcMain.handle("mcp-call-tool", async (_, args: { client: string; name: string; 
   }
 });
 ipcMain.handle("mcp-cancel-tool", (_, requestId: string) => {
-  mcp.cancelToolCall(requestId);
+  return Container.inject(MCPToolsManager).legacyCancelCall({ requestId });
 });
 ipcMain.handle("mcp-list-prompts", async (_, name: string) => {
   const logger = Container.inject(Logger).scope("Main:MCPListPrompts");

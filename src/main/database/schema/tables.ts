@@ -614,13 +614,13 @@ const serverColumns = {
   /**
    * The endpoint for the server.
    * - When `transport` is "stdio", this is the command to start the process.
-   * - When `transport` is "sse" or "http-streamable", this is the URL to connect to.
+   * - When `transport` is "http-streamable", this is the URL to connect to.
    */
   endpoint: varchar({ length: 600 }).notNull(),
   /**
    * Configuration for the server.
    * - When `transport` is "stdio", this represents environment variables.
-   * - When `transport` is "sse" or "http-streamable", this represents HTTP headers.
+   * - When `transport` is "http-streamable", this represents HTTP headers.
    */
   config: jsonb().$type<Record<string, string>>().notNull(),
   /**
