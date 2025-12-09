@@ -69,12 +69,12 @@ export class DeepLinkHandler extends Stateful<DeepLinkHandler.State> {
   }
 
   /**
-   * Handles tool installation links
-   * Parses installation links containing tool information
-   * @param url Tool installation URL object
+   * Handles MCP Server installation links
+   * Parses installation links containing MCP Server information
+   * @param url MCP Server installation URL object
    */
-  #handleInstallTool(url: URL) {
-    const logger = this.#logger.scope("HandleInstallTool");
+  #handleInstallServer(url: URL) {
+    const logger = this.#logger.scope("HandleInstallServer");
 
     try {
       const data = url.hash.substring(1);
@@ -85,8 +85,8 @@ export class DeepLinkHandler extends Stateful<DeepLinkHandler.State> {
         draft.unhandledDeepLinks.push({
           id: crypto.randomUUID(),
           link: {
-            type: "install-tool",
-            tool: json,
+            type: "install-server",
+            server: json,
           },
         });
       });
@@ -136,13 +136,13 @@ export class DeepLinkHandler extends Stateful<DeepLinkHandler.State> {
     }
 
     if (url.protocol !== `${this.#environment.deepLinkProtocol}:`) {
-      return this.#logger.error("Invalid deep link:", link);
+      return this.#logger.error("Invalid deep link protocol:", link);
     }
 
     if (url.hostname === "login-callback") {
       this.#handleLogin(url);
-    } else if (url.hostname === "install-tool") {
-      this.#handleInstallTool(url);
+    } else if (url.hostname === "install-tool" || url.hostname === "install-server") {
+      this.#handleInstallServer(url);
     } else {
       this.#logger.error("Invalid deep link:", link);
     }
@@ -185,13 +185,13 @@ export namespace DeepLinkHandler {
       }
     | {
         /**
-         * Tool installation type link
+         * MCP Server installation type link
          */
-        type: "install-tool";
+        type: "install-server";
         /**
-         * Tool information
+         * MCP Server information
          */
-        tool: unknown;
+        server: unknown;
       }
     | {
         /**

@@ -184,6 +184,10 @@ const getMainWindow = () => {
 
 const onDeepLink = (link: string) => {
   const logger = Container.inject(Logger).scope("Main:OnDeepLink");
+  const deepLinkHandler = Container.inject(DeepLinkHandler);
+
+  deepLinkHandler.parse(link);
+
   const { host, hash } = new URL(link);
   if (host === "login-callback") {
     const params = new URLSearchParams(hash.substring(1));
@@ -319,6 +323,7 @@ if (!gotTheLock) {
       Container.inject(PromptManagerBridge).expose(ipcMain);
       Container.inject(MCPConnectionsManagerBridge).expose(ipcMain);
       Container.inject(MCPServersManagerBridge).expose(ipcMain);
+      Container.inject(DeepLinkHandlerBridge).expose(ipcMain);
 
       await Container.inject(Database).init();
       await Container.inject(Renderer).init();

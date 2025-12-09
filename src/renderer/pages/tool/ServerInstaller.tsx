@@ -13,7 +13,7 @@ import {
 import { Dismiss24Regular } from "@fluentui/react-icons";
 import { asError } from "catch-unknown";
 import { omitBy } from "lodash";
-import { forwardRef, useCallback, useImperativeHandle, useMemo, useState } from "react";
+import { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { z } from "zod";
 import useMarkdown from "@/hooks/useMarkdown";
@@ -59,8 +59,10 @@ type RequiredRemoteServerTemplate = {
 type RequiredServerTemplate = RequiredLocalServerTemplate | RequiredRemoteServerTemplate;
 
 export type ServerInstallerInstance = {
-  install: (template: unknown) => void;
+  install: (template: unknown, callback?: () => void) => void;
 };
+
+const noop = () => {};
 
 export const ServerInstaller = forwardRef<ServerInstallerInstance>((_, ref) => {
   const { t } = useTranslation();
@@ -80,9 +82,11 @@ export const ServerInstaller = forwardRef<ServerInstallerInstance>((_, ref) => {
     argument: {},
   });
 
+  const refInstallCallback = useRef(noop);
+
   useImperativeHandle(ref, () => {
     return {
-      install: (template: unknown) => {
+      install: (template: unknown, callback = noop) => {
         const result = ServerTemplateSchema.safeParse(template);
 
         if (result.success) {
@@ -120,8 +124,10 @@ export const ServerInstaller = forwardRef<ServerInstallerInstance>((_, ref) => {
             config: {},
             argument: {},
           });
+          refInstallCallback.current = callback;
         } else {
           notifyError(t("Tool.ServerTemplateParseError"));
+          noop();
         }
       },
     };
@@ -205,7 +211,7 @@ export const ServerInstaller = forwardRef<ServerInstallerInstance>((_, ref) => {
     const json: Record<string, unknown> = {};
 
     json.id = "00000000-0000-0000-0000-000000000000";
-    json.lebel = templateRendered.label;
+    json.lebel = label;
     json.description = templateRendered.description;
     json.type = templateRendered.type;
 
@@ -222,7 +228,7 @@ export const ServerInstaller = forwardRef<ServerInstallerInstance>((_, ref) => {
     json.is_active = true;
 
     return JSON.stringify(json, null, 2);
-  }, [templateRendered]);
+  }, [templateRendered, label]);
 
   const validateConfigParameters = () => {
     const result: Record<string, string> = {};
@@ -288,6 +294,7 @@ export const ServerInstaller = forwardRef<ServerInstallerInstance>((_, ref) => {
 
   const handleClose = useCallback(() => {
     setVisible(false);
+    refInstallCallback.current();
   }, []);
 
   const handleInstall = () => {
@@ -465,7 +472,7 @@ export const ServerInstaller = forwardRef<ServerInstallerInstance>((_, ref) => {
             )}
 
             <div
-              className="text-xs"
+              className="text-xs mt-4"
               // biome-ignore lint/security/noDangerouslySetInnerHtml: x
               dangerouslySetInnerHTML={{
                 __html: render(`\`\`\`json\n${templatePreview}\n\`\`\``),

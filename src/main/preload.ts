@@ -95,7 +95,7 @@ const BRIDGE = {
     createStateStream: "stream",
   }),
   deepLinkHandler: connector.connect<DeepLinkHandlerBridge>("deep-link-handler", {
-    createStateStream: "stream",
+    createUnhandledDeepLinksStateStream: "stream",
     handled: "async",
   }),
   mcpConnectionsManager: connector.connect<MCPConnectionsManagerBridge>("mcp-connections-manager", {
