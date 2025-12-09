@@ -1,26 +1,25 @@
 import {
   Button,
+  Drawer,
+  DrawerBody,
+  DrawerHeader,
+  DrawerHeaderTitle,
+  type InputOnChangeData,
   List,
   ListItem,
   SearchBox,
-  SearchBoxChangeEvent,
-  InputOnChangeData,
-  DrawerHeader,
-  DrawerHeaderTitle,
-  DrawerBody,
-  Drawer,
-} from '@fluentui/react-components';
-import Mousetrap from 'mousetrap';
-import { useTranslation } from 'react-i18next';
-import { AddRegular, Dismiss24Regular } from '@fluentui/react-icons';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import useMCPServerMarketStore from 'stores/useMCPServerMarketStore';
-import Spinner from 'renderer/components/Spinner';
-import { IMCPServer } from 'types/mcp';
-import useMCPStore from 'stores/useMCPStore';
-import { debounce } from 'lodash';
-import { highlight } from 'utils/util';
-import Empty from 'renderer/components/Empty';
+  type SearchBoxChangeEvent,
+} from "@fluentui/react-components";
+import { AddRegular, Dismiss24Regular } from "@fluentui/react-icons";
+import { debounce } from "lodash";
+import Mousetrap from "mousetrap";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import Empty from "renderer/components/Empty";
+import Spinner from "renderer/components/Spinner";
+import useMCPServerMarketStore from "stores/useMCPServerMarketStore";
+import type { IMCPServer } from "types/mcp";
+import { highlight } from "utils/util";
 
 export default function ToolMarketDrawer({
   open,
@@ -34,16 +33,11 @@ export default function ToolMarketDrawer({
   const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const filters = useMCPServerMarketStore((state) => state.filters);
-  const {
-    fetchServers,
-    servers: allServers,
-    setFilters,
-  } = useMCPServerMarketStore();
-  const { config } = useMCPStore();
+  const { fetchServers, servers: allServers, setFilters } = useMCPServerMarketStore();
 
   const debouncedSearch = useRef(
     debounce((_: SearchBoxChangeEvent, data: InputOnChangeData) => {
-      const value = data.value || '';
+      const value = data.value || "";
       const terms = value.split(/\s+/g).filter(Boolean);
       setFilters(terms);
     }, 500),
@@ -56,7 +50,7 @@ export default function ToolMarketDrawer({
         return filters.every((f) => {
           return (
             (s.name || s.key).toLowerCase().includes(f.toLowerCase()) ||
-            (s.description || '').toLowerCase().includes(f.toLowerCase())
+            (s.description || "").toLowerCase().includes(f.toLowerCase())
           );
         });
       });
@@ -67,11 +61,6 @@ export default function ToolMarketDrawer({
       return nameA.localeCompare(nameB);
     });
   }, [filters, allServers]);
-
-  const installedServerKeys = useMemo(
-    () => new Set(Object.keys(config.mcpServers || {})),
-    [config.mcpServers],
-  );
 
   const loadServers = useCallback(async () => {
     setLoading(true);
@@ -84,49 +73,31 @@ export default function ToolMarketDrawer({
 
   useEffect(() => {
     if (open) {
-      Mousetrap.bind('esc', () => setOpen(false));
+      Mousetrap.bind("esc", () => setOpen(false));
       loadServers();
     }
     return () => {
-      Mousetrap.unbind('esc');
+      Mousetrap.unbind("esc");
     };
   }, [open, loadServers]);
 
   return (
-    <Drawer
-      open={open}
-      position="end"
-      separator
-      size="medium"
-      onOpenChange={(_, data) => setOpen(data.open)}
-    >
+    <Drawer open={open} position="end" separator size="medium" onOpenChange={(_, data) => setOpen(data.open)}>
       <DrawerHeader className="border-none">
         <DrawerHeaderTitle
           action={
-            <Button
-              appearance="subtle"
-              aria-label="Close"
-              icon={<Dismiss24Regular />}
-              onClick={() => setOpen(false)}
-            />
+            <Button appearance="subtle" aria-label="Close" icon={<Dismiss24Regular />} onClick={() => setOpen(false)} />
           }
         >
           <div className="flex justify-start gap-2">
             <Button
               appearance="primary"
               icon={<AddRegular />}
-              onClick={() =>
-                window.electron.openExternal(
-                  'https://github.com/nanbingxyz/mcpsvr',
-                )
-              }
+              onClick={() => window.electron.openExternal("https://github.com/nanbingxyz/mcpsvr")}
             >
-              {t('Common.Submit')}
+              {t("Common.Submit")}
             </Button>
-            <SearchBox
-              onChange={debouncedSearch}
-              defaultValue={filters.join(' ')}
-            />
+            <SearchBox onChange={debouncedSearch} defaultValue={filters.join(" ")} />
           </div>
         </DrawerHeaderTitle>
       </DrawerHeader>
@@ -134,9 +105,7 @@ export default function ToolMarketDrawer({
         {loading ? (
           <div className="flex flex-col items-center justify-center h-full">
             <Spinner size={48} />
-            <p className="mt-4 text-gray-400 dark:text-neutral-800">
-              {t('Common.Loading')}
-            </p>
+            <p className="mt-4 text-gray-400 dark:text-neutral-800">{t("Common.Loading")}</p>
           </div>
         ) : servers.length > 0 ? (
           <div className="overflow-y-auto -mr-5 pr-5 pb-5">
@@ -153,10 +122,7 @@ export default function ToolMarketDrawer({
                           role="gridcell"
                           className="text-base font-bold mt-1 flex"
                           dangerouslySetInnerHTML={{
-                            __html: highlight(
-                              server.name || server.key,
-                              filters,
-                            ),
+                            __html: highlight(server.name || server.key, filters),
                           }}
                         />
                         {server.homepage && (
@@ -164,34 +130,21 @@ export default function ToolMarketDrawer({
                             type="button"
                             title="homepage"
                             className="text-gray-400 hover:text-gray-800 dark:text-gray-500 dark:hover:text-gray-300 ml-2"
-                            onClick={() =>
-                              window.electron.openExternal(
-                                server.homepage as string,
-                              )
-                            }
+                            onClick={() => window.electron.openExternal(server.homepage as string)}
                           >
                             {new URL(server.homepage).hostname}
                           </button>
                         )}
                       </div>
-                      {installedServerKeys.has(server.key) ? (
-                        <Button appearance="primary" size="small" disabled>
-                          {t('Common.Installed')}
-                        </Button>
-                      ) : (
-                        <Button
-                          appearance="primary"
-                          size="small"
-                          onClick={() => onInstall(server)}
-                        >
-                          {t('Common.Action.Install')}
-                        </Button>
-                      )}
+                      <Button appearance="primary" size="small" onClick={() => onInstall(server)}>
+                        {t("Common.Action.Install")}
+                      </Button>
                     </div>
                     <p
                       className="text-gray-700 dark:text-gray-400 text-xs"
+                      // biome-ignore lint/security/noDangerouslySetInnerHtml: x
                       dangerouslySetInnerHTML={{
-                        __html: highlight(server.description || '', filters),
+                        __html: highlight(server.description || "", filters),
                       }}
                     />
                   </div>
@@ -200,7 +153,7 @@ export default function ToolMarketDrawer({
             </List>
           </div>
         ) : (
-          <Empty image="tools" text={t('Tool.Info.Empty')} />
+          <Empty image="tools" text={t("Tool.Info.Empty")} />
         )}
       </DrawerBody>
     </Drawer>
