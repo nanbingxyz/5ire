@@ -379,5 +379,8 @@
   "Tools.Transport": "Transport",
   "Common.URLInvalid": "URL is invalid",
   "Common.Active": "Active",
-  "Common.Browse": "Browse"
+  "Common.Browse": "Browse",
+  "Common.RequestHeaders": "Headers",
+  "Common.Environments": "Environment variables",
+  "Common.CommandLineArguments": "Arguments"
 }

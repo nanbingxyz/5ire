@@ -19,7 +19,7 @@ import { useServersWithSelector } from "@/renderer/next/hooks/remote/use-servers
 import { ServerBrowser, type ServerBrowserInstance } from "@/renderer/pages/tool/ServerBrowser";
 import { ServerDeleteConfirm, type ServerDeleteConfirmInstance } from "@/renderer/pages/tool/ServerDeleteConfirm";
 import { ServerEditDialog, type ServerEditDialogInstance } from "@/renderer/pages/tool/ServerEditDialog";
-import ToolInstallDialog from "./InstallDialog";
+import { ServerInstaller, type ServerInstallerInstance } from "@/renderer/pages/tool/ServerInstaller";
 import ToolMarketDrawer from "./MarketDrawer";
 import { ServerGrid } from "./ServerGrid";
 
@@ -27,13 +27,12 @@ const BuildingShopIcon = bundleIcon(BuildingShopFilled, BuildingShopRegular);
 
 export default function Tools() {
   const { t } = useTranslation();
-  const [mktServer, setMktServer] = useState<IMCPServer | null>(null);
   const [marketOpen, setMarketOpen] = useState(false);
-  const [installDialogOpen, setInstallDialogOpen] = useState(false);
 
   const refServerEditDialog = useRef<ServerEditDialogInstance>(null);
   const refServerDeleteConfirm = useRef<ServerDeleteConfirmInstance>(null);
   const refServerBrowser = useRef<ServerBrowserInstance>(null);
+  const refServerInstaller = useRef<ServerInstallerInstance>(null);
 
   const serversIsEmpty = useServersWithSelector((raw) => {
     return raw.rows.map((row) => row.id).length === 0;
@@ -60,8 +59,7 @@ export default function Tools() {
   }, []);
 
   const installServer = useCallback((svr: IMCPServer) => {
-    setMktServer(svr);
-    setInstallDialogOpen(true);
+    refServerInstaller.current?.install(svr);
   }, []);
 
   return (
@@ -147,12 +145,13 @@ export default function Tools() {
       {/*  setOpen={setRemoteServerEditDialogOpen}*/}
       {/*  server={server}*/}
       {/*/>*/}
-      {mktServer && <ToolInstallDialog server={mktServer} open={installDialogOpen} setOpen={setInstallDialogOpen} />}
+
       <ToolMarketDrawer open={marketOpen} setOpen={setMarketOpen} onInstall={installServer} />
 
       <ServerEditDialog ref={refServerEditDialog} />
       <ServerDeleteConfirm ref={refServerDeleteConfirm} />
       <ServerBrowser ref={refServerBrowser} />
+      <ServerInstaller ref={refServerInstaller} />
     </div>
   );
 }

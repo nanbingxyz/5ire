@@ -19,7 +19,6 @@ import type { Server } from "@/main/database/types";
 import Spinner from "@/renderer/components/Spinner";
 import { useServerConnectionsWithSelector } from "@/renderer/next/hooks/remote/use-server-connections";
 import { useServerPromptsWithSelector } from "@/renderer/next/hooks/remote/use-server-prompts";
-import { useServerResourcesWithSelector } from "@/renderer/next/hooks/remote/use-server-resources";
 import { useServerToolsWithSelector } from "@/renderer/next/hooks/remote/use-server-tools";
 import { useServersRef } from "@/renderer/next/hooks/remote/use-servers";
 
@@ -59,13 +58,14 @@ export const ServerBrowser = forwardRef<ServerBrowserInstance>((_, ref) => {
     return undefined;
   });
 
-  const resources = useServerResourcesWithSelector((resources) => {
-    if (server) {
-      return resources[server.id];
-    }
-
-    return undefined;
-  });
+  // TODO：
+  // const resources = useServerResourcesWithSelector((resources) => {
+  //   if (server) {
+  //     return resources[server.id];
+  //   }
+  //
+  //   return undefined;
+  // });
 
   useImperativeHandle(ref, () => {
     return {

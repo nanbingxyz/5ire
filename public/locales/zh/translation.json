@@ -368,5 +368,8 @@
   "Tools.Transport": "链接模式",
   "Common.URLInvalid": "URL 地址无效",
   "Common.Active": "激活",
-  "Common.Browse": "浏览"
+  "Common.Browse": "浏览",
+  "Common.RequestHeaders": "请求头",
+  "Common.Environments": "环境变量",
+  "Common.CommandLineArguments": "命令行参数"
 }
