@@ -574,10 +574,9 @@ export const usage = pgTable("usages", usageColumns, (table) => {
 /**
  * MCP server transport protocols
  * - stdio: Standard Input/Output
- * - sse: Server Sent Events
  * - http-streamable: HTTP Streamable
  */
-export const serverTransport = pgEnum("server_transport", ["stdio", "sse", "http-streamable"]);
+export const serverTransport = pgEnum("server_transport", ["stdio", "http-streamable"]);
 
 /**
  * Approval policy when model requests to call tools:
@@ -615,13 +614,13 @@ const serverColumns = {
   /**
    * The endpoint for the server.
    * - When `transport` is "stdio", this is the command to start the process.
-   * - When `transport` is "sse" or "http-streamable", this is the URL to connect to.
+   * - When `transport` is "http-streamable", this is the URL to connect to.
    */
   endpoint: varchar({ length: 600 }).notNull(),
   /**
    * Configuration for the server.
    * - When `transport` is "stdio", this represents environment variables.
-   * - When `transport` is "sse" or "http-streamable", this represents HTTP headers.
+   * - When `transport` is "http-streamable", this represents HTTP headers.
    */
   config: jsonb().$type<Record<string, string>>().notNull(),
   /**

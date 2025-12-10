@@ -50,6 +50,10 @@ export namespace Part {
      * Actual text content string
      */
     text: string;
+    /**
+     * Format of the text content; optional, default is "plain"
+     */
+    format?: "plain" | "json";
   };
 
   /**
