@@ -1,0 +1,2 @@
+ALTER TABLE "projects" ADD COLUMN "legacy_folder_id" varchar(300);--> statement-breakpoint
+CREATE UNIQUE INDEX "projects_legacy_folder_id_index" ON "projects" USING btree ("legacy_folder_id") WHERE "projects"."legacy_folder_id" is not null;

@@ -305,13 +305,21 @@ const promptColumns = {
    * System prompt merging strategy, used to specify how to use roleDefinition in conversations; when roleDefinition is empty, mergeStrategy is invalid
    */
   mergeStrategy: promptMergeStrategy().notNull().default("merge"),
+  /**
+   * The legacy ID of the prompt.
+   */
+  legacyId: varchar("legacy_id", { length: 300 }),
 };
 
 /**
  * The `prompts` table is used to store user-defined prompts.
  */
 export const prompt = pgTable("prompts", promptColumns, (table) => {
-  return [index().on(table.createTime), index().on(table.name)];
+  return [
+    index().on(table.createTime),
+    index().on(table.name),
+    uniqueIndex().on(table.legacyId).where(isNotNull(table.legacyId)),
+  ];
 });
 
 const projectColumns = {
@@ -335,13 +343,21 @@ const projectColumns = {
    * The project config.
    */
   config: jsonb().$type<ProjectConfig>().notNull(),
+  /**
+   * The legacy folder ID of the project.
+   */
+  legacyFolderId: varchar("legacy_folder_id", { length: 300 }),
 };
 
 /**
  * The `projects` table is used to store project information.
  */
 export const project = pgTable("projects", projectColumns, (table) => {
-  return [index().on(table.createTime), index().on(table.name)];
+  return [
+    index().on(table.createTime),
+    index().on(table.name),
+    uniqueIndex().on(table.legacyFolderId).where(isNotNull(table.legacyFolderId)),
+  ];
 });
 
 const conversationColumns = {

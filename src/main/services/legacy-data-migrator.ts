@@ -432,6 +432,131 @@ export class LegacyDataMigrator extends Stateful.Persistable<LegacyDataMigrator.
     });
   }
 
+  async #migratePrompts(context: LegacyDataMigrator.Context) {
+    const logger = this.#logger.scope("MigratePrompts");
+    const schema = this.#database.schema;
+    const client = this.#database.client;
+
+    if (this.state.migrated.prompts) {
+      return logger.info(
+        `Migrate prompts completed (total ${this.state.migrated.prompts.total}). No migration needed.`,
+      );
+    }
+
+    const migratedPrompts: string[] = [];
+
+    for (const legacyPrompt of this.#iterateLegacyDatabaseTable<{
+      id: string;
+      name: string | null;
+      systemMessage: string | null;
+      userMessage: string | null;
+      createdAt: number | null;
+      updatedAt: number | null;
+    }>(context.legacySqliteDB, "prompts")) {
+      await client
+        .insert(schema.prompt)
+        .values({
+          createTime: legacyPrompt.createdAt ? new Date(legacyPrompt.createdAt * 1000) : undefined,
+          updateTime: legacyPrompt.updatedAt ? new Date(legacyPrompt.updatedAt * 1000) : undefined,
+          legacyId: legacyPrompt.id,
+          name: legacyPrompt.name || "New Folder",
+          instructionTemplate: legacyPrompt.userMessage || "",
+          roleDefinitionTemplate: legacyPrompt.systemMessage || "",
+        })
+        .onConflictDoNothing({
+          target: [schema.prompt.legacyId],
+          where: isNotNull(schema.prompt.legacyId),
+        })
+        .execute()
+        .then(() => {
+          migratedPrompts.push(legacyPrompt.id);
+        })
+        .catch((error) => {
+          logger.warning(`Failed to insert prompt "${legacyPrompt.id}"`, error);
+        });
+    }
+
+    logger.info(`Migrate prompts completed. Total: ${migratedPrompts.length} migrated.`);
+
+    this.update((draft) => {
+      draft.migrated.prompts = {
+        total: migratedPrompts.length,
+        time: new Date(),
+      };
+    });
+  }
+
+  async #migrateProjects(context: LegacyDataMigrator.Context) {
+    const logger = this.#logger.scope("MigrateProjects");
+    const schema = this.#database.schema;
+    const client = this.#database.client;
+
+    if (this.state.migrated.projects) {
+      return logger.info(
+        `Migrate projects completed (total ${this.state.migrated.projects.total}). No migration needed.`,
+      );
+    }
+
+    const migratedFolders: string[] = [];
+
+    for (const legacyFolder of this.#iterateLegacyDatabaseTable<{
+      id: string;
+      name: string | null;
+      provider: string | null;
+      model: string | null;
+      temperature: number | null;
+      systemMessage: string | null;
+      createdAt: number | null;
+    }>(context.legacySqliteDB, "folders")) {
+      await client
+        .insert(schema.project)
+        .values({
+          createTime: legacyFolder.createdAt ? new Date(legacyFolder.createdAt * 1000) : undefined,
+          updateTime: legacyFolder.createdAt ? new Date(legacyFolder.createdAt * 1000) : undefined,
+          legacyFolderId: legacyFolder.id,
+          name: legacyFolder.name || "New Folder",
+          config: {},
+        })
+        .onConflictDoNothing({
+          target: [schema.project.legacyFolderId],
+          where: isNotNull(schema.project.legacyFolderId),
+        })
+        .execute()
+        .then(() => {
+          migratedFolders.push(legacyFolder.id);
+
+          this.update((draft) => {
+            const legacyFolderConfig = {
+              model: legacyFolder.model || undefined,
+              provider: legacyFolder.provider || undefined,
+              temperature: legacyFolder.temperature || undefined,
+              systemMessage: legacyFolder.systemMessage || undefined,
+            };
+            let folderConfigs = draft.transitional.folderConfigs;
+
+            if (!folderConfigs) {
+              folderConfigs = new Map();
+            }
+
+            folderConfigs.set(legacyFolder.id, legacyFolderConfig);
+            draft.transitional.folderConfigs = folderConfigs;
+          });
+        })
+        .catch((error) => {
+          logger.warning(`Failed to insert document "${legacyFolder.id}"`, error);
+        });
+    }
+
+    logger.info(`Migrate documents completed. Total: ${migratedFolders.length} migrated.`);
+
+    this.update((draft) => {
+      draft.migrated.projects = {
+        total: migratedFolders.length,
+        time: new Date(),
+      };
+    });
+  }
+
   /**
    * Execute database migration
    *
@@ -469,6 +594,12 @@ export class LegacyDataMigrator extends Stateful.Persistable<LegacyDataMigrator.
       await this.#migrateServersConfig(context).catch((error) => {
         logger.error("Failed to migrate servers config", error);
       });
+      await this.#migratePrompts(context).catch((error) => {
+        logger.error("Failed to migrate prompts", error);
+      });
+      // await this.#migrateProjects(context).catch((error) => {
+      //   logger.error("Failed to migrate projects", error);
+      // })
     } finally {
       this.update((draft) => {
         draft.migrating = false;
@@ -517,7 +648,13 @@ export namespace LegacyDataMigrator {
      */
     migrated: Partial<
       Record<
-        "collections" | "documents" | "documentChunks" | "transitionChatCollections" | "serversConfig",
+        | "collections"
+        | "documents"
+        | "documentChunks"
+        | "transitionChatCollections"
+        | "serversConfig"
+        | "projects"
+        | "prompts",
         {
           time: Date;
           total: number;
@@ -533,6 +670,15 @@ export namespace LegacyDataMigrator {
      */
     transitional: {
       chatCollections?: Map<string, string[]>;
+      folderConfigs?: Map<
+        string,
+        {
+          provider?: string;
+          model?: string;
+          temperature?: number;
+          systemMessage?: string;
+        }
+      >;
     };
   };
 
