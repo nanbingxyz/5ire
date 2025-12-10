@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { fromBuffer } from "file-type";
+import { fileTypeFromBuffer } from "file-type";
 import { readFile, stat } from "fs-extra";
 import { PDFParse } from "pdf-parse";
 import { CanvasFactory } from "pdf-parse/worker";
@@ -37,7 +37,7 @@ export class DocumentExtractor {
 
     const buffer = await readFile(path);
 
-    let mimetype = await fromBuffer(buffer).then((info) => info?.mime as string | undefined);
+    let mimetype = await fileTypeFromBuffer(buffer).then((info) => info?.mime as string | undefined);
 
     if (!mimetype) {
       const ext = path.split(".").pop()?.toLowerCase();
