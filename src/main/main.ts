@@ -291,7 +291,7 @@ const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
   app.quit();
 } else {
-  app.on("second-instance", (event, commandLine) => {
+  app.on("second-instance", (_, commandLine) => {
     Container.inject(Renderer)
       .focus()
       .catch(() => {
@@ -657,26 +657,26 @@ ipcMain.handle("select-image-with-base64", async () => {
 
 /** mcp */
 ipcMain.handle("mcp-init", () => {
-  const logger = Container.inject(Logger).scope("Main:MCPInit");
-  // eslint-disable-next-line promise/catch-or-return
-  mcp.init().then(async () => {
-    // https://github.com/sindresorhus/fix-path
-    logger.info("mcp initialized");
-    await mcp.load();
-    getMainWindow()?.webContents.send("mcp-server-loaded", mcp.getClientNames());
-  });
+  // const logger = Container.inject(Logger).scope("Main:MCPInit");
+  // // eslint-disable-next-line promise/catch-or-return
+  // mcp.init().then(async () => {
+  //   // https://github.com/sindresorhus/fix-path
+  //   logger.info("mcp initialized");
+  //   await mcp.load();
+  //   getMainWindow()?.webContents.send("mcp-server-loaded", mcp.getClientNames());
+  // });
 });
 ipcMain.handle("mcp-add-server", (_, server: IMCPServer) => {
-  return mcp.addServer(server);
+  // return mcp.addServer(server);
 });
 ipcMain.handle("mcp-update-server", (_, server: IMCPServer) => {
-  return mcp.updateServer(server);
+  // return mcp.updateServer(server);
 });
 ipcMain.handle("mcp-activate", async (_, server: IMCPServer) => {
-  return mcp.activate(server);
+  // return mcp.activate(server);
 });
 ipcMain.handle("mcp-deactivate", async (_, clientName: string) => {
-  return mcp.deactivate(clientName);
+  // return mcp.deactivate(clientName);
 });
 ipcMain.handle("mcp-list-tools", async (_, __: string) => {
   const logger = Container.inject(Logger).scope("Main:MCPListTools");
@@ -723,13 +723,13 @@ ipcMain.handle("mcp-cancel-tool", (_, requestId: string) => {
 ipcMain.handle("mcp-list-prompts", async (_, name: string) => {
   const logger = Container.inject(Logger).scope("Main:MCPListPrompts");
   try {
-    return await mcp.listPrompts(name);
-  } catch (error: any) {
+    return await Container.inject(MCPPromptsManager).legacyList();
+  } catch (error) {
     logger.error("Error listing MCP prompts:", error);
     return {
       prompts: [],
       error: {
-        message: error.message || "Unknown error listing prompts",
+        message: asError(error).message || "Unknown error listing prompts",
         code: "unexpected_error",
       },
     };
@@ -739,14 +739,18 @@ ipcMain.handle("mcp-list-prompts", async (_, name: string) => {
 ipcMain.handle("mcp-get-prompt", async (_, args: { client: string; name: string; args?: any }) => {
   const logger = Container.inject(Logger).scope("Main:MCPGetPrompt");
   try {
-    return await mcp.getPrompt(args.client, args.name, args.args);
-  } catch (error: any) {
+    return await Container.inject(MCPPromptsManager).legacyGet({
+      client: args.client,
+      name: args.name,
+      arguments: args.args,
+    });
+  } catch (error) {
     logger.error("Error getting MCP prompt:", error);
     return {
       isError: true,
       content: [
         {
-          error: error.message || "Unknown error getting prompt",
+          error: asError(error).message || "Unknown error getting prompt",
           code: "unexpected_error",
         },
       ],

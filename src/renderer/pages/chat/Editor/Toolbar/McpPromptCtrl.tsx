@@ -1,49 +1,42 @@
 /* eslint-disable react/no-danger */
 import {
-  Dialog,
-  DialogTrigger,
   Button,
-  DialogSurface,
-  DialogBody,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Combobox,
-  OptionGroup,
+  Dialog,
+  DialogActions,
+  DialogBody,
+  DialogContent,
+  DialogSurface,
+  DialogTitle,
+  DialogTrigger,
   Option,
-} from '@fluentui/react-components';
-import Mousetrap from 'mousetrap';
+  OptionGroup,
+} from "@fluentui/react-components";
 import {
   bundleIcon,
   CommentMultipleLinkFilled,
   CommentMultipleLinkRegular,
   Dismiss24Regular,
-} from '@fluentui/react-icons';
-import { GetPromptResult as MCPPromptResult } from '@modelcontextprotocol/sdk/types.js';
-import { useCallback, useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { isNil } from 'lodash';
-import { IChat } from 'intellichat/types';
-import {
-  IMCPPrompt,
-  IMCPPromptArgument,
-  IMCPPromptListItem,
-  IMCPPromptListItemData,
-} from 'types/mcp';
-import useToast from 'hooks/useToast';
-import Spinner from 'renderer/components/Spinner';
-import { captureException } from 'renderer/logging';
-import { decodePromptId, encodePromptId } from 'intellichat/mcp/ids';
-import MCPPromptContentPreview from '../../MCPPromptContentPreview';
-import McpPromptVariableDialog from '../McpPromptVariableDialog';
+} from "@fluentui/react-icons";
+import type { GetPromptResult as MCPPromptResult } from "@modelcontextprotocol/sdk/types.js";
+import useToast from "hooks/useToast";
+import { decodePromptId, encodePromptId } from "intellichat/mcp/ids";
+import type { IChat } from "intellichat/types";
+import { isNil } from "lodash";
+import Mousetrap from "mousetrap";
+import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import Spinner from "renderer/components/Spinner";
+import { captureException } from "renderer/logging";
+import type { IMCPPrompt, IMCPPromptArgument, IMCPPromptListItem, IMCPPromptListItemData } from "types/mcp";
+import { useServersWithSelector } from "@/renderer/next/hooks/remote/use-servers";
+import MCPPromptContentPreview from "../../MCPPromptContentPreview";
+import McpPromptVariableDialog from "../McpPromptVariableDialog";
 
 /**
  * Bundled icon for the prompt control button
  */
-const PromptIcon = bundleIcon(
-  CommentMultipleLinkFilled,
-  CommentMultipleLinkRegular,
-);
+const PromptIcon = bundleIcon(CommentMultipleLinkFilled, CommentMultipleLinkRegular);
 
 /**
  * Props interface for the McpPromptCtrl component
@@ -61,33 +54,37 @@ interface McpPromptCtrlProps {
  * A React component that provides a dialog interface for browsing and selecting MCP prompts.
  * Displays available prompts from MCP servers, handles variable input for parameterized prompts,
  * and triggers the selected prompt through a callback.
- * 
+ *
  * @param props - The component props
  * @returns JSX element containing the prompt control dialog
  */
-export default function McpPromptCtrl({
-  chat,
-  disabled,
-  onTrigger,
-}: McpPromptCtrlProps) {
+export default function McpPromptCtrl({ chat, disabled, onTrigger }: McpPromptCtrlProps) {
   const { t } = useTranslation();
   const { notifyError } = useToast();
   const [loadingList, setLoadingList] = useState<boolean>(false);
   const [open, setOpen] = useState<boolean>(false);
   const [variableDialogOpen, setVariableDialogOpen] = useState<boolean>(false);
   const [variables, setVariables] = useState<IMCPPromptArgument[]>([]);
-  const [promptItem, setPromptItem] = useState<
-    (IMCPPromptListItemData & { client: string }) | null
-  >(null);
+  const [promptItem, setPromptItem] = useState<(IMCPPromptListItemData & { client: string }) | null>(null);
   const [options, setOptions] = useState<IMCPPromptListItem[]>([]);
   const [prompt, setPrompt] = useState<IMCPPrompt | null>(null);
+
+  const serverLabelMappings = useServersWithSelector((raw) => {
+    const mappings: Record<string, string> = {};
+
+    for (const row of raw.rows) {
+      mappings[row.id] = row.label;
+    }
+
+    return mappings;
+  });
 
   /**
    * Closes the main prompt dialog and unbinds keyboard shortcuts
    */
   const closeDialog = () => {
     setOpen(false);
-    Mousetrap.unbind('esc');
+    Mousetrap.unbind("esc");
   };
 
   /**
@@ -109,22 +106,22 @@ export default function McpPromptCtrl({
         setLoadingList(false);
         captureException(error);
       });
-    Mousetrap.bind('esc', closeDialog);
+    Mousetrap.bind("esc", closeDialog);
   };
 
   /**
    * Applies a selected prompt by decoding its ID and either showing the variable dialog
    * for parameterized prompts or directly fetching the prompt content
-   * 
+   *
    * @param promptName - The encoded prompt identifier containing server and prompt name
    */
   const applyPrompt = async (promptName: string) => {
     const { server, prompt: name } = decodePromptId(promptName);
     const group = options.find((option) => option.client === server);
     if (group) {
-      const item = group.prompts.find(
-        (p: IMCPPromptListItemData) => p.name === name,
-      ) as IMCPPromptListItemData & { client: string };
+      const item = group.prompts.find((p: IMCPPromptListItemData) => p.name === name) as IMCPPromptListItemData & {
+        client: string;
+      };
       item.client = server;
       setPromptItem(item);
       setVariables(item?.arguments || []);
@@ -136,15 +133,13 @@ export default function McpPromptCtrl({
           name,
         });
         if ($prompt.isError) {
-          notifyError(
-            $prompt.error || 'Unknown error occurred while fetching prompt',
-          );
+          notifyError($prompt.error || "Unknown error occurred while fetching prompt");
           return;
         }
         setPrompt($prompt);
       }
     }
-    window.electron.ingestEvent([{ app: 'apply-mcp-prompt' }]);
+    window.electron.ingestEvent([{ app: "apply-mcp-prompt" }]);
   };
 
   /**
@@ -167,7 +162,7 @@ export default function McpPromptCtrl({
 
   /**
    * Handles confirmation of variable input and fetches the prompt with provided arguments
-   * 
+   *
    * @param args - Key-value pairs of variable names and their values
    */
   const onVariablesConfirm = useCallback(
@@ -181,10 +176,7 @@ export default function McpPromptCtrl({
         args,
       });
       if ($prompt.isError) {
-        notifyError(
-          $prompt.content?.[0]?.error ||
-            'Unknown error occurred while fetching prompt',
-        );
+        notifyError($prompt.content?.[0]?.error || "Unknown error occurred while fetching prompt");
         return;
       }
       setPrompt($prompt);
@@ -197,37 +189,37 @@ export default function McpPromptCtrl({
    * Sets up keyboard shortcut for opening the dialog
    */
   useEffect(() => {
-    Mousetrap.bind('mod+shift+2', openDialog);
+    Mousetrap.bind("mod+shift+2", openDialog);
     return () => {
-      Mousetrap.unbind('mod+shift+2');
+      Mousetrap.unbind("mod+shift+2");
     };
   }, [open]);
 
   /**
    * Renders the dropdown options for available prompts, grouped by MCP server
-   * 
+   *
    * @returns JSX elements representing the prompt options
    */
   const renderOptions = useCallback(() => {
     if (loadingList) {
       return (
-        <Option text={t('Common.Loading')} value="" disabled>
+        <Option text={t("Common.Loading")} value="" disabled>
           <div className="flex justify-start gap-2 items-center">
             <Spinner className="w-2 h-2 -ml-4" />
-            <span>{t('Common.Loading')}</span>
+            <span>{t("Common.Loading")}</span>
           </div>
         </Option>
       );
     }
     if (!options || options.length === 0) {
       return (
-        <Option text={t('Common.NoPrompts')} value="" disabled>
-          {t('Common.NoPrompts')}
+        <Option text={t("Common.NoPrompts")} value="" disabled>
+          {t("Common.NoPrompts")}
         </Option>
       );
     }
     return options.map((option) => (
-      <OptionGroup label={option.client} key={option.client}>
+      <OptionGroup label={serverLabelMappings[option.client]} key={option.client}>
         {option.prompts.map((promptOption: IMCPPromptListItemData) => (
           <Option
             key={`${encodePromptId(option.client, promptOption.name)}`}
@@ -242,20 +234,14 @@ export default function McpPromptCtrl({
 
   /**
    * Renders the preview of the selected prompt content
-   * 
+   *
    * @returns JSX element showing the prompt preview or placeholder message
    */
   const renderPrompt = useCallback(() => {
     if (!prompt) {
-      return (
-        <div className="py-6 px-1 tips">{t('Common.NoPromptSelected')}</div>
-      );
+      return <div className="py-6 px-1 tips">{t("Common.NoPromptSelected")}</div>;
     }
-    return (
-      <MCPPromptContentPreview
-        messages={prompt.messages as unknown as MCPPromptResult['messages']}
-      />
-    );
+    return <MCPPromptContentPreview messages={prompt.messages as unknown as MCPPromptResult["messages"]} />;
   }, [prompt, t]);
 
   /**
@@ -283,11 +269,11 @@ export default function McpPromptCtrl({
           <Button
             disabled={disabled}
             size="small"
-            title={`${t('Common.Prompts')}(Mod+Shift+2)`}
-            aria-label={t('Common.Prompts')}
+            title={`${t("Common.Prompts")}(Mod+Shift+2)`}
+            aria-label={t("Common.Prompts")}
             appearance="subtle"
-            style={{ borderColor: 'transparent', boxShadow: 'none' }}
-            className={`flex justify-start items-center text-color-secondary gap-1 ${disabled ? 'opacity-50' : ''}`}
+            style={{ borderColor: "transparent", boxShadow: "none" }}
+            className={`flex justify-start items-center text-color-secondary gap-1 ${disabled ? "opacity-50" : ""}`}
             onClick={openDialog}
             icon={<PromptIcon className="flex-shrink-0" />}
           />
@@ -297,22 +283,17 @@ export default function McpPromptCtrl({
             <DialogTitle
               action={
                 <DialogTrigger action="close">
-                  <Button
-                    appearance="subtle"
-                    aria-label="close"
-                    onClick={closeDialog}
-                    icon={<Dismiss24Regular />}
-                  />
+                  <Button appearance="subtle" aria-label="close" onClick={closeDialog} icon={<Dismiss24Regular />} />
                 </DialogTrigger>
               }
             >
               <div className="flex justify-start items-center gap-1 font-semibold font-sans">
-                MCP<span className="separator">/</span> {t('Common.Prompts')}
+                MCP<span className="separator">/</span> {t("Common.Prompts")}
               </div>
             </DialogTitle>
             <DialogContent>
               <Combobox
-                placeholder={t('Common.Search')}
+                placeholder={t("Common.Search")}
                 className="w-full"
                 onOptionSelect={(e, data) => {
                   applyPrompt(data.optionValue as string);
@@ -325,15 +306,11 @@ export default function McpPromptCtrl({
             <DialogActions>
               <DialogTrigger disableButtonEnhancement>
                 <Button appearance="secondary" onClick={removePrompt}>
-                  {t('Common.Cancel')}
+                  {t("Common.Cancel")}
                 </Button>
               </DialogTrigger>
-              <Button
-                appearance="primary"
-                disabled={isNil(prompt)}
-                onClick={onSubmit}
-              >
-                {t('Common.Submit')}
+              <Button appearance="primary" disabled={isNil(prompt)} onClick={onSubmit}>
+                {t("Common.Submit")}
               </Button>
             </DialogActions>
           </DialogBody>

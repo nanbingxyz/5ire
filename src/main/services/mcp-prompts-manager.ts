@@ -201,6 +201,83 @@ export class MCPPromptsManager extends Stateful<MCPPromptsManager.State> {
     });
   }
 
+  async legacyList() {
+    const bundles = Array.from(this.state.collections.entries()).map(([id, collection]) => {
+      if (collection.status === "loaded") {
+        return {
+          client: id,
+          prompts: collection.prompts,
+          error: null,
+        };
+      }
+
+      if (collection.status === "error") {
+        return {
+          client: id,
+          prompts: [],
+          error: collection.message,
+        };
+      }
+
+      return {
+        client: id,
+        prompts: [],
+        error: null,
+      };
+    });
+
+    const failedClients = bundles.filter((r) => r.error).map((r) => ({ client: r.client, error: r.error }));
+
+    return {
+      prompts: bundles,
+      error: failedClients.length
+        ? {
+            message: "Partial failure listing prompts",
+            code: "partial_failure",
+            failedClients,
+          }
+        : null,
+    };
+  }
+
+  async legacyGet(options: MCPPromptsManager.LegacyGetOptions) {
+    const connection = this.#connectionsManager.state.connections.get(options.client);
+
+    if (!connection || connection.status !== "connected") {
+      return {
+        isError: true,
+        content: [
+          {
+            error: `MCP Client ${options.client} not found`,
+            code: "client_not_found",
+            clientName: options.client,
+            toolName: options.name,
+          },
+        ],
+      };
+    }
+
+    try {
+      const result = await connection.client.getPrompt({
+        name: options.name,
+        arguments: options.arguments,
+      });
+      return { isError: false, ...result };
+    } catch (error) {
+      return {
+        isError: true,
+        content: [
+          {
+            error: `Error getting prompt ${options.name}: ${asError(error).message}`,
+            code: "prompt_get_error",
+            clientName: options.client,
+            promptName: options.name,
+          },
+        ],
+      };
+    }
+  }
+
   constructor() {
     super(() => {
       return {
@@ -313,6 +390,12 @@ export namespace MCPPromptsManager {
     /**
      * The arguments to pass to the prompt.
      */
+    arguments?: Record<string, string>;
+  };
+
+  export type LegacyGetOptions = {
+    client: string;
+    name: string;
     arguments?: Record<string, string>;
   };
 }
