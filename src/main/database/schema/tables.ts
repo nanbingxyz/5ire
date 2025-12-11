@@ -304,7 +304,7 @@ const promptColumns = {
   /**
    * System prompt merging strategy, used to specify how to use roleDefinition in conversations; when roleDefinition is empty, mergeStrategy is invalid
    */
-  mergeStrategy: promptMergeStrategy().notNull().default("merge"),
+  mergeStrategy: promptMergeStrategy("merge_strategy").notNull().default("merge"),
   /**
    * The legacy ID of the prompt.
    */
