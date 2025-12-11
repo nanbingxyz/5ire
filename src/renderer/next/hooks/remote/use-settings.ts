@@ -6,7 +6,7 @@ const key = crypto.randomUUID();
 
 const createStore = async () => {
   return createStateStreamStore({
-    streamLoader: window.bridge.settingsStore.createStateStream,
+    streamLoader: window.bridge.settings.createStateStream,
     onDone: () => {
       clear([key]);
     },

@@ -2,7 +2,7 @@ import { Bridge } from "@/main/internal/bridge";
 import { Container } from "@/main/internal/container";
 import { Settings } from "@/main/services/settings";
 
-export class SettingsBridge extends Bridge.define("settings-store", () => {
+export class SettingsBridge extends Bridge.define("settings", () => {
   const service = Container.inject(Settings);
 
   return {

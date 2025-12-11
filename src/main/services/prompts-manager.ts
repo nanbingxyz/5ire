@@ -1,14 +1,20 @@
 import { desc, eq } from "drizzle-orm";
+import { default as memoize } from "memoizee";
 import { Database } from "@/main/database";
 import type { PromptInsert } from "@/main/database/types";
 import { Container } from "@/main/internal/container";
-import { Logger } from "@/main/services/logger";
 
-export class PromptManager {
+export class PromptsManager {
   #database = Container.inject(Database);
-  #logger = Container.inject(Logger).scope("PromptManager");
 
-  async createPrompt(options: PromptManager.CreatePromptOptions) {
+  constructor() {
+    this.livePrompts = memoize(this.livePrompts.bind(this), {
+      primitive: true,
+      promise: true,
+    });
+  }
+
+  async createPrompt(options: PromptsManager.CreatePromptOptions) {
     const client = this.#database.client;
     const schema = this.#database.schema;
 
@@ -29,7 +35,7 @@ export class PromptManager {
     });
   }
 
-  async updatePrompt(options: PromptManager.UpdatePromptOptions) {
+  async updatePrompt(options: PromptsManager.UpdatePromptOptions) {
     const client = this.#database.client;
     const schema = this.#database.schema;
 
@@ -57,7 +63,7 @@ export class PromptManager {
     });
   }
 
-  async deletePrompt(options: PromptManager.DeletePromptOptions) {
+  async deletePrompt(options: PromptsManager.DeletePromptOptions) {
     const client = this.#database.client;
     const schema = this.#database.schema;
 
@@ -97,9 +103,54 @@ export class PromptManager {
         });
       });
   }
+
+  async livePrompts() {
+    const schema = this.#database.schema;
+    const client = this.#database.client;
+    const driver = this.#database.driver;
+
+    const query = client
+      .select(
+        Database.utils.aliasedColumns({
+          id: schema.prompt.id,
+          createTime: schema.prompt.createTime,
+          updateTime: schema.prompt.updateTime,
+          name: schema.prompt.name,
+          mergeStrategy: schema.prompt.mergeStrategy,
+          roleDefinitionTemplate: schema.prompt.roleDefinitionTemplate,
+          instructionTemplate: schema.prompt.instructionTemplate,
+        }),
+      )
+      .from(schema.prompt)
+      .orderBy(schema.prompt.createTime);
+
+    const sql = query.toSQL();
+    const subscribers = new Set<(results: typeof live.initialResults) => void>();
+
+    const live = await driver.live.query<Awaited<ReturnType<(typeof query)["execute"]>>[number]>({
+      query: sql.sql,
+      params: sql.params,
+      callback: (results) => {
+        for (const subscriber of subscribers) {
+          subscriber(results);
+        }
+      },
+    });
+
+    return {
+      subscribe: (subscriber: (results: typeof live.initialResults) => void) => {
+        subscribers.add(subscriber);
+        return () => {
+          subscribers.delete(subscriber);
+        };
+      },
+      refresh: live.refresh,
+      initialResults: live.initialResults,
+    };
+  }
 }
 
-export namespace PromptManager {
+export namespace PromptsManager {
   export type CreatePromptOptions = Pick<
     PromptInsert,
     "name" | "roleDefinitionTemplate" | "instructionTemplate" | "mergeStrategy"

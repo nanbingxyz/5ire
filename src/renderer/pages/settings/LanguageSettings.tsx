@@ -10,7 +10,7 @@ export default function LanguageSettings() {
 
   const onLanguageChange = (ev: FormEvent<HTMLDivElement>, data: RadioGroupOnChangeData) => {
     // @ts-expect-error
-    window.bridge.settingsStore.updateLanguage(data.value);
+    window.bridge.settings.updateLanguage(data.value);
   };
 
   return (

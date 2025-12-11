@@ -83,7 +83,6 @@ export class DocumentExtractor {
   async #parse(buffer: Buffer, mimetype: string) {
     if (mimetype === "application/pdf") {
       return import("pdf-parse").then(async (mod) => {
-        console.log(PDFParse.setWorker());
         return new mod.PDFParse({ data: buffer, CanvasFactory }).getText().then(({ text }) => text);
       });
     }
