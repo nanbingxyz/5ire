@@ -20,6 +20,7 @@ export default function LanguageSettings() {
         <RadioGroup aria-labelledby={t("Common.Language")} value={settings.language} onChange={onLanguageChange}>
           <Radio name="language" value="en" label={t("Common.English")} />
           <Radio name="language" value="zh-CN" label={t("Common.SimpleChinese")} />
+          <Radio name="language" value="ru" label={t("Common.Russian")} />
           <Radio name="language" value="system" label={t("Appearance.System")} />
         </RadioGroup>
       </div>
