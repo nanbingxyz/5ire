@@ -383,5 +383,13 @@
   "Common.RequestHeaders": "Headers",
   "Common.Environments": "Environment variables",
   "Common.CommandLineArguments": "Arguments",
-  "Tool.ServerTemplateParseError": "Failed to parse server configuration."
+  "Tool.ServerTemplateParseError": "Failed to parse server configuration.",
+  "Prompts.New": "Add a new prompt",
+  "Prompts.Edit": "Edit prompt",
+  "Prompts.RoleDefinition": "Role Definition",
+  "Prompts.Instruction": "Instruction",
+  "Prompts.MergeStrategy": "Context Merge Strategy",
+  "Prompts.MergeStrategy.Merge": "Merge",
+  "Prompts.MergeStrategy.Replace": "Replace",
+  "Prompts.MergeStrategy.Scoped": "Scoped Replace"
 }
