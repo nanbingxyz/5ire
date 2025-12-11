@@ -2,11 +2,35 @@ import { IServiceProvider } from './types';
 
 const chatModels = [
   {
-    id: 'gemini-2.5-pro-exp',
-    name: 'gemini-2.5-pro-preview-05-06',
-    label: 'gemini-2.5-pro-preview',
-    contextWindow: 1000000,
-    maxTokens: 64000,
+    id: 'gemini-3-pro-preview',
+    name: 'gemini-3-pro-preview',
+    label: 'gemini-3-pro-preview',
+    contextWindow: 1048576,
+    maxTokens: 65536,
+    defaultMaxTokens: 32000,
+    inputPrice: 0.002,
+    outputPrice: 0.012,
+    capabilities: {
+      tools: {
+        enabled: true,
+      },
+      json: {
+        enabled: true,
+      },
+      vision: {
+        enabled: true,
+        allowBase64: true,
+        allowUrl: true,
+      },
+    },
+    description: `The best model in the world for multimodal understanding, and Google's most powerful agentic and vibe-coding model yet.`,
+  },
+  {
+    id: 'gemini-2.5-pro',
+    name: 'gemini-2.5-pro',
+    label: 'gemini-2.5-pro',
+    contextWindow: 1048576,
+    maxTokens: 65536,
     defaultMaxTokens: 32000,
     inputPrice: 0.00125,
     outputPrice: 0.01,
@@ -23,16 +47,40 @@ const chatModels = [
         allowUrl: true,
       },
     },
-    description: `Google's our most advanced coding model yet and is state-of-the-art across a range of benchmarks requiring enhanced reasoning.`,
+    description: `Google's state-of-the-art thinking model, capable of reasoning over complex problems in code, math, and STEM, as well as analyzing large datasets, codebases, and documents using long context.`,
   },
   {
     id: 'gemini-2.5-flash',
-    name: 'gemini-2.5-flash-preview-05-20',
+    name: 'gemini-2.5-flash-preview-09-2025',
     label: 'gemini-2.5-flash-preview',
     contextWindow: 1048576,
     maxTokens: 65536,
     defaultMaxTokens: 8000,
-    inputPrice: 0.00015,
+    inputPrice: 0.0003,
+    outputPrice: 0.0025,
+    capabilities: {
+      tools: {
+        enabled: true,
+      },
+      json: {
+        enabled: true,
+      },
+      vision: {
+        enabled: true,
+        allowBase64: true,
+        allowUrl: true,
+      },
+    },
+    description: `Google's best model in terms of price-performance, offering well-rounded capabilities. 2.5 Flash is best for large scale processing, low-latency, high volume tasks that require thinking, and agentic use cases.`,
+  },
+  {
+    id: 'gemini-2.5-flash-lite',
+    name: 'gemini-2.5-flash-lite-preview-09-2025',
+    label: 'gemini-2.5-flash-lite-preview',
+    contextWindow: 1048576,
+    maxTokens: 65536,
+    defaultMaxTokens: 8000,
+    inputPrice: 0.0001,
     outputPrice: 0.0004,
     capabilities: {
       tools: {
@@ -47,27 +95,31 @@ const chatModels = [
         allowUrl: true,
       },
     },
-    description: `Next generation features, superior speed, native tool use, and multimodal generation`,
+    description: `Google's fastest flash model optimized for cost-efficiency and high throughput.`,
   },
   {
     id: 'gemini-2.0-flash',
     name: 'gemini-2.0-flash',
+    label: 'gemini-2.0-flash',
     contextWindow: 1048576,
     maxTokens: 8192,
     defaultMaxTokens: 8000,
     inputPrice: 0.0001,
     outputPrice: 0.0004,
     capabilities: {
+      tools: {
+        enabled: true,
+      },
       json: {
         enabled: true,
       },
       vision: {
         enabled: true,
         allowBase64: true,
-        allowUrl: true,
+        allowUrl: false,
       },
     },
-    description: `Capable of reasoning about complex problems and possessing new thinking abilities`,
+    description: `Google's second generation workhorse model, with a 1 million token context window.`,
   },
   {
     id: 'gemini-2.0-flash-lite',
@@ -80,7 +132,7 @@ const chatModels = [
     outputPrice: 0.0003,
     isDefault: true,
     capabilities: {
-      tools: {
+      tools:{
         enabled: true,
       },
       json: {
@@ -89,79 +141,10 @@ const chatModels = [
       vision: {
         enabled: true,
         allowBase64: true,
-        allowUrl: true,
+        allowUrl: false,
       },
     },
-    description: `Quality improvements, celebrate 1 year of Gemini`,
-  },
-  {
-    id: 'gemini-1.5-pro',
-    name: 'gemini-1.5-pro',
-    contextWindow: 1048576,
-    maxTokens: 8192,
-    defaultMaxTokens: 8000,
-    inputPrice: 0.00035,
-    outputPrice: 0.0105,
-    capabilities: {
-      tools: {
-        enabled: true,
-      },
-      json: {
-        enabled: true,
-      },
-      vision: {
-        enabled: true,
-        allowBase64: true,
-        allowUrl: true,
-      },
-    },
-    description: `The multi-modal model from Google's Gemini family that balances model performance and speed.`,
-  },
-  {
-    id: 'gemini-1.5-flash',
-    name: 'gemini-1.5-flash',
-    contextWindow: 1048576,
-    maxTokens: 8192,
-    defaultMaxTokens: 8000,
-    inputPrice: 0.00035,
-    outputPrice: 0.00105,
-    capabilities: {
-      tools: {
-        enabled: true,
-      },
-      json: {
-        enabled: true,
-      },
-      vision: {
-        enabled: true,
-        allowBase64: true,
-        allowUrl: true,
-      },
-    },
-    description: `Lightweight, fast and cost-efficient while featuring multimodal reasoning and a breakthrough long context window of up to one million tokens.`,
-  },
-  {
-    id: 'gemini-1.5-flash-8b',
-    name: 'gemini-1.5-flash-8b',
-    contextWindow: 1048576,
-    maxTokens: 8192,
-    defaultMaxTokens: 8000,
-    inputPrice: 0.0000375,
-    outputPrice: 0.00015,
-    capabilities: {
-      tools: {
-        enabled: true,
-      },
-      json: {
-        enabled: true,
-      },
-      vision: {
-        enabled: true,
-        allowBase64: true,
-        allowUrl: true,
-      },
-    },
-    description: `The Gemini 1.5 Flash-8B is a small model designed for tasks that require less intelligence.`,
+    description: `Google's second generation small workhorse model, with a 1 million token context window.`,
   },
 ];
 
