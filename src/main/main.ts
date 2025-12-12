@@ -52,6 +52,7 @@ import { Downloader } from "@/main/services/downloader";
 import { Embedder } from "@/main/services/embedder";
 import { Encryptor } from "@/main/services/encryptor";
 import { LegacyDataMigrator } from "@/main/services/legacy-data-migrator";
+import { LegacyMessageConverter } from "@/main/services/legacy-message-converter";
 import { LegacyServersConfigLoader } from "@/main/services/legacy-servers-config-loader";
 import { LegacyVectorDatabaseLoader } from "@/main/services/legacy-vector-database-loader";
 import { Logger } from "@/main/services/logger";
@@ -105,6 +106,7 @@ Container.singleton(Environment, () => {
     axiomOrgId: process.env.AXIOM_ORG_ID,
     logsFolder: resolve(userDataFolder, "Logs"),
     deepLinkProtocol: app.isPackaged ? "app.5ire" : "dev.5ire",
+    blobsDataFolder: resolve(userDataFolder, "Blobs"),
   };
 
   ensureDirSync(env.embedderCacheFolder);
@@ -112,6 +114,7 @@ Container.singleton(Environment, () => {
   ensureDirSync(env.storiesFolder);
   ensureDirSync(env.databaseDataFolder);
   ensureDirSync(env.logsFolder);
+  ensureDirSync(env.blobsDataFolder);
 
   return env;
 });
@@ -134,6 +137,7 @@ Container.singleton(LegacyDataMigrator, () => new LegacyDataMigrator());
 Container.singleton(LegacyDataMigratorBridge, () => new LegacyDataMigratorBridge());
 Container.singleton(LegacyVectorDatabaseLoader, () => new LegacyVectorDatabaseLoader());
 Container.singleton(LegacyServersConfigLoader, () => new LegacyServersConfigLoader());
+Container.singleton(LegacyMessageConverter, () => new LegacyMessageConverter());
 Container.singleton(DocumentManager, () => new DocumentManager());
 Container.singleton(DocumentManagerBridge, () => new DocumentManagerBridge());
 Container.singleton(DocumentExtractor, () => new DocumentExtractor());

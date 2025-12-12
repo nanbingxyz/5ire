@@ -8,6 +8,7 @@ import type { ServerInsert } from "@/main/database/types";
 import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
 import { Stateful } from "@/main/internal/stateful";
+import { LegacyMessageConverter } from "@/main/services/legacy-message-converter";
 import { LegacyServersConfigLoader } from "@/main/services/legacy-servers-config-loader";
 import { LegacyVectorDatabaseLoader } from "@/main/services/legacy-vector-database-loader";
 import { Logger } from "@/main/services/logger";
@@ -23,6 +24,7 @@ export class LegacyDataMigrator extends Stateful.Persistable<LegacyDataMigrator.
   #environment = Container.inject(Environment);
   #legacyVectorDatabaseLoader = Container.inject(LegacyVectorDatabaseLoader);
   #legacyServersConfigLoader = Container.inject(LegacyServersConfigLoader);
+  #legacyMessageConverter = Container.inject(LegacyMessageConverter);
 
   #iterateLegacyDatabaseTable<T>(database: SqliteDB, table: string) {
     const exists = database
@@ -486,6 +488,60 @@ export class LegacyDataMigrator extends Stateful.Persistable<LegacyDataMigrator.
     });
   }
 
+  async #migrateBookmarks(context: LegacyDataMigrator.Context) {
+    const logger = this.#logger.scope("MigrateBookmarks");
+    const schema = this.#database.schema;
+    const client = this.#database.client;
+
+    if (this.state.migrated.bookmarks) {
+      return logger.info(
+        `Migrate bookmarks completed (total ${this.state.migrated.bookmarks.total}). No migration needed.`,
+      );
+    }
+
+    const migratedBookmarks: string[] = [];
+
+    for (const legacyBookmark of this.#iterateLegacyDatabaseTable<{
+      id: string;
+      prompt: string | null;
+      reply: string | null;
+      reasoning: string | null;
+      favorite: number | null;
+      model: string | null;
+    }>(context.legacySqliteDB, "bookmarks")) {
+      await client
+        .insert(schema.bookmark)
+        .values({
+          snapshot: {
+            prompt: await this.#legacyMessageConverter.convertLegacyUserPrompt(legacyBookmark.prompt || ""),
+            reply: await this.#legacyMessageConverter.convertLegacyAssistantReply(
+              legacyBookmark.reply || "",
+              legacyBookmark.reasoning || "",
+            ),
+            model: legacyBookmark.model || "unknown",
+            id: crypto.randomUUID(),
+          },
+          favorite: legacyBookmark.favorite === 1,
+        })
+        .execute()
+        .then(() => {
+          migratedBookmarks.push(legacyBookmark.id);
+        })
+        .catch((error) => {
+          logger.warning(`Failed to insert bookmark "${legacyBookmark.id}"`, error);
+        });
+    }
+
+    logger.info(`Migrate bookmarks completed. Total: ${migratedBookmarks.length} migrated.`);
+
+    this.update((draft) => {
+      draft.migrated.bookmarks = {
+        total: migratedBookmarks.length,
+        time: new Date(),
+      };
+    });
+  }
+
   async #migrateProjects(context: LegacyDataMigrator.Context) {
     const logger = this.#logger.scope("MigrateProjects");
     const schema = this.#database.schema;
@@ -597,6 +653,9 @@ export class LegacyDataMigrator extends Stateful.Persistable<LegacyDataMigrator.
       await this.#migratePrompts(context).catch((error) => {
         logger.error("Failed to migrate prompts", error);
       });
+      await this.#migrateBookmarks(context).catch((error) => {
+        logger.error("Failed to migrate bookmarks", error);
+      });
       // await this.#migrateProjects(context).catch((error) => {
       //   logger.error("Failed to migrate projects", error);
       // })
@@ -654,7 +713,8 @@ export namespace LegacyDataMigrator {
         | "transitionChatCollections"
         | "serversConfig"
         | "projects"
-        | "prompts",
+        | "prompts"
+        | "bookmarks",
         {
           time: Date;
           total: number;

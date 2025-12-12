@@ -13,9 +13,9 @@ import {
   vector,
 } from "drizzle-orm/pg-core";
 import type {
+  BookmarkSnapshot,
   ConversationConfig,
   ProjectConfig,
-  Turn,
   TurnMetadata,
   TurnPrompt,
   TurnReply,
@@ -600,7 +600,7 @@ const bookmarkColumns = {
   /**
    * The snapshot of the turn associated with the bookmark.
    */
-  turnSnapshot: jsonb("turn_snapshot").$type<Turn>().notNull(),
+  snapshot: jsonb().$type<BookmarkSnapshot>().notNull(),
   /**
    * Whether the bookmark is a favorite.
    */
