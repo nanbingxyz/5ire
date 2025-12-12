@@ -1,0 +1,1 @@
+ALTER TABLE "bookmarks" RENAME COLUMN "turn_snapshot" TO "snapshot";
