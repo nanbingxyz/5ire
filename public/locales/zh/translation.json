@@ -380,5 +380,7 @@
   "Prompts.MergeStrategy": "上下文合并策略",
   "Prompts.MergeStrategy.Merge": "合并",
   "Prompts.MergeStrategy.Replace": "替换",
-  "Prompts.MergeStrategy.Scoped": "域内替换"
+  "Prompts.MergeStrategy.Scoped": "域内替换",
+  "Prompts.RoleDefinitionVariables": "角色变量",
+  "Prompts.InstructionVariables": "指令变量"
 }

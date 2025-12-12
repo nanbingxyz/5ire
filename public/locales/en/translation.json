@@ -391,5 +391,7 @@
   "Prompts.MergeStrategy": "Context Merge Strategy",
   "Prompts.MergeStrategy.Merge": "Merge",
   "Prompts.MergeStrategy.Replace": "Replace",
-  "Prompts.MergeStrategy.Scoped": "Scoped Replace"
+  "Prompts.MergeStrategy.Scoped": "Scoped Replace",
+  "Prompts.RoleDefinitionVariables": "Role Variables",
+  "Prompts.InstructionVariables": "Instruction Variables"
 }
