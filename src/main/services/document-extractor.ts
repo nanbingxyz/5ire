@@ -1,7 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { fileTypeFromBuffer } from "file-type";
 import { readFile, stat } from "fs-extra";
-import { PDFParse } from "pdf-parse";
 import { CanvasFactory } from "pdf-parse/worker";
 import {
   COMMON_BINARY_DOCUMENT_FILE_MIMETYPES,

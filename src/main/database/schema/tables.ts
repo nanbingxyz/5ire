@@ -15,6 +15,7 @@ import {
 import type {
   ConversationConfig,
   ProjectConfig,
+  Turn,
   TurnMetadata,
   TurnPrompt,
   TurnReply,
@@ -583,8 +584,35 @@ export const usage = pgTable("usages", usageColumns, (table) => {
   return [index().on(table.createTime), index().on(table.providerId), uniqueIndex().on(table.providerId, table.model)];
 });
 
-// const bookmarkColumns = {};
-// export const bookmark = pgTable("bookmarks", bookmarkColumns, (table) => {})
+const bookmarkColumns = {
+  /**
+   * The unique identifier for the record.
+   */
+  id: uuid().primaryKey().defaultRandom(),
+  /**
+   * The creation time of the record.
+   */
+  createTime: makeCreateTime(),
+  /**
+   * The last update time of the record.
+   */
+  updateTime: makeUpdateTime(),
+  /**
+   * The snapshot of the turn associated with the bookmark.
+   */
+  turnSnapshot: jsonb("turn_snapshot").$type<Turn>().notNull(),
+  /**
+   * Whether the bookmark is a favorite.
+   */
+  favorite: boolean().notNull().default(false),
+};
+
+/**
+ * Bookmarks table is used to store user bookmarks.
+ */
+export const bookmark = pgTable("bookmarks", bookmarkColumns, (table) => {
+  return [index().on(table.createTime), index().on(table.favorite)];
+});
 
 // const serverColumns = {};
 /**
