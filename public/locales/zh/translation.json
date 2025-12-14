@@ -369,5 +369,20 @@
   "Knowledge.Notification.DocumentDeleted": "文档已删除",
   "Tools.Transport": "链接模式",
   "Common.URLInvalid": "URL 地址无效",
-  "Common.Active": "激活"
+  "Common.Active": "激活",
+  "Common.Browse": "浏览",
+  "Common.RequestHeaders": "请求头",
+  "Common.Environments": "环境变量",
+  "Common.CommandLineArguments": "命令行参数",
+  "Tool.ServerTemplateParseError": "无法解析工具配置",
+  "Prompts.New": "添加提示词",
+  "Prompts.Edit": "编辑提示词",
+  "Prompts.RoleDefinition": "角色定义",
+  "Prompts.Instruction": "指令",
+  "Prompts.MergeStrategy": "上下文合并策略",
+  "Prompts.MergeStrategy.Merge": "合并",
+  "Prompts.MergeStrategy.Replace": "替换",
+  "Prompts.MergeStrategy.Scoped": "域内替换",
+  "Prompts.RoleDefinitionVariables": "角色变量",
+  "Prompts.InstructionVariables": "指令变量"
 }

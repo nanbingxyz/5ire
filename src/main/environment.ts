@@ -89,6 +89,10 @@ export type Environment = {
    * The protocol used for deep linking.
    */
   readonly deepLinkProtocol: string;
+  /**
+   * The folder where blobs are stored.
+   */
+  readonly blobsDataFolder: string;
 };
 
 export namespace Environment {}

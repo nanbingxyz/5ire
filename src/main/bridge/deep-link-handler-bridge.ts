@@ -6,7 +6,7 @@ export class DeepLinkHandlerBridge extends Bridge.define("deep-link-handler", ()
   const service = Container.inject(DeepLinkHandler);
 
   return {
-    createStateStream: () => {
+    createUnhandledDeepLinksStateStream: () => {
       return service.createStream((state) => state.unhandledDeepLinks);
     },
     handled: async (id: string) => {

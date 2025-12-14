@@ -278,6 +278,111 @@ export class MCPToolsManager extends Stateful<MCPToolsManager.State> {
     }
   }
 
+  #legacyCallAbortControllers = new Map<string, AbortController>();
+
+  async legacyCall(options: MCPToolsManager.LegacyCallOptions) {
+    const controllerId = options.requestId || crypto.randomUUID();
+    const controller = new AbortController();
+
+    this.#legacyCallAbortControllers.set(controllerId, controller);
+
+    const connection = this.#connectionsManager.state.connections.get(options.client);
+
+    if (!connection || connection.status !== "connected") {
+      return {
+        isError: true,
+        content: [
+          {
+            error: `MCP Client ${options.client} not found`,
+            code: "client_not_found",
+            clientName: options.client,
+            toolName: options.name,
+          },
+        ],
+      };
+    }
+
+    try {
+      const result = await connection.client.callTool(
+        {
+          name: options.name,
+          arguments: options.arguments,
+        },
+        undefined,
+        {
+          signal: controller.signal,
+        },
+      );
+
+      return { isError: false, ...result };
+    } catch (error) {
+      return {
+        isError: true,
+        content: [
+          {
+            error: `Error calling tool ${options.name}: ${asError(error).message}`,
+            code: "tool_call_error",
+            clientName: options.client,
+            toolName: options.name,
+          },
+        ],
+      };
+    } finally {
+      this.#legacyCallAbortControllers.delete(controllerId);
+    }
+  }
+
+  async legacyCancelCall(options: MCPToolsManager.LegacyCancelCallOptions) {
+    this.#legacyCallAbortControllers.get(options.requestId)?.abort();
+  }
+
+  async legacyList() {
+    const bundles = Array.from(this.state.collections.entries()).map(([id, collection]) => {
+      if (collection.status === "loaded") {
+        return {
+          client: id,
+          tools: collection.tools.map((tool) => {
+            return {
+              ...tool,
+              ...{
+                name: `${id}--${tool.name}`,
+              },
+            };
+          }),
+          error: null,
+        };
+      }
+
+      if (collection.status === "error") {
+        return {
+          client: id,
+          tools: [],
+          error: collection.message,
+        };
+      }
+
+      return {
+        client: id,
+        tools: [],
+        error: null,
+      };
+    });
+
+    const tools = bundles.flatMap((r) => r.tools);
+    const failedClients = bundles.filter((r) => r.error).map((r) => ({ client: r.client, error: r.error! }));
+
+    return {
+      tools,
+      error: failedClients.length
+        ? {
+            message: "Partial failure listing tools",
+            code: "partial_failure",
+            failedClients,
+          }
+        : null,
+    };
+  }
+
   constructor() {
     super(() => {
       return {
@@ -395,5 +500,16 @@ export namespace MCPToolsManager {
      * The conversation ID.
      */
     conversationId?: string;
+  };
+
+  export type LegacyCallOptions = {
+    client: string;
+    name: string;
+    arguments: Record<string, unknown>;
+    requestId?: string;
+  };
+
+  export type LegacyCancelCallOptions = {
+    requestId: string;
   };
 }

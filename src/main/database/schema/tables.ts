@@ -13,6 +13,7 @@ import {
   vector,
 } from "drizzle-orm/pg-core";
 import type {
+  BookmarkSnapshot,
   ConversationConfig,
   ProjectConfig,
   TurnMetadata,
@@ -304,14 +305,22 @@ const promptColumns = {
   /**
    * System prompt merging strategy, used to specify how to use roleDefinition in conversations; when roleDefinition is empty, mergeStrategy is invalid
    */
-  mergeStrategy: promptMergeStrategy().notNull().default("merge"),
+  mergeStrategy: promptMergeStrategy("merge_strategy").notNull().default("merge"),
+  /**
+   * The legacy ID of the prompt.
+   */
+  legacyId: varchar("legacy_id", { length: 300 }),
 };
 
 /**
  * The `prompts` table is used to store user-defined prompts.
  */
 export const prompt = pgTable("prompts", promptColumns, (table) => {
-  return [index().on(table.createTime), index().on(table.name)];
+  return [
+    index().on(table.createTime),
+    index().on(table.name),
+    uniqueIndex().on(table.legacyId).where(isNotNull(table.legacyId)),
+  ];
 });
 
 const projectColumns = {
@@ -335,13 +344,21 @@ const projectColumns = {
    * The project config.
    */
   config: jsonb().$type<ProjectConfig>().notNull(),
+  /**
+   * The legacy folder ID of the project.
+   */
+  legacyFolderId: varchar("legacy_folder_id", { length: 300 }),
 };
 
 /**
  * The `projects` table is used to store project information.
  */
 export const project = pgTable("projects", projectColumns, (table) => {
-  return [index().on(table.createTime), index().on(table.name)];
+  return [
+    index().on(table.createTime),
+    index().on(table.name),
+    uniqueIndex().on(table.legacyFolderId).where(isNotNull(table.legacyFolderId)),
+  ];
 });
 
 const conversationColumns = {
@@ -567,8 +584,35 @@ export const usage = pgTable("usages", usageColumns, (table) => {
   return [index().on(table.createTime), index().on(table.providerId), uniqueIndex().on(table.providerId, table.model)];
 });
 
-// const bookmarkColumns = {};
-// export const bookmark = pgTable("bookmarks", bookmarkColumns, (table) => {})
+const bookmarkColumns = {
+  /**
+   * The unique identifier for the record.
+   */
+  id: uuid().primaryKey().defaultRandom(),
+  /**
+   * The creation time of the record.
+   */
+  createTime: makeCreateTime(),
+  /**
+   * The last update time of the record.
+   */
+  updateTime: makeUpdateTime(),
+  /**
+   * The snapshot of the turn associated with the bookmark.
+   */
+  snapshot: jsonb().$type<BookmarkSnapshot>().notNull(),
+  /**
+   * Whether the bookmark is a favorite.
+   */
+  favorite: boolean().notNull().default(false),
+};
+
+/**
+ * Bookmarks table is used to store user bookmarks.
+ */
+export const bookmark = pgTable("bookmarks", bookmarkColumns, (table) => {
+  return [index().on(table.createTime), index().on(table.favorite)];
+});
 
 // const serverColumns = {};
 /**
@@ -614,13 +658,13 @@ const serverColumns = {
   /**
    * The endpoint for the server.
    * - When `transport` is "stdio", this is the command to start the process.
-   * - When `transport` is "sse" or "http-streamable", this is the URL to connect to.
+   * - When `transport` is "http-streamable", this is the URL to connect to.
    */
   endpoint: varchar({ length: 600 }).notNull(),
   /**
    * Configuration for the server.
    * - When `transport` is "stdio", this represents environment variables.
-   * - When `transport` is "sse" or "http-streamable", this represents HTTP headers.
+   * - When `transport` is "http-streamable", this represents HTTP headers.
    */
   config: jsonb().$type<Record<string, string>>().notNull(),
   /**

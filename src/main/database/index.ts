@@ -18,7 +18,7 @@ export class Database {
   /**
    * Promise that resolves when database initialization is complete
    */
-  #ready: Promise<Database.Client>;
+  #ready?: Promise<Database.Client>;
 
   /**
    * Database client instance
@@ -77,6 +77,42 @@ export class Database {
         logger.error("Failed to drop live query views.", error);
       });
 
+    await driver
+      .query<Record<"schemaname" | "tablename", string>>(
+        "SELECT schemaname, tablename FROM pg_tables WHERE tablename LIKE 'live_query_%' AND schemaname NOT IN ('pg_catalog', 'information_schema');",
+      )
+      .then(async (results) => {
+        logger.info(`Found ${results.rows.length} live query tables to drop. Starting cleanup...`);
+
+        await Promise.all(
+          results.rows.map(async (row) => {
+            await driver.exec(`DROP TABLE IF EXISTS "${row.schemaname}"."${row.tablename}" CASCADE;`);
+          }),
+        );
+
+        return logger.info(`Live query tables dropped successfully. Count: ${results.rows.length}`);
+      })
+      .catch((error) => {
+        logger.error("Failed to drop live query tables.", error);
+      });
+
+    await driver
+      .query<Record<"name", string>>("SELECT name FROM pg_prepared_statements WHERE name LIKE 'live_query_%';")
+      .then(async (results) => {
+        logger.info(`Found ${results.rows.length} live query prepared statements to deallocate. Starting cleanup...`);
+
+        await Promise.all(
+          results.rows.map(async (row) => {
+            await driver.exec(`DEALLOCATE ${row.name};`);
+          }),
+        );
+
+        return logger.info(`Live query prepared statements deallocated successfully. Count: ${results.rows.length}`);
+      })
+      .catch((error) => {
+        logger.error("Failed to deallocate live query prepared statements. Ensure this session created them.", error);
+      });
+
     logger.info("Creating Drizzle ORM client...");
 
     const clientQueryLogger = this.#logger.scope("DrizzleQuery");
@@ -110,12 +146,11 @@ export class Database {
   }
 
   /**
-   * Constructor
-   *
    * Starts the database initialization process
    */
-  constructor() {
-    this.#ready = this.#init();
+  init() {
+    // biome-ignore lint/suspicious/noAssignInExpressions: x
+    return (this.#ready = this.#init());
   }
 
   /**
@@ -124,6 +159,9 @@ export class Database {
    * @returns Promise<Database.Client> Database client initialization Promise
    */
   get ready() {
+    if (!this.#ready) {
+      return Promise.reject(new Error("Database has not been initialized. Please call init() first."));
+    }
     return this.#ready;
   }
 

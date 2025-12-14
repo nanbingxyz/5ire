@@ -6,19 +6,18 @@ import {
   type Theme,
   Toaster,
 } from "@fluentui/react-components";
-import Debug from "debug";
 import usePlatform from "hooks/usePlatform";
 import useUI from "hooks/useUI";
 import { useEffect, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import { MemoryRouter as Router } from "react-router-dom";
+import { DeepLinkHandler } from "@/renderer/next/components/deep-link-handler";
 import { Routes } from "@/renderer/next/components/routes";
 import { useRenderer } from "@/renderer/next/hooks/remote/use-renderer";
 import { useSettings } from "@/renderer/next/hooks/remote/use-settings";
 import AppHeader from "./layout/AppHeader";
 import AppSidebar from "./layout/aside/AppSidebar";
 import WindowsTitleBar from "./layout/WindowsTitleBar";
-import ToolSetup from "./ToolSetup";
 
 const fire: BrandVariants = {
   10: "#030303",
@@ -121,7 +120,7 @@ export default function FluentApp() {
                 <div id="portal" style={{ zIndex: 9999999, position: "absolute" }} />
               </main>
             </div>
-            <ToolSetup />
+            <DeepLinkHandler />
           </Router>
         </div>
       </div>

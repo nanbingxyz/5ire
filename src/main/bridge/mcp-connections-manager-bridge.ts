@@ -19,19 +19,19 @@ export class MCPConnectionsManagerBridge extends Bridge.define("mcp-connections-
             status: connection.status,
             capabilities: connection.capabilities,
             projectId: connection.projectId,
-          };
+          } as const;
         }
 
         if (connection.status === "connecting") {
           return {
             status: connection.status,
-          };
+          } as const;
         }
 
         return {
           status: connection.status,
           error: connection.error,
-        };
+        } as const;
       };
 
       return connectionsManager.createStream((state) => {
@@ -48,25 +48,24 @@ export class MCPConnectionsManagerBridge extends Bridge.define("mcp-connections-
     tool: {
       call: toolManager.call.bind(toolManager),
       createStateStream: () => {
-        const transformCollections = (collections: Map<string, MCPToolsManager.ToolCollection>) => {
-          const entries = [...collections.entries()].map(([id, collection]) => {
-            if (collection.status === "loading") {
-              return [
-                id,
-                {
-                  status: collection.status,
-                },
-              ];
-            }
+        const transformCollection = (collection: MCPToolsManager.ToolCollection) => {
+          if (collection.status === "loading") {
+            return {
+              status: collection.status,
+            } as const;
+          }
 
-            return [id, collection];
-          });
-
-          return Object.fromEntries(entries);
+          return collection;
         };
 
         return toolManager.createStream((state) => {
-          return transformCollections(state.collections);
+          const r: Record<string, ReturnType<typeof transformCollection>> = {};
+
+          for (const [k, c] of state.collections.entries()) {
+            r[k] = transformCollection(c);
+          }
+
+          return r;
         });
       },
     },
@@ -74,25 +73,24 @@ export class MCPConnectionsManagerBridge extends Bridge.define("mcp-connections-
     prompt: {
       get: promptManager.get.bind(promptManager),
       createStateStream: () => {
-        const transformCollections = (collections: Map<string, MCPPromptsManager.PromptCollection>) => {
-          const entries = [...collections.entries()].map(([id, collection]) => {
-            if (collection.status === "loading") {
-              return [
-                id,
-                {
-                  status: collection.status,
-                },
-              ];
-            }
+        const transformCollection = (collection: MCPPromptsManager.PromptCollection) => {
+          if (collection.status === "loading") {
+            return {
+              status: collection.status,
+            } as const;
+          }
 
-            return [id, collection];
-          });
-
-          return Object.fromEntries(entries);
+          return collection;
         };
 
         return promptManager.createStream((state) => {
-          return transformCollections(state.collections);
+          const r: Record<string, ReturnType<typeof transformCollection>> = {};
+
+          for (const [k, c] of state.collections.entries()) {
+            r[k] = transformCollection(c);
+          }
+
+          return r;
         });
       },
     },
@@ -100,25 +98,24 @@ export class MCPConnectionsManagerBridge extends Bridge.define("mcp-connections-
     resource: {
       read: resourceManager.read.bind(resourceManager),
       createStateStream: () => {
-        const transformCollections = (collections: Map<string, MCPResourcesManager.ResourceCollection>) => {
-          const entries = [...collections.entries()].map(([id, collection]) => {
-            if (collection.status === "loading") {
-              return [
-                id,
-                {
-                  status: collection.status,
-                },
-              ];
-            }
+        const transformCollection = (collection: MCPResourcesManager.ResourceCollection) => {
+          if (collection.status === "loading") {
+            return {
+              status: collection.status,
+            } as const;
+          }
 
-            return [id, collection];
-          });
-
-          return Object.fromEntries(entries);
+          return collection;
         };
 
         return resourceManager.createStream((state) => {
-          return transformCollections(state.collections);
+          const r: Record<string, ReturnType<typeof transformCollection>> = {};
+
+          for (const [k, c] of state.collections.entries()) {
+            r[k] = transformCollection(c);
+          }
+
+          return r;
         });
       },
     },

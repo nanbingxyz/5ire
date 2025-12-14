@@ -1,10 +1,10 @@
 // Disable no-unused-vars, broken for spread args
 /* eslint no-unused-vars: off */
 
+import { platform } from "node:os";
+import { setFlagsFromString } from "node:v8";
 import { contextBridge, type IpcRendererEvent, ipcRenderer } from "electron";
-import { platform } from "os";
 import type { ThemeType } from "types/appearance";
-import v8 from "v8";
 import type { DeepLinkHandlerBridge } from "@/main/bridge/deep-link-handler-bridge";
 import type { DocumentEmbedderBridge } from "@/main/bridge/document-embedder-bridge";
 import type { DocumentManagerBridge } from "@/main/bridge/document-manager-bridge";
@@ -14,7 +14,7 @@ import type { EncryptorBridge } from "@/main/bridge/encryptor-bridge";
 import type { LegacyDataMigratorBridge } from "@/main/bridge/legacy-data-migrator-bridge";
 import type { MCPConnectionsManagerBridge } from "@/main/bridge/mcp-connections-manager-bridge";
 import type { MCPServersManagerBridge } from "@/main/bridge/mcp-servers-manager-bridge";
-import type { PromptManagerBridge } from "@/main/bridge/prompt-manager-bridge";
+import type { PromptsManagerBridge } from "@/main/bridge/prompts-manager-bridge";
 import type { RendererBridge } from "@/main/bridge/renderer-bridge";
 import type { SettingsBridge } from "@/main/bridge/settings-bridge";
 import type { UpdaterBridge } from "@/main/bridge/updater-bridge";
@@ -27,7 +27,7 @@ if (process.platform !== "win32") {
 }
 
 // Setting V8 memory limit
-v8.setFlagsFromString("--max-old-space-size=4096");
+setFlagsFromString("--max-old-space-size=4096");
 
 const connector = new BridgeConnector(ipcRenderer);
 
@@ -59,7 +59,7 @@ const BRIDGE = {
     show: "async",
     createStateStream: "stream",
   }),
-  settingsStore: connector.connect<SettingsBridge>("settings-store", {
+  settings: connector.connect<SettingsBridge>("settings", {
     updateLanguage: "async",
     updateTheme: "async",
     updateFontSize: "async",
@@ -85,17 +85,18 @@ const BRIDGE = {
     createStateStream: "stream",
     createEventStream: "stream",
   }),
-  promptManager: connector.connect<PromptManagerBridge>("prompt-manager", {
+  promptsManager: connector.connect<PromptsManagerBridge>("prompts-manager", {
     createPrompt: "async",
     updatePrompt: "async",
     deletePrompt: "async",
     listPrompts: "async",
+    livePrompts: "stream",
   }),
   legacyDataMigrator: connector.connect<LegacyDataMigratorBridge>("legacy-data-migrator", {
     createStateStream: "stream",
   }),
   deepLinkHandler: connector.connect<DeepLinkHandlerBridge>("deep-link-handler", {
-    createStateStream: "stream",
+    createUnhandledDeepLinksStateStream: "stream",
     handled: "async",
   }),
   mcpConnectionsManager: connector.connect<MCPConnectionsManagerBridge>("mcp-connections-manager", {

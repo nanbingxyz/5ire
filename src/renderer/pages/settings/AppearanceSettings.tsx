@@ -25,7 +25,7 @@ export default function AppearanceSettings() {
    */
   const onThemeChange = (ev: FormEvent<HTMLDivElement>, data: RadioGroupOnChangeData) => {
     // @ts-expect-error
-    window.bridge.settingsStore.updateTheme(data.value);
+    window.bridge.settings.updateTheme(data.value);
   };
 
   /**
@@ -37,7 +37,7 @@ export default function AppearanceSettings() {
    */
   const onFontSizeChange = (ev: FormEvent<HTMLDivElement>, data: RadioGroupOnChangeData) => {
     // @ts-expect-error
-    window.bridge.settingsStore.updateFontSize(data.value);
+    window.bridge.settings.updateFontSize(data.value);
   };
 
   return (

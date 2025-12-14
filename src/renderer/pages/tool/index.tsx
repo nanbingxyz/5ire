@@ -16,10 +16,10 @@ import HigressLogo from "renderer/components/icons/HigressLogo";
 import TooltipIcon from "renderer/components/TooltipIcon";
 import type { IMCPServer } from "types/mcp";
 import { useServersWithSelector } from "@/renderer/next/hooks/remote/use-servers";
+import { ServerBrowser, type ServerBrowserInstance } from "@/renderer/pages/tool/ServerBrowser";
 import { ServerDeleteConfirm, type ServerDeleteConfirmInstance } from "@/renderer/pages/tool/ServerDeleteConfirm";
 import { ServerEditDialog, type ServerEditDialogInstance } from "@/renderer/pages/tool/ServerEditDialog";
-import DetailDialog from "./DetailDialog";
-import ToolInstallDialog from "./InstallDialog";
+import { ServerInstaller, type ServerInstallerInstance } from "@/renderer/pages/tool/ServerInstaller";
 import ToolMarketDrawer from "./MarketDrawer";
 import { ServerGrid } from "./ServerGrid";
 
@@ -27,14 +27,12 @@ const BuildingShopIcon = bundleIcon(BuildingShopFilled, BuildingShopRegular);
 
 export default function Tools() {
   const { t } = useTranslation();
-  const [mktServer, setMktServer] = useState<IMCPServer | null>(null);
-  const [server] = useState<IMCPServer | null>(null);
   const [marketOpen, setMarketOpen] = useState(false);
-  const [installDialogOpen, setInstallDialogOpen] = useState(false);
-  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
 
   const refServerEditDialog = useRef<ServerEditDialogInstance>(null);
   const refServerDeleteConfirm = useRef<ServerDeleteConfirmInstance>(null);
+  const refServerBrowser = useRef<ServerBrowserInstance>(null);
+  const refServerInstaller = useRef<ServerInstallerInstance>(null);
 
   const serversIsEmpty = useServersWithSelector((raw) => {
     return raw.rows.map((row) => row.id).length === 0;
@@ -53,15 +51,15 @@ export default function Tools() {
   }, []);
 
   const handleDelete = useCallback((id: string) => {
-    console.log("handleDelete", id);
     refServerDeleteConfirm.current?.delete(id);
   }, []);
 
-  const handleInspect = useCallback((id: string) => {}, []);
+  const handleBrowse = useCallback((id: string) => {
+    refServerBrowser.current?.browse(id);
+  }, []);
 
   const installServer = useCallback((svr: IMCPServer) => {
-    setMktServer(svr);
-    setInstallDialogOpen(true);
+    refServerInstaller.current?.install(svr);
   }, []);
 
   return (
@@ -72,20 +70,6 @@ export default function Tools() {
           <div className="flex justify-between items-baseline w-full">
             <h1 className="text-2xl flex-shrink-0 mr-6">{t("Common.Tools")}</h1>
             <div className="flex justify-end w-full items-center gap-2">
-              {/*<Button*/}
-              {/*  icon={*/}
-              {/*    <ArrowSyncCircleRegular*/}
-              {/*      className={loading ? 'animate-spin' : ''}*/}
-              {/*    />*/}
-              {/*  }*/}
-              {/*  onClick={() => {*/}
-              {/*    setLoading(true);*/}
-              {/*    loadMCPConfig(true, false);*/}
-              {/*    setTimeout(() => setLoading(false), 1000);*/}
-              {/*  }}*/}
-              {/*  appearance="subtle"*/}
-              {/*  title={t('Common.Action.Reload')}*/}
-              {/*/>*/}
               <Menu positioning="below-end">
                 <MenuTrigger disableButtonEnhancement>
                   {(triggerProps: MenuButtonProps) => (
@@ -152,7 +136,7 @@ export default function Tools() {
         {serversIsEmpty ? (
           <Empty image="tools" text={t("Tool.Info.Empty")} />
         ) : (
-          <ServerGrid onEdit={handleEdit} onDelete={handleDelete} onInspect={handleInspect} />
+          <ServerGrid onEdit={handleEdit} onDelete={handleDelete} onBrowse={handleBrowse} />
         )}
       </div>
       {/*<LocalServerEditDialog open={localServerEditDialogOpen} setOpen={setLocalServerEditDialogOpen} server={server} />*/}
@@ -161,12 +145,13 @@ export default function Tools() {
       {/*  setOpen={setRemoteServerEditDialogOpen}*/}
       {/*  server={server}*/}
       {/*/>*/}
-      {server && <DetailDialog open={detailDialogOpen} setOpen={setDetailDialogOpen} server={server} />}
-      {mktServer && <ToolInstallDialog server={mktServer} open={installDialogOpen} setOpen={setInstallDialogOpen} />}
+
       <ToolMarketDrawer open={marketOpen} setOpen={setMarketOpen} onInstall={installServer} />
 
       <ServerEditDialog ref={refServerEditDialog} />
       <ServerDeleteConfirm ref={refServerDeleteConfirm} />
+      <ServerBrowser ref={refServerBrowser} />
+      <ServerInstaller ref={refServerInstaller} />
     </div>
   );
 }

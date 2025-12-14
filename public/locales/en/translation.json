@@ -380,5 +380,20 @@
   "Knowledge.Notification.DocumentDeleted": "The document has been removed.",
   "Tools.Transport": "Transport",
   "Common.URLInvalid": "URL is invalid",
-  "Common.Active": "Active"
+  "Common.Active": "Active",
+  "Common.Browse": "Browse",
+  "Common.RequestHeaders": "Headers",
+  "Common.Environments": "Environment variables",
+  "Common.CommandLineArguments": "Arguments",
+  "Tool.ServerTemplateParseError": "Failed to parse server configuration.",
+  "Prompts.New": "Add a new prompt",
+  "Prompts.Edit": "Edit prompt",
+  "Prompts.RoleDefinition": "Role Definition",
+  "Prompts.Instruction": "Instruction",
+  "Prompts.MergeStrategy": "Context Merge Strategy",
+  "Prompts.MergeStrategy.Merge": "Merge",
+  "Prompts.MergeStrategy.Replace": "Replace",
+  "Prompts.MergeStrategy.Scoped": "Scoped Replace",
+  "Prompts.RoleDefinitionVariables": "Role Variables",
+  "Prompts.InstructionVariables": "Instruction Variables"
 }

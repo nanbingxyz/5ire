@@ -1,5 +1,6 @@
 import type { InferEnum, InferInsertModel, InferSelectModel } from "drizzle-orm";
 import type {
+  bookmark,
   collection,
   conversation,
   conversationCollection,
@@ -280,3 +281,14 @@ export type ServerApprovalPolicy = InferEnum<typeof serverApprovalPolicy>;
 export type Server = InferSelectModel<typeof server>;
 export type ServerRaw = InferSelectModel<typeof server, { dbColumnNames: true }>;
 export type ServerInsert = InferInsertModel<typeof server>;
+
+export type BookmarkSnapshot = Pick<Turn, "prompt" | "id" | "reply"> & {
+  /**
+   * The name of the model used to process this turn.
+   */
+  model: string;
+};
+
+export type Bookmark = InferSelectModel<typeof bookmark>;
+export type BookmarkRaw = InferSelectModel<typeof bookmark, { dbColumnNames: true }>;
+export type BookmarkInsert = InferInsertModel<typeof bookmark>;
