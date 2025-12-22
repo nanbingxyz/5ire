@@ -10,8 +10,8 @@ import {
   MenuProps,
   Button,
   Persona,
-} from '@fluentui/react-components';
-import Mousetrap from 'mousetrap';
+} from "@fluentui/react-components";
+import Mousetrap from "mousetrap";
 import {
   bundleIcon,
   DataUsage24Regular,
@@ -21,13 +21,12 @@ import {
   Settings24Regular,
   SignOut24Regular,
   LayerDiagonalSparkle24Regular,
-} from '@fluentui/react-icons';
-import { useTranslation } from 'react-i18next';
-import useAppearanceStore from 'stores/useAppearanceStore';
-import useNav from 'hooks/useNav';
-import { useEffect, useState } from 'react';
-import useToast from 'hooks/useToast';
-import useAuthStore from 'stores/useAuthStore';
+} from "@fluentui/react-icons";
+import { useTranslation } from "react-i18next";
+import useNav from "hooks/useNav";
+import { useEffect, useState } from "react";
+import useToast from "hooks/useToast";
+import useAuthStore from "stores/useAuthStore";
 
 // const debug = Debug('5ire:components:layout:aside:WorkspaceMenu');
 
@@ -36,7 +35,7 @@ const FireIcon = bundleIcon(Fire24Filled, Fire24Regular);
 /**
  * WorkspaceMenu component that renders a dropdown menu with workspace navigation options,
  * user profile information, and application settings. Supports both collapsed and expanded states.
- * 
+ *
  * @param {Object} props - Component properties
  * @param {boolean} props.collapsed - Whether the menu should be displayed in collapsed mode
  * @returns {JSX.Element} The rendered workspace menu component
@@ -46,7 +45,6 @@ export default function WorkspaceMenu({ collapsed }: { collapsed: boolean }) {
   const [open, setOpen] = useState(false);
   const navigate = useNav();
   const { notifySuccess, notifyError } = useToast();
-  const theme = useAppearanceStore((state) => state.theme);
   const user = useAuthStore((state) => state.user);
 
   /**
@@ -55,9 +53,9 @@ export default function WorkspaceMenu({ collapsed }: { collapsed: boolean }) {
    */
   const navToProfile = () => {
     if (!user) {
-      navigate('/user/login');
+      navigate("/user/login");
     } else {
-      navigate('/user/account');
+      navigate("/user/account");
     }
     setOpen(false);
   };
@@ -71,19 +69,19 @@ export default function WorkspaceMenu({ collapsed }: { collapsed: boolean }) {
     if (error) {
       notifyError(error.message);
     } else {
-      notifySuccess(t('Notification.SignOutSuccess'));
-      navigate('/user/login');
+      notifySuccess(t("Notification.SignOutSuccess"));
+      navigate("/user/login");
     }
   };
 
   /**
    * Handles menu open/close state changes.
-   * 
+   *
    * @param {Event} e - The event object
    * @param {Object} data - Menu state data containing open status
    * @param {boolean} data.open - Whether the menu is open
    */
-  const onOpenChange: MenuProps['onOpenChange'] = (e, data) => {
+  const onOpenChange: MenuProps["onOpenChange"] = (e, data) => {
     setOpen(data.open);
   };
 
@@ -92,13 +90,13 @@ export default function WorkspaceMenu({ collapsed }: { collapsed: boolean }) {
    * Binds mod+, for settings, mod+k for providers, and mod+p for prompts.
    */
   useEffect(() => {
-    Mousetrap.bind('mod+,', () => navigate('/settings'));
-    Mousetrap.bind('mod+k', () => navigate('/providers'));
-    Mousetrap.bind('mod+p', () => navigate('/prompts'));
+    Mousetrap.bind("mod+,", () => navigate("/settings"));
+    Mousetrap.bind("mod+k", () => navigate("/providers"));
+    Mousetrap.bind("mod+p", () => navigate("/prompts"));
     return () => {
-      Mousetrap.unbind('mod+,');
-      Mousetrap.unbind('mod+k');
-      Mousetrap.unbind('mod+p');
+      Mousetrap.unbind("mod+,");
+      Mousetrap.unbind("mod+k");
+      Mousetrap.unbind("mod+p");
     };
   }, []);
 
@@ -106,28 +104,28 @@ export default function WorkspaceMenu({ collapsed }: { collapsed: boolean }) {
     <div className="pr-0.5">
       <Menu open={open} onOpenChange={onOpenChange}>
         <div
-          className={`${collapsed ? '' : 'flex items-center justify-between '}`}
+          className={`${collapsed ? "" : "flex items-center justify-between "}`}
         >
           <MenuTrigger disableButtonEnhancement>
             <MenuButton
               icon={<FireIcon />}
               appearance="transparent"
-              style={{ borderColor: 'transparent', boxShadow: 'none' }}
+              style={{ borderColor: "transparent", boxShadow: "none" }}
               className="w-full justify-start outline-none"
               onClick={() => setOpen(true)}
             >
-              {collapsed ? null : t('Common.Workspace')}
+              {collapsed ? null : t("Common.Workspace")}
             </MenuButton>
           </MenuTrigger>
           {collapsed ||
             (user && (
               <Button
                 className="ml-5"
-                onClick={() => navigate('/user/account')}
+                onClick={() => navigate("/user/account")}
                 appearance="subtle"
                 icon={
                   <Avatar
-                    aria-label={t('Common.User')}
+                    aria-label={t("Common.User")}
                     name={user.user_metadata.name}
                     color="colorful"
                     size={24}
@@ -136,11 +134,7 @@ export default function WorkspaceMenu({ collapsed }: { collapsed: boolean }) {
               />
             ))}
         </div>
-        <MenuPopover
-          className="w-full"
-          style={{ width: '254px' }}
-          data-theme={theme}
-        >
+        <MenuPopover className="w-full" style={{ width: "254px" }}>
           <Button
             onClick={navToProfile}
             appearance="subtle"
@@ -155,7 +149,7 @@ export default function WorkspaceMenu({ collapsed }: { collapsed: boolean }) {
                     secondaryText={user.email}
                     avatar={
                       <Avatar
-                        aria-label={t('Common.User')}
+                        aria-label={t("Common.User")}
                         name={user.user_metadata.name}
                         color="colorful"
                         className="mr-2"
@@ -168,12 +162,12 @@ export default function WorkspaceMenu({ collapsed }: { collapsed: boolean }) {
               ) : (
                 <div className="flex justify-start flex-nowrap items-center">
                   <Avatar
-                    aria-label={t('Common.Guest')}
+                    aria-label={t("Common.Guest")}
                     className="mr-2"
                     shape="square"
                     size={40}
                   />
-                  <span>{t('Common.SignIn')}</span>
+                  <span>{t("Common.SignIn")}</span>
                 </div>
               )}
             </div>
@@ -184,11 +178,11 @@ export default function WorkspaceMenu({ collapsed }: { collapsed: boolean }) {
               title="mod+k"
               icon={<LayerDiagonalSparkle24Regular />}
               onClick={() => {
-                navigate('/providers');
+                navigate("/providers");
               }}
             >
               <div className="flex justify-between items-center">
-                {t('Common.Providers')}
+                {t("Common.Providers")}
                 <span className="text-xs tips">MOD + k</span>
               </div>
             </MenuItem>
@@ -196,38 +190,38 @@ export default function WorkspaceMenu({ collapsed }: { collapsed: boolean }) {
               title="mod+,"
               icon={<Settings24Regular />}
               onClick={() => {
-                navigate('/settings');
+                navigate("/settings");
               }}
             >
               <div className="flex justify-between items-center">
-                {t('Common.Settings')}
+                {t("Common.Settings")}
                 <span className="text-xs tips">MOD + ,</span>
               </div>
             </MenuItem>
             <MenuItem
               icon={<ReceiptSparkles24Regular />}
               onClick={() => {
-                navigate('/prompts');
+                navigate("/prompts");
               }}
             >
               <div className="flex justify-between items-center">
-                {t('Common.Prompts')}
+                {t("Common.Prompts")}
                 <span className="text-xs tips">MOD + p</span>
               </div>
             </MenuItem>
             <MenuItem
               icon={<DataUsage24Regular />}
               onClick={() => {
-                navigate('/usage');
+                navigate("/usage");
               }}
             >
-              {t('Common.Analytics')}
+              {t("Common.Analytics")}
             </MenuItem>
             {user ? (
               <div>
                 <MenuDivider />
                 <MenuItem icon={<SignOut24Regular />} onClick={signOut}>
-                  {t('Common.SignOut')}
+                  {t("Common.SignOut")}
                 </MenuItem>
               </div>
             ) : null}
