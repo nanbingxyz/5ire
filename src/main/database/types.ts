@@ -138,7 +138,7 @@ export type TurnMetadata = {
 export type TurnPrompt =
   | TurnPrompt.UserInput
   | TurnPrompt.UserPrompt
-  | TurnPrompt.ToolResult
+  | TurnPrompt.ToolCompletion
   | TurnPrompt.ExternalPrompt;
 
 export namespace TurnPrompt {
@@ -181,12 +181,19 @@ export namespace TurnPrompt {
   };
 
   /**
-   * Represents a turn that occurs after a tool call completes.
+   * Represents a turn that occurs after tool calls complete.
    *
-   * This type records the parameters, results, and possible errors
-   * from the tool invocation that triggered a new model response.
+   * This type records the results from multiple tool invocations that triggered
+   * a new model response. Each result contains the output or error information
+   * from a specific tool call.
    */
-  export type ToolResult = Part.ToolResult & {};
+  export type ToolCompletion = {
+    type: "tool-completion";
+    /**
+     * The array of tool results that were executed in parallel.
+     */
+    results: Part.ToolResult[];
+  };
 
   /**
    * Represents a turn triggered by a prompt provided by an external MCP server.

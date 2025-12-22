@@ -3,7 +3,7 @@
     "incremental": true,
     "target": "es2021",
     "module": "NodeNext",
-    "lib": ["dom", "es2021"],
+    "lib": ["dom", "esnext"],
     "jsx": "react-jsx",
     "strict": true,
     "sourceMap": true,

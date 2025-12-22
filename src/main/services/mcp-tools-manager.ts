@@ -176,43 +176,55 @@ export class MCPToolsManager extends Stateful<MCPToolsManager.State> {
     const toolURI = this.#parseToolURI(options.uri);
 
     if (!toolURI) {
-      return [
-        {
-          type: "error",
-          message: `Invalid tool uri format. Expected format: "tool:{connection-id}/{tool-name}". The uri must contain a valid connection id (uuid format) and tool name. Please check the uri and ensure it follows the correct pattern.`,
-        },
-      ] satisfies Part.ToolResult["result"];
+      return {
+        result: [
+          {
+            type: "error",
+            message: `Invalid tool uri format. Expected format: "tool:{connection-id}/{tool-name}". The uri must contain a valid connection id (uuid format) and tool name. Please check the uri and ensure it follows the correct pattern.`,
+          },
+        ],
+        status: "failure",
+      } satisfies MCPToolsManager.CallResult;
     }
 
     const connection = this.#connectionsManager.state.connections.get(toolURI.connectionId);
 
     if (!connection) {
-      return [
-        {
-          type: "error",
-          message: `Connection not found or disconnected. Please check the connection id in the tool uri and ensure the mcp server is reachable.`,
-        },
-      ] satisfies Part.ToolResult["result"];
+      return {
+        result: [
+          {
+            type: "error",
+            message: `Connection not found or disconnected. Please check the connection id in the tool uri and ensure the mcp server is reachable.`,
+          },
+        ],
+        status: "failure",
+      } satisfies MCPToolsManager.CallResult;
     }
 
     if (connection.status !== "connected") {
-      return [
-        {
-          type: "error",
-          message: `Unable to call tool due to mcp server connection issues. Please verify the connection is active and the server is reachable.`,
-        },
-      ] satisfies Part.ToolResult["result"];
+      return {
+        result: [
+          {
+            type: "error",
+            message: `Unable to call tool due to mcp server connection issues. Please verify the connection is active and the server is reachable.`,
+          },
+        ],
+        status: "failure",
+      } satisfies MCPToolsManager.CallResult;
     }
 
     // Verify the requested tool is loaded. This check prevents calling unavailable tools,
     // avoiding unnecessary network requests and potential errors.
     if (!this.#loadedTools.find((tool) => tool.uri === options.uri)) {
-      return [
-        {
-          type: "error",
-          message: `Tool not found. Please check the tool name in the tool uri and ensure it matches a tool available on the mcp server.`,
-        },
-      ] satisfies Part.ToolResult["result"];
+      return {
+        result: [
+          {
+            type: "error",
+            message: `Tool not found. Please check the tool name in the tool uri and ensure it matches a tool available on the mcp server.`,
+          },
+        ],
+        status: "failure",
+      } satisfies MCPToolsManager.CallResult;
     }
 
     const resultParts: Part.ToolResult["result"] = [];
@@ -222,59 +234,25 @@ export class MCPToolsManager extends Stateful<MCPToolsManager.State> {
       const content = (result.content || []) as ContentBlock[];
       const structuredContent = result.structuredContent as Record<string, unknown> | undefined;
 
-      if (structuredContent) {
-        resultParts.push({
-          type: "text",
-          text: `${JSON.stringify(structuredContent)}`,
-          format: "json",
-        });
-      } else {
-        for (const block of content) {
-          resultParts.push(this.#contentConverter.convert(block, toolURI.connectionId));
-        }
+      for (const block of content) {
+        resultParts.push(this.#contentConverter.convert(block, toolURI.connectionId));
       }
 
-      let isEmpty = true;
-
-      for (const part of resultParts) {
-        if (part.type === "file" || part.type === "reference" || part.type === "resource") {
-          isEmpty = false;
-        } else if (part.type === "text" && part.text.trim()) {
-          isEmpty = false;
-        } else if (part.type === "error" && part.message.trim()) {
-          isEmpty = false;
-        }
-      }
-
-      // When the converted tool call result contains no actual useful content,
-      // default to filling with `null` as response to ensure tool call result is never empty text.
-      if (isEmpty) {
-        resultParts.push({
-          type: "text",
-          text: `${JSON.stringify({ result: "" })}`,
-          format: "json",
-        });
-      }
-
-      // When isError is true, the MCP server might still return content that appears successful.
-      // However, since the tool execution encountered an internal error, we need to ensure
-      // that the model understands this tool call was actually unsuccessful.
-      // This comment explains why we're adding an explicit error message in this case.
-      if (result.isError) {
-        resultParts.push({
-          type: "text",
-          text: "<tip>The tool call itself succeeded (the tool was found and executed), but the tool's returned result indicates an internal error. This is not a protocol-level failure, but a tool-level business error, and the operation should be considered unsuccessful.</tip>",
-        });
-      }
-
-      return resultParts;
+      return {
+        result: resultParts,
+        status: result.isError ? "failure" : "success",
+        structuredResult: structuredContent as null | undefined,
+      } satisfies MCPToolsManager.CallResult;
     } catch (e) {
-      return [
-        {
-          type: "error",
-          message: `Error calling tool: ${asError(e).message}`,
-        },
-      ] satisfies Part.ToolResult["result"];
+      return {
+        result: [
+          {
+            type: "error",
+            message: `Error calling tool: ${asError(e).message}`,
+          },
+        ],
+        status: "failure",
+      } satisfies MCPToolsManager.CallResult;
     }
   }
 
@@ -501,6 +479,8 @@ export namespace MCPToolsManager {
      */
     conversationId?: string;
   };
+
+  export type CallResult = Pick<Part.ToolResult, "result" | "structuredResult" | "status">;
 
   export type LegacyCallOptions = {
     client: string;

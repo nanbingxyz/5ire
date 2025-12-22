@@ -136,7 +136,7 @@ export namespace Part {
     /**
      * Tool input arguments
      */
-    arguments: JSONValue;
+    arguments: string;
   };
 
   /**
