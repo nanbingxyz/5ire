@@ -55,8 +55,9 @@ export class Renderer extends Stateful<Renderer.State> {
         draft.inForcedColorsMode = nativeTheme.inForcedColorsMode;
         draft.prefersReducedTransparency = nativeTheme.prefersReducedTransparency;
       });
-
-      this.state.window?.setTitleBarOverlay(this.#getTitleBarOverlayStyle());
+      if (this.state.window?.setTitleBarOverlay) {
+        this.state.window?.setTitleBarOverlay(this.#getTitleBarOverlayStyle());
+      }
     });
   }
 
