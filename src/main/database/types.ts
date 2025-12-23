@@ -150,7 +150,7 @@ export namespace TurnPrompt {
     /**
      * The content provided by the user.
      */
-    content: Array<Part.Text | Part.File | Part.Reference>;
+    content: Array<Part.Text | Part.Reference>;
   };
 
   /**
@@ -229,7 +229,7 @@ export namespace TurnPrompt {
      */
     messages: {
       role: "user" | "assistant";
-      content: Array<Part.Text | Part.File | Part.Reference | Part.Resource>;
+      content: Array<Part.Text | Part.Reference | Part.Resource>;
     }[];
   };
 }

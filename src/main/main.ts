@@ -44,6 +44,7 @@ import { UpdaterBridge } from "@/main/bridge/updater-bridge";
 import { Database } from "@/main/database";
 import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
+import { BlobCaching } from "@/main/services/blob-caching";
 import { DeepLinkHandler } from "@/main/services/deep-link-handler";
 import { DocumentEmbedder } from "@/main/services/document-embedder";
 import { DocumentExtractor } from "@/main/services/document-extractor";
@@ -158,6 +159,7 @@ Container.singleton(MCPServersManagerBridge, () => new MCPServersManagerBridge()
 Container.singleton(DeepLinkHandler, () => new DeepLinkHandler());
 Container.singleton(DeepLinkHandlerBridge, () => new DeepLinkHandlerBridge());
 Container.singleton(ShutdownCoordinator, () => new ShutdownCoordinator());
+Container.singleton(BlobCaching, () => new BlobCaching());
 
 // init crash reporter
 (() => {

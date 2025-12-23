@@ -1,6 +1,7 @@
 import type { BlobResourceContents, ContentBlock, TextResourceContents } from "@modelcontextprotocol/sdk/types.js";
 import { Container } from "@/main/internal/container";
 import type { Part } from "@/main/model/content-specification";
+import { BlobCaching } from "@/main/services/blob-caching";
 import { URLParser } from "@/main/services/url-parser";
 
 /**
@@ -11,6 +12,7 @@ import { URLParser } from "@/main/services/url-parser";
  */
 export class MCPContentConverter {
   #urlParser = Container.inject(URLParser);
+  #blobCaching = Container.inject(BlobCaching);
 
   /**
    * Converts an MCP resource URI to an appropriate URL for accessing the resource.
@@ -52,23 +54,29 @@ export class MCPContentConverter {
     }
 
     if (block.type === "image") {
-      const file: Part.File = {
-        type: "file",
+      const path = this.#blobCaching.saveSync(serverId, Buffer.from(block.data, "base64"));
+      const url = this.#urlParser.formatFile(path);
+
+      const ref: Part.Reference = {
+        type: "reference",
+        url,
         mimetype: block.mimeType,
-        content: Buffer.from(block.data, "base64"),
       };
 
-      return file;
+      return ref;
     }
 
     if (block.type === "audio") {
-      const file: Part.File = {
-        type: "file",
+      const path = this.#blobCaching.saveSync(serverId, Buffer.from(block.data, "base64"));
+      const url = this.#urlParser.formatFile(path);
+
+      const ref: Part.Reference = {
+        type: "reference",
+        url,
         mimetype: block.mimeType,
-        content: Buffer.from(block.data, "base64"),
       };
 
-      return file;
+      return ref;
     }
 
     if (block.type === "resource_link") {
