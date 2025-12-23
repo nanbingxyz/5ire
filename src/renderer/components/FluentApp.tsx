@@ -120,7 +120,7 @@ export default function FluentApp() {
               <AppSidebar />
               <main
                 className={`relative px-5 flex h-full w-full flex-col overflow-hidden  ${
-                  isDarwin ? "darwin" : "border-l border-t border-base rounded-tl-lg"
+                  isDarwin ? "darwin dark:border-l dark:border-neutral-700/60" : "border-t border-base rounded-tl-lg"
                 }`}
               >
                 <Routes />
