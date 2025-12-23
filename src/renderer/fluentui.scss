@@ -3,7 +3,9 @@
   margin-top: -5px !important;
 }
 .fui-MenuDivider {
-  opacity: 0.3 !important;
+  border-width: 0.5px !important;
+  --tw-border-opacity: 0.5;
+  border-color: rgba(var(--color-border), var(--tw-border-opacity)) !important;
 }
 .fui-Listbox {
   max-height: 360px !important;
