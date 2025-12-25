@@ -14,6 +14,7 @@ import type { EncryptorBridge } from "@/main/bridge/encryptor-bridge";
 import type { LegacyDataMigratorBridge } from "@/main/bridge/legacy-data-migrator-bridge";
 import type { MCPConnectionsManagerBridge } from "@/main/bridge/mcp-connections-manager-bridge";
 import type { MCPServersManagerBridge } from "@/main/bridge/mcp-servers-manager-bridge";
+import type { ProjectsManagerBridge } from "@/main/bridge/projects-manager-bridge";
 import type { PromptsManagerBridge } from "@/main/bridge/prompts-manager-bridge";
 import type { RendererBridge } from "@/main/bridge/renderer-bridge";
 import type { SettingsBridge } from "@/main/bridge/settings-bridge";
@@ -91,6 +92,12 @@ const BRIDGE = {
     deletePrompt: "async",
     listPrompts: "async",
     livePrompts: "stream",
+  }),
+  projectsManager: connector.connect<ProjectsManagerBridge>("projects-manager", {
+    createPrompt: "async",
+    deletePrompt: "async",
+    updatePrompt: "async",
+    liveProjects: "stream",
   }),
   legacyDataMigrator: connector.connect<LegacyDataMigratorBridge>("legacy-data-migrator", {
     createStateStream: "stream",
