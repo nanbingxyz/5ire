@@ -509,13 +509,6 @@ const providerColumns = {
    * The configuration of the provider.
    */
   config: jsonb().$type<Record<string, unknown>>().notNull(),
-  /**
-   * Associates with the project it belongs to.
-   */
-  projectId: uuid().references(() => project.id, {
-    onDelete: "cascade",
-    onUpdate: "cascade",
-  }),
 };
 
 export const provider = pgTable("providers", providerColumns, (table) => {

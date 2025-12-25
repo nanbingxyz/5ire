@@ -120,6 +120,13 @@
       "when": 1766627950757,
       "tag": "0016_wooden_oracle",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1766637625164,
+      "tag": "0017_giant_war_machine",
+      "breakpoints": true
     }
   ]
 }
