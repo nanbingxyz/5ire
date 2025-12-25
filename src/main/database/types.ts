@@ -8,7 +8,6 @@ import type {
   documentChunk,
   project,
   prompt,
-  promptMergeStrategy,
   provider,
   providerKind,
   server,
@@ -39,7 +38,6 @@ export type ConversationCollectionInsert = InferInsertModel<typeof conversationC
 export type Prompt = InferSelectModel<typeof prompt>;
 export type PromptRaw = InferSelectModel<typeof prompt, { dbColumnNames: true }>;
 export type PromptInsert = InferInsertModel<typeof prompt>;
-export type PromptMergeStrategy = InferEnum<typeof promptMergeStrategy>;
 
 export type ProjectConfig = {
   defaultConversationConfig?: Partial<ConversationConfig>;
@@ -173,11 +171,6 @@ export namespace TurnPrompt {
      * The main instruction or task description of the prompt.
      */
     instruction: string;
-    /**
-     * Defines how this prompt's role definition should be merged with
-     * the conversation's system prompt.
-     */
-    mergeStrategy: PromptMergeStrategy;
   };
 
   /**

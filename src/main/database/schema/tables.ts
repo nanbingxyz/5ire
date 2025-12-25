@@ -267,16 +267,6 @@ export const conversationCollection = pgTable("conversation_collections", conver
   ];
 });
 
-/**
- * Defines the strategy for merging prompts.
- *
- * - `merge`: Combines the role definition with the existing system prompt.
- *            Both prompts are included in the final system message sent to the model.
- * - `replace`: Replaces the existing system prompt entirely with the role definition.
- * - `scoped`: Applies the role definition only within a specific scope or context.
- */
-export const promptMergeStrategy = pgEnum("prompt_merge_strategy", ["merge", "replace", "scoped"]);
-
 const promptColumns = {
   /**
    * The unique identifier for the record.
@@ -302,10 +292,6 @@ const promptColumns = {
    * Template used to generate user instructions
    */
   instructionTemplate: varchar("instruction_template").notNull(),
-  /**
-   * System prompt merging strategy, used to specify how to use roleDefinition in conversations; when roleDefinition is empty, mergeStrategy is invalid
-   */
-  mergeStrategy: promptMergeStrategy("merge_strategy").notNull().default("merge"),
   /**
    * The legacy ID of the prompt.
    */

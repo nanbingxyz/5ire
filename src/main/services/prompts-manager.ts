@@ -25,7 +25,6 @@ export class PromptsManager {
           name: options.name,
           roleDefinitionTemplate: options.roleDefinitionTemplate,
           instructionTemplate: options.instructionTemplate,
-          mergeStrategy: options.mergeStrategy,
         })
         .returning()
         .execute()
@@ -52,7 +51,6 @@ export class PromptsManager {
           name: options.name,
           roleDefinitionTemplate: options.roleDefinitionTemplate,
           instructionTemplate: options.instructionTemplate,
-          mergeStrategy: options.mergeStrategy,
         })
         .where(eq(schema.prompt.id, options.id))
         .returning()
@@ -116,7 +114,6 @@ export class PromptsManager {
           createTime: schema.prompt.createTime,
           updateTime: schema.prompt.updateTime,
           name: schema.prompt.name,
-          mergeStrategy: schema.prompt.mergeStrategy,
           roleDefinitionTemplate: schema.prompt.roleDefinitionTemplate,
           instructionTemplate: schema.prompt.instructionTemplate,
         }),
@@ -151,10 +148,7 @@ export class PromptsManager {
 }
 
 export namespace PromptsManager {
-  export type CreatePromptOptions = Pick<
-    PromptInsert,
-    "name" | "roleDefinitionTemplate" | "instructionTemplate" | "mergeStrategy"
-  >;
+  export type CreatePromptOptions = Pick<PromptInsert, "name" | "roleDefinitionTemplate" | "instructionTemplate">;
 
   export type UpdatePromptOptions = CreatePromptOptions & {
     id: string;
