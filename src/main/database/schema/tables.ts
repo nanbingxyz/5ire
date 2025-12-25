@@ -200,7 +200,7 @@ const documentChunkColumns = {
   /**
    * Associates with the document it belongs to.
    */
-  documentId: uuid()
+  documentId: uuid("document_id")
     .notNull()
     .references(() => document.id, {
       onDelete: "cascade",
@@ -244,11 +244,11 @@ const conversationCollectionColumns = {
   /**
    * The conversation identifier.
    */
-  conversationId: varchar().notNull(),
+  conversationId: varchar("conversation_id").notNull(),
   /**
    * Associates with the knowledge collection it belongs to.
    */
-  collectionId: uuid()
+  collectionId: uuid("collection_id")
     .notNull()
     .references(() => collection.id, {
       onDelete: "cascade",
@@ -531,7 +531,7 @@ const usageColumns = {
   /**
    * Associates with the provider it belongs to.
    */
-  providerId: uuid()
+  providerId: uuid("provider_id")
     .notNull()
     .references(() => provider.id, {
       onDelete: "cascade",
@@ -649,7 +649,7 @@ const serverColumns = {
   /**
    * Associates with the project it belongs to.
    */
-  projectId: uuid().references(() => project.id, {
+  projectId: uuid("project_id").references(() => project.id, {
     onDelete: "cascade",
     onUpdate: "cascade",
   }),
@@ -660,7 +660,7 @@ const serverColumns = {
   /**
    * The approval policy for model requests to call tools.
    */
-  approvalPolicy: serverApprovalPolicy().notNull().default("once"),
+  approvalPolicy: serverApprovalPolicy("approval_policy").notNull().default("once"),
 };
 
 /**

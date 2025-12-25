@@ -40,7 +40,6 @@ export type PromptRaw = InferSelectModel<typeof prompt, { dbColumnNames: true }>
 export type PromptInsert = InferInsertModel<typeof prompt>;
 
 export type ProjectConfig = {
-  defaultConversationConfig?: Partial<ConversationConfig>;
   systemPrompt?: string;
 };
 

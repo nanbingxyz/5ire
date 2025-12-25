@@ -127,6 +127,13 @@
       "when": 1766637625164,
       "tag": "0017_giant_war_machine",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1766655230382,
+      "tag": "0018_tranquil_captain_flint",
+      "breakpoints": true
     }
   ]
 }
