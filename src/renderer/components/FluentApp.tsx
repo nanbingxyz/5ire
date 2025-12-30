@@ -15,6 +15,7 @@ import { DeepLinkHandler } from "@/renderer/next/components/deep-link-handler";
 import { Routes } from "@/renderer/next/components/routes";
 import { useRenderer } from "@/renderer/next/hooks/remote/use-renderer";
 import { useSettings } from "@/renderer/next/hooks/remote/use-settings";
+import useAppearanceStore from "@/stores/useAppearanceStore";
 import AppHeader from "./layout/AppHeader";
 import AppSidebar from "./layout/aside/AppSidebar";
 import WindowsTitleBar from "./layout/WindowsTitleBar";
@@ -55,17 +56,21 @@ export default function FluentApp() {
   const { i18n } = useTranslation();
   const { isDarwin } = usePlatform();
   const { heightStyle } = useUI();
+  const { theme, setTheme } = useAppearanceStore((state) => ({
+    theme: state.theme,
+    setTheme: state.setTheme,
+  }));
 
   const renderer = useRenderer();
   const settings = useSettings();
 
-  const theme = useMemo(() => {
+  useEffect(() => {
     if (settings.theme === "system") {
-      return renderer.shouldUseDarkColors ? "dark" : "light";
+      setTheme(renderer.shouldUseDarkColors ? "dark" : "light");
+    } else {
+      setTheme(settings.theme);
     }
-
-    return settings.theme;
-  }, [renderer.shouldUseDarkColors, settings.theme]);
+  }, [renderer.shouldUseDarkColors, settings.theme, setTheme]);
 
   const language = useMemo(() => {
     if (settings.language === "system") {
@@ -114,7 +119,9 @@ export default function FluentApp() {
             >
               <AppSidebar />
               <main
-                className={`relative px-5 flex h-full w-full flex-col overflow-hidden  ${isDarwin ? "darwin" : "border-l border-t border-base rounded-tl-lg"}`}
+                className={`relative px-5 flex h-full w-full flex-col overflow-hidden  ${
+                  isDarwin ? "darwin dark:border-l dark:border-neutral-700/60" : "border-t border-base rounded-tl-lg"
+                }`}
               >
                 <Routes />
                 <div id="portal" style={{ zIndex: 9999999, position: "absolute" }} />

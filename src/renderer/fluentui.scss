@@ -2,11 +2,8 @@
 .fui-MenuButton__menuIcon {
   margin-top: -5px !important;
 }
-
 .fui-MenuDivider {
-  border-width: 0.04rem !important;
-  --tw-border-opacity: 1;
-  border-color: rgba(var(--color-border), var(--tw-border-opacity)) !important;
+  opacity: 0.6;
 }
 .fui-Listbox {
   max-height: 360px !important;

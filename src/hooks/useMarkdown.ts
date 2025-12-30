@@ -153,7 +153,7 @@ export default function useMarkdown() {
     })
     .use(markdownItMermaid, {
       startOnLoad: false,
-      securityLevel: 'loose',
+      securityLevel: 'strict',
     })
     .use(MarkdownItCodeCopy, {
       element:

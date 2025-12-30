@@ -25,48 +25,46 @@ export default function Version() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             {updater.version}
-
             {updater.status.type === "checking" && (
               <div className="flex items-center gap-1">
                 <Spinner size={14} />
               </div>
             )}
-          </div>
-
-          {updater.status.type === "available" && (
-            <div className="flex items-center">
-              <div className="tips">
-                {t("Version.HasNewVersion")} (v{updater.status.updateInfo.version})
+            {updater.status.type === "available" && (
+              <div className="flex items-center">
+                <div className="px-2 py-0.5 rounded-full bg-[#dbe9da] dark:bg-[#2b5239] text-green-800 dark:text-[#cad4cd] text-xs">
+                  {t("Version.HasNewVersion")} (v
+                  {updater.status.updateInfo.version})
+                </div>
               </div>
-            </div>
-          )}
-
-          {updater.status.type === "downloading" && (
-            <div className="flex items-center gap-1">
-              <Spinner size={14} />
-              <span className="tips">
-                {t("Updater.DownloadingUpdates")}{" "}
-                {updater.status.progress &&
-                  renderProgress(updater.status.progress.total, updater.status.progress.transferred)}
-              </span>
-            </div>
-          )}
-
-          {updater.status.type === "downloaded" && (
-            <div className="flex items-center">
-              <span className="tips">
-                {t("Version.HasNewVersion")} (v{updater.status.updateInfo.version})
-              </span>
-            </div>
-          )}
-
-          {updater.status.type === "error" && updater.status.updateInfo && (
-            <div className="flex items-center">
-              <span className="tips">
-                {t("Version.HasNewVersion")} (v{updater.status.updateInfo.version})
-              </span>
-            </div>
-          )}
+            )}
+            {updater.status.type === "downloading" && (
+              <div className="flex items-center gap-1">
+                <Spinner size={14} />
+                <span className="tips text-xs">
+                  {t("Updater.DownloadingUpdates")}{" "}
+                  {updater.status.progress &&
+                    renderProgress(updater.status.progress.total, updater.status.progress.transferred)}
+                </span>
+              </div>
+            )}
+            {updater.status.type === "downloaded" && (
+              <div className="flex items-center">
+                <span className="px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-slate-600/50 text-indigo-800 dark:text-indigo-200 text-xs">
+                  {t("Version.NewVersionDownloaded")} (v
+                  {updater.status.updateInfo.version})
+                </span>
+              </div>
+            )}
+            {updater.status.type === "error" && updater.status.updateInfo && (
+              <div className="flex items-center">
+                <span className="px-2 py-0.5 rounded-full bg-[#dbe9da] dark:bg-[#2b5239] text-green-800 dark:text-[#cad4cd] text-xs">
+                  {t("Version.HasNewVersion")} (v
+                  {updater.status.updateInfo.version})
+                </span>
+              </div>
+            )}
+          </div>
         </div>
 
         <div className="flex justify-start gap-2 items-center mt-4">
@@ -75,12 +73,15 @@ export default function Version() {
               {typeof updater.status.updateInfo.releaseNotes === "string" && (
                 <div
                   // biome-ignore lint/security/noDangerouslySetInnerHtml: xx
-                  dangerouslySetInnerHTML={{ __html: markdown.render(updater.status.updateInfo.releaseNotes) }}
+                  dangerouslySetInnerHTML={{
+                    __html: markdown.render(updater.status.updateInfo.releaseNotes),
+                  }}
                   className="mb-4 text-gray-500"
                 />
               )}
               <Button
                 appearance="primary"
+                size="small"
                 onClick={() => {
                   window.bridge.updater.downloadUpdates();
                 }}
@@ -94,6 +95,7 @@ export default function Version() {
             <div>
               <Button
                 appearance="primary"
+                size="small"
                 onClick={() => {
                   window.bridge.updater.installNow();
                 }}
@@ -110,12 +112,18 @@ export default function Version() {
           )}
 
           {updater.status.type === "error" && (
-            <div className="text-red-300">
-              {updater.status.updateInfo ? t("Updater.DownloadUpdatesFailed") : t("Updater.CheckForUpdatesFailed")}{" "}
+            <div>
               {updater.status.updateInfo && (
-                <button className="underline cursor-pointer" type="button" onClick={handleOpenWebsite}>
+                <Button
+                  appearance="primary"
+                  size="small"
+                  className="flex justify-rounded items-center gap-1"
+                  onClick={handleOpenWebsite}
+                >
+                  {updater.status.updateInfo ? t("Updater.DownloadUpdatesFailed") : t("Updater.CheckForUpdatesFailed")}
+                  <span className="opacity-50">→</span>
                   {t("Updater.ManualDownload")}
-                </button>
+                </Button>
               )}
             </div>
           )}
@@ -124,6 +132,7 @@ export default function Version() {
             <div>
               <Button
                 appearance="primary"
+                size="small"
                 onClick={() => {
                   window.bridge.updater.checkForUpdates();
                 }}
