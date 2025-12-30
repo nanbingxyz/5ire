@@ -244,7 +244,12 @@ const conversationCollectionColumns = {
   /**
    * The conversation identifier.
    */
-  conversationId: varchar("conversation_id").notNull(),
+  conversationId: uuid("conversation_id")
+    .notNull()
+    .references(() => conversation.id, {
+      onDelete: "cascade",
+      onUpdate: "cascade",
+    }),
   /**
    * Associates with the knowledge collection it belongs to.
    */
@@ -267,6 +272,9 @@ export const conversationCollection = pgTable("conversation_collections", conver
   ];
 });
 
+/**
+ * Schema definition for the `prompts` table.
+ */
 const promptColumns = {
   /**
    * The unique identifier for the record.
@@ -309,6 +317,9 @@ export const prompt = pgTable("prompts", promptColumns, (table) => {
   ];
 });
 
+/**
+ * Schema definition for the `projects` table.
+ */
 const projectColumns = {
   /**
    * The unique identifier for the record.
@@ -334,6 +345,10 @@ const projectColumns = {
    * The legacy folder ID of the project.
    */
   legacyFolderId: varchar("legacy_folder_id", { length: 300 }),
+  /**
+   * Custom system prompt used for this project.
+   */
+  systemPrompt: varchar("system_prompt"),
 };
 
 /**
@@ -347,6 +362,9 @@ export const project = pgTable("projects", projectColumns, (table) => {
   ];
 });
 
+/**
+ * Schema definition for the `conversations` table.
+ */
 const conversationColumns = {
   /**
    * The unique identifier for the record.
@@ -379,6 +397,17 @@ const conversationColumns = {
    * The configuration for the conversation.
    */
   config: jsonb().$type<ConversationConfig>().notNull(),
+  /**
+   * The provider used for this conversation.
+   */
+  providerId: uuid("provider_id").references(() => provider.id, {
+    onDelete: "set null",
+    onUpdate: "set null",
+  }),
+  /**
+   * The model used for this conversation.
+   */
+  model: varchar(),
 };
 
 /**
@@ -409,6 +438,9 @@ export const turnFinishReason = pgEnum("turn_finish_reason", [
   "unknown",
 ]);
 
+/**
+ * Schema definition for the `turns` table.
+ */
 const turnColumns = {
   /**
    * The unique identifier for the record.
@@ -425,7 +457,7 @@ const turnColumns = {
   /**
    * Metadata related to the turn, such as token usage or other metrics.
    */
-  metadata: jsonb().$type<TurnMetadata>(),
+  metadata: jsonb().$type<TurnMetadata>().notNull(),
   /**
    * The prompt used for this turn, including user input and any templating information.
    */
@@ -451,6 +483,10 @@ const turnColumns = {
    * Usage statistics for the turn, such as token usage.
    */
   usage: jsonb().$type<TurnUsage>().notNull(),
+  /**
+   * The error message if the turn ended with an error.
+   */
+  error: varchar(),
 };
 
 /**
@@ -480,6 +516,9 @@ export const providerKind = pgEnum("provider_kind", [
   "deepseek",
 ]);
 
+/**
+ * Schema definition for the `providers` table.
+ */
 const providerColumns = {
   /**
    * The unique identifier for the record.
@@ -515,6 +554,9 @@ export const provider = pgTable("providers", providerColumns, (table) => {
   return [index().on(table.createTime), index().on(table.label)];
 });
 
+/**
+ * Schema definition for the `usages` table.
+ */
 const usageColumns = {
   /**
    * The unique identifier for the record.
@@ -563,6 +605,9 @@ export const usage = pgTable("usages", usageColumns, (table) => {
   return [index().on(table.createTime), index().on(table.providerId), uniqueIndex().on(table.providerId, table.model)];
 });
 
+/**
+ * Schema definition for the `bookmarks` table.
+ */
 const bookmarkColumns = {
   /**
    * The unique identifier for the record.
@@ -609,6 +654,9 @@ export const serverTransport = pgEnum("server_transport", ["stdio", "http-stream
  */
 export const serverApprovalPolicy = pgEnum("server_approval_policy", ["always", "never", "once"]);
 
+/**
+ * Schema definition for the `servers` table.
+ */
 const serverColumns = {
   /**
    * The unique identifier for the record.

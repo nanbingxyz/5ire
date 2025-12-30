@@ -572,6 +572,7 @@ export class LegacyDataMigrator extends Stateful.Persistable<LegacyDataMigrator.
           legacyFolderId: legacyFolder.id,
           name: legacyFolder.name || "New Folder",
           config: {},
+          systemPrompt: legacyFolder.systemMessage || "",
         })
         .onConflictDoNothing({
           target: [schema.project.legacyFolderId],

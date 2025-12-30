@@ -40,7 +40,7 @@ export type PromptRaw = InferSelectModel<typeof prompt, { dbColumnNames: true }>
 export type PromptInsert = InferInsertModel<typeof prompt>;
 
 export type ProjectConfig = {
-  systemPrompt?: string;
+  stageConversation?: Conversation;
 };
 
 export type Project = InferSelectModel<typeof project>;
@@ -61,19 +61,11 @@ export type ConversationConfig = {
   /**
    * The maximum number of tokens that the model can generate for a single turn.
    */
-  maxTokens: number;
+  maxOutputTokens: number;
   /**
    * Controls the randomness of the model’s output.
    */
   temperature: number;
-  /**
-   * The identifier of the provider that serves this conversation.
-   */
-  provider: string;
-  /**
-   * The identifier of the model used in this conversation.
-   */
-  model: string;
   // /**
   //  * Whether to enable web search augmentation for model responses.
   //  */
@@ -248,17 +240,9 @@ export type TurnUsage = {
    */
   output?: number;
   /**
-   * The total number of tokens used for this turn (typically input + output).
-   */
-  total?: number;
-  /**
    * The number of tokens used for reasoning or thinking processes, if supported by the model.
    */
   reasoning?: number;
-  /**
-   * The number of input tokens that were served from cache rather than newly processed.
-   */
-  cachedInput?: number;
 };
 
 export type Turn = InferSelectModel<typeof turn>;

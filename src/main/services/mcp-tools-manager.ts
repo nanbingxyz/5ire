@@ -179,8 +179,8 @@ export class MCPToolsManager extends Stateful<MCPToolsManager.State> {
       return {
         result: [
           {
-            type: "error",
-            message: `Invalid tool uri format. Expected format: "tool:{connection-id}/{tool-name}". The uri must contain a valid connection id (uuid format) and tool name. Please check the uri and ensure it follows the correct pattern.`,
+            type: "text",
+            text: `Invalid tool uri format. Expected format: "tool:{connection-id}/{tool-name}". The uri must contain a valid connection id (uuid format) and tool name. Please check the uri and ensure it follows the correct pattern.`,
           },
         ],
         status: "failure",
@@ -193,8 +193,8 @@ export class MCPToolsManager extends Stateful<MCPToolsManager.State> {
       return {
         result: [
           {
-            type: "error",
-            message: `Connection not found or disconnected. Please check the connection id in the tool uri and ensure the mcp server is reachable.`,
+            type: "text",
+            text: `Connection not found or disconnected. Please check the connection id in the tool uri and ensure the mcp server is reachable.`,
           },
         ],
         status: "failure",
@@ -205,8 +205,8 @@ export class MCPToolsManager extends Stateful<MCPToolsManager.State> {
       return {
         result: [
           {
-            type: "error",
-            message: `Unable to call tool due to mcp server connection issues. Please verify the connection is active and the server is reachable.`,
+            type: "text",
+            text: `Unable to call tool due to mcp server connection issues. Please verify the connection is active and the server is reachable.`,
           },
         ],
         status: "failure",
@@ -219,8 +219,8 @@ export class MCPToolsManager extends Stateful<MCPToolsManager.State> {
       return {
         result: [
           {
-            type: "error",
-            message: `Tool not found. Please check the tool name in the tool uri and ensure it matches a tool available on the mcp server.`,
+            type: "text",
+            text: `Tool not found. Please check the tool name in the tool uri and ensure it matches a tool available on the mcp server.`,
           },
         ],
         status: "failure",
@@ -247,8 +247,8 @@ export class MCPToolsManager extends Stateful<MCPToolsManager.State> {
       return {
         result: [
           {
-            type: "error",
-            message: `Error calling tool: ${asError(e).message}`,
+            type: "text",
+            text: `Error calling tool: ${asError(e).message}`,
           },
         ],
         status: "failure",
