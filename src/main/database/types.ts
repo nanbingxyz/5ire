@@ -243,12 +243,35 @@ export type TurnUsage = {
    * The number of tokens used for reasoning or thinking processes, if supported by the model.
    */
   reasoning?: number;
+  /**
+   * The number of tokens used for caching input content, if supported by the model.
+   */
+  inputCacheHit?: number;
+  /**
+   * The number of tokens used for caching output content, if supported by the model.
+   */
+  inputCacheMiss?: number;
 };
 
 export type Turn = InferSelectModel<typeof turn>;
 export type TurnRaw = InferSelectModel<typeof turn, { dbColumnNames: true }>;
 export type TurnInsert = InferInsertModel<typeof turn>;
 export type TurnFinishReason = InferEnum<typeof turnFinishReason>;
+
+export type ProviderConfig = {
+  /**
+   * The parameters to configure the provider.
+   */
+  parameters: Record<string, string>;
+  /**
+   * The proxy URL to use for requests to the provider.
+   */
+  proxy?: string;
+  /**
+   * The custom models to use for this provider.
+   */
+  customModels?: unknown[];
+};
 
 export type ProviderKind = InferEnum<typeof providerKind>;
 export type Provider = InferSelectModel<typeof provider>;
