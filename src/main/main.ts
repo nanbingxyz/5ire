@@ -39,6 +39,7 @@ import { MCPConnectionsManagerBridge } from "@/main/bridge/mcp-connections-manag
 import { MCPServersManagerBridge } from "@/main/bridge/mcp-servers-manager-bridge";
 import { ProjectsManagerBridge } from "@/main/bridge/projects-manager-bridge";
 import { PromptsManagerBridge } from "@/main/bridge/prompts-manager-bridge";
+import { ProvidersManagerBridge } from "@/main/bridge/providers-manager-bridge";
 import { RendererBridge } from "@/main/bridge/renderer-bridge";
 import { SettingsBridge } from "@/main/bridge/settings-bridge";
 import { UpdaterBridge } from "@/main/bridge/updater-bridge";
@@ -67,6 +68,7 @@ import { MCPServersManager } from "@/main/services/mcp-servers-manager";
 import { MCPToolsManager } from "@/main/services/mcp-tools-manager";
 import { ProjectsManager } from "@/main/services/projects-manager";
 import { PromptsManager } from "@/main/services/prompts-manager";
+import { ProvidersManager } from "@/main/services/providers-manager";
 import { Renderer } from "@/main/services/renderer";
 import { Settings } from "@/main/services/settings";
 import { ShutdownCoordinator } from "@/main/services/shutdown-coordinator";
@@ -164,6 +166,8 @@ Container.singleton(DeepLinkHandler, () => new DeepLinkHandler());
 Container.singleton(DeepLinkHandlerBridge, () => new DeepLinkHandlerBridge());
 Container.singleton(ShutdownCoordinator, () => new ShutdownCoordinator());
 Container.singleton(BlobCaching, () => new BlobCaching());
+Container.singleton(ProvidersManager, () => new ProvidersManager());
+Container.singleton(ProvidersManagerBridge, () => new ProvidersManagerBridge());
 
 // init crash reporter
 (() => {
@@ -336,9 +340,11 @@ if (!gotTheLock) {
       Container.inject(MCPServersManagerBridge).expose(ipcMain);
       Container.inject(DeepLinkHandlerBridge).expose(ipcMain);
       Container.inject(ProjectsManagerBridge).expose(ipcMain);
+      Container.inject(ProvidersManagerBridge).expose(ipcMain);
 
       await Container.inject(Database).init();
       await Container.inject(Renderer).init();
+      await Container.inject(ProvidersManager).init();
 
       Container.inject(Embedder)
         .init()

@@ -16,6 +16,7 @@ import type { MCPConnectionsManagerBridge } from "@/main/bridge/mcp-connections-
 import type { MCPServersManagerBridge } from "@/main/bridge/mcp-servers-manager-bridge";
 import type { ProjectsManagerBridge } from "@/main/bridge/projects-manager-bridge";
 import type { PromptsManagerBridge } from "@/main/bridge/prompts-manager-bridge";
+import type { ProvidersManagerBridge } from "@/main/bridge/providers-manager-bridge";
 import type { RendererBridge } from "@/main/bridge/renderer-bridge";
 import type { SettingsBridge } from "@/main/bridge/settings-bridge";
 import type { UpdaterBridge } from "@/main/bridge/updater-bridge";
@@ -128,6 +129,13 @@ const BRIDGE = {
     activateServer: "async",
     deactivateServer: "async",
     liveServers: "stream",
+  }),
+  providersManager: connector.connect<ProvidersManagerBridge>("providers-manager", {
+    createProvider: "async",
+    deleteProvider: "async",
+    updateProvider: "async",
+    createStateStream: "stream",
+    getProviderParameters: "async",
   }),
 };
 
