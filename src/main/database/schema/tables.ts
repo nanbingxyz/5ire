@@ -16,6 +16,7 @@ import type {
   BookmarkSnapshot,
   ConversationConfig,
   ProjectConfig,
+  ProviderConfig,
   TurnMetadata,
   TurnPrompt,
   TurnReply,
@@ -547,7 +548,7 @@ const providerColumns = {
   /**
    * The configuration of the provider.
    */
-  config: jsonb().$type<Record<string, unknown>>().notNull(),
+  config: jsonb().$type<ProviderConfig>().notNull(),
 };
 
 export const provider = pgTable("providers", providerColumns, (table) => {
