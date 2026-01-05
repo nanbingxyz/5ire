@@ -1,6 +1,6 @@
 {
-  "id": "8c853cbb-1767-43c8-be68-9ac875e74027",
-  "prevId": "ddfffb78-a646-4027-9dcb-0f35ccafd631",
+  "id": "fd074f9b-85f1-4671-abcd-52b5a553a849",
+  "prevId": "8c853cbb-1767-43c8-be68-9ac875e74027",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -333,6 +333,12 @@
           "notNull": true,
           "default": "now()"
         },
+        "conversation_id": {
+          "name": "conversation_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
         "collection_id": {
           "name": "collection_id",
           "type": "uuid",
@@ -355,9 +361,54 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "conversation_collections_conversation_id_index": {
+          "name": "conversation_collections_conversation_id_index",
+          "columns": [
+            {
+              "expression": "conversation_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "conversation_collections_conversation_id_collection_id_index": {
+          "name": "conversation_collections_conversation_id_collection_id_index",
+          "columns": [
+            {
+              "expression": "conversation_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "collection_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
+        "conversation_collections_conversation_id_conversations_id_fk": {
+          "name": "conversation_collections_conversation_id_conversations_id_fk",
+          "tableFrom": "conversation_collections",
+          "tableTo": "conversations",
+          "columnsFrom": ["conversation_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "cascade"
+        },
         "conversation_collections_collection_id_collections_id_fk": {
           "name": "conversation_collections_collection_id_collections_id_fk",
           "tableFrom": "conversation_collections",
