@@ -1,16 +1,15 @@
 import type { Model } from "@/main/llm/model";
-import type { Part } from "@/main/model/content-specification";
 
 export abstract class Provider {
   #modelsUpdatedCallbacks: Set<() => void>;
 
-  abstract models: Provider.Models;
-
-  abstract name: string;
-
   abstract capabilities: Provider.Capabilities;
 
-  subscribeModelsUpdated(callback: () => void) {
+  abstract status: Provider.Status;
+
+  abstract models: Model[];
+
+  subscribeStatusUpdated(callback: () => void) {
     this.#modelsUpdatedCallbacks.add(callback);
 
     return () => {
@@ -18,63 +17,89 @@ export abstract class Provider {
     };
   }
 
+  unsubscribeAllStatusUpdated() {
+    this.#modelsUpdatedCallbacks.clear();
+  }
+
   protected constructor() {
     this.#modelsUpdatedCallbacks = new Set();
   }
 
-  protected notifyModelsUpdated() {
+  protected notifyStatusUpdated() {
     for (const callback of this.#modelsUpdatedCallbacks) {
       try {
         callback();
       } catch {}
     }
   }
+
+  static parseParameters = (schema: Provider.Parameter[], parameters: Record<string, string>) => {
+    const result: Record<string, string> = {};
+
+    for (const parameter of schema) {
+      const value = parameters[parameter.key] || parameter.default;
+
+      if (!value) {
+        if (parameter.required) {
+          throw new Error(`Parameter ${parameter.key} is required`);
+        }
+      } else {
+        result[parameter.key] = value;
+      }
+    }
+
+    return result;
+  };
 }
 
 export namespace Provider {
-  export type Store = {
-    get: (key: string) => unknown;
-    set: (key: string, value: unknown) => void;
+  export type Config = {
+    parameters: Record<string, string>;
+    proxy?: string;
+    models?: Array<{
+      name: string;
+      title: string;
+      description: string;
+      maxContextLength: number;
+      maxOutput: number;
+      capabilities: Model.Capabilities;
+      pricing: Model.Pricing;
+    }>;
   };
-
-  export type Config = Record<string, unknown>;
 
   export type Context = {
     config: Config;
-    store: Store;
-    stringifyReference: (part: Part.Reference) => Promise<string>;
-    stringifyResource: (part: Part.Resource) => Promise<string>;
+    fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
   };
 
-  export type Constructor = new (context: Context) => Provider;
-
-  export type Models =
+  export type Status =
     | {
-        status: "loading";
+        type: "ready" | "loading";
       }
     | {
-        status: "loaded";
-        models: Model[];
-      }
-    | {
-        status: "error";
-        error: string;
+        type: "error";
+        message: string;
       };
+
+  export type Parameter = {
+    key: string;
+    label: string;
+    description?: string;
+    secret?: boolean;
+    required?: boolean;
+    default?: string;
+  };
+
+  export type Constructor = {
+    new (context: Context): Provider;
+
+    parameters: Parameter[];
+  };
 
   export type Capabilities = {
     /**
-     * 是否可以自定义模型
+     * Whether custom models are supported
      */
     readonly customModel: boolean;
-    /**
-     * 是否可以自定义 API 基础 URL
-     */
-    readonly customApiBaseURL: boolean;
-  };
-
-  export type CustomModelConfig = {
-    name: string;
-    title: string;
-    capabilities: Model.Capabilities;
   };
 }
