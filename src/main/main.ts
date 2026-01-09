@@ -28,6 +28,7 @@ import fetch from "node-fetch";
 import type { IMCPServer } from "types/mcp";
 import { isValidMCPServer, isValidMCPServerKey } from "utils/validators";
 import { KNOWLEDGE_IMPORT_MAX_FILE_SIZE, SUPPORTED_IMAGE_TYPES } from "@/consts";
+import { ConversationsManagerBridge } from "@/main/bridge/conversations-manager-bridge";
 import { DeepLinkHandlerBridge } from "@/main/bridge/deep-link-handler-bridge";
 import { DocumentEmbedderBridge } from "@/main/bridge/document-embedder-bridge";
 import { DocumentManagerBridge } from "@/main/bridge/document-manager-bridge";
@@ -47,6 +48,9 @@ import { Database } from "@/main/database";
 import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
 import { BlobCaching } from "@/main/services/blob-caching";
+import { ConversationContextBuilder } from "@/main/services/conversation-context-builder";
+import { ConversationOrchestrator } from "@/main/services/conversation-orchestrator";
+import { ConversationsManager } from "@/main/services/conversations-manager";
 import { DeepLinkHandler } from "@/main/services/deep-link-handler";
 import { DocumentEmbedder } from "@/main/services/document-embedder";
 import { DocumentExtractor } from "@/main/services/document-extractor";
@@ -168,6 +172,10 @@ Container.singleton(ShutdownCoordinator, () => new ShutdownCoordinator());
 Container.singleton(BlobCaching, () => new BlobCaching());
 Container.singleton(ProvidersManager, () => new ProvidersManager());
 Container.singleton(ProvidersManagerBridge, () => new ProvidersManagerBridge());
+Container.singleton(ConversationsManager, () => new ConversationsManager());
+Container.singleton(ConversationsManagerBridge, () => new ConversationsManagerBridge());
+Container.singleton(ConversationContextBuilder, () => new ConversationContextBuilder());
+Container.singleton(ConversationOrchestrator, () => new ConversationOrchestrator());
 
 // init crash reporter
 (() => {
@@ -341,6 +349,7 @@ if (!gotTheLock) {
       Container.inject(DeepLinkHandlerBridge).expose(ipcMain);
       Container.inject(ProjectsManagerBridge).expose(ipcMain);
       Container.inject(ProvidersManagerBridge).expose(ipcMain);
+      Container.inject(ConversationsManagerBridge).expose(ipcMain);
 
       await Container.inject(Database).init();
       await Container.inject(Renderer).init();

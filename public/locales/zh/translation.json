@@ -384,5 +384,20 @@
   "Prompts.MergeStrategy.Replace": "替换",
   "Prompts.MergeStrategy.Scoped": "域内替换",
   "Prompts.RoleDefinitionVariables": "角色变量",
-  "Prompts.InstructionVariables": "指令变量"
+  "Prompts.InstructionVariables": "指令变量",
+  "Common.Builtin": "内置",
+  "Common.Configure": "配置",
+  "Provider.NumOfModels": "模型数量",
+  "Provider.Configure": "配置供应商",
+  "Provider.Create": "添加供应商",
+  "Provider.Update": "更新供应商",
+  "Provider.Parameter.Label.API_KEY": "API 密钥",
+  "Provider.Parameter.Label.API_ENDPOINT": "API 端点",
+  "Provider.Parameter.Label.API_VERSION": "API 版本",
+  "Provider.Parameter.Placeholder.API_KEY": "请输入 API 密钥",
+  "Provider.Parameter.Placeholder.API_ENDPOINT": "请输入服务接入地址",
+  "Provider.Parameter.Placeholder.API_VERSION": "请输入 API 版本",
+  "Provider.Proxy.Invalid": "代理地址无效",
+  "Provider.Confirmation.Delete": "该供应商和所有相关数据将被删除，且该操作不可撤销。",
+  "Provider.Notification.Deleted": "供应商已删除"
 }

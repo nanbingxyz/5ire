@@ -5,6 +5,7 @@ import { platform } from "node:os";
 import { setFlagsFromString } from "node:v8";
 import { contextBridge, type IpcRendererEvent, ipcRenderer } from "electron";
 import type { ThemeType } from "types/appearance";
+import type { ConversationsManagerBridge } from "@/main/bridge/conversations-manager-bridge";
 import type { DeepLinkHandlerBridge } from "@/main/bridge/deep-link-handler-bridge";
 import type { DocumentEmbedderBridge } from "@/main/bridge/document-embedder-bridge";
 import type { DocumentManagerBridge } from "@/main/bridge/document-manager-bridge";
@@ -136,6 +137,17 @@ const BRIDGE = {
     updateProvider: "async",
     createStateStream: "stream",
     getProviderParameters: "async",
+  }),
+  conversationsManager: connector.connect<ConversationsManagerBridge>("conversations-manager", {
+    createConversation: "async",
+    deleteConversation: "async",
+    getStageConversation: "async",
+    setStageConversation: "async",
+    updateConversation: "async",
+    startTurn: "async",
+    liveTurns: "stream",
+    liveConversations: "stream",
+    getConversation: "async",
   }),
 };
 

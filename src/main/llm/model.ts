@@ -109,5 +109,6 @@ export namespace Model {
   export type Pricing = {
     input: number;
     output: number;
+    cachedInput?: number;
   };
 }

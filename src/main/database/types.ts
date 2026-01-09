@@ -39,8 +39,16 @@ export type Prompt = InferSelectModel<typeof prompt>;
 export type PromptRaw = InferSelectModel<typeof prompt, { dbColumnNames: true }>;
 export type PromptInsert = InferInsertModel<typeof prompt>;
 
+export type ProjectStageConversation = {
+  model?: {
+    name: string;
+    provider: string;
+  };
+  config?: ConversationConfig;
+};
+
 export type ProjectConfig = {
-  stageConversation?: Conversation;
+  stageConversation?: ProjectStageConversation;
 };
 
 export type Project = InferSelectModel<typeof project>;
@@ -102,10 +110,6 @@ export type TurnMetadata = {
      * The unique identifier of the provider.
      */
     id: string;
-    /**
-     * The display name of the provider.
-     */
-    label: string;
     /**
      * The kind of provider, e.g. `openai`, `anthropic`, `ollama`.
      */

@@ -69,7 +69,7 @@ export namespace Provider {
 
   export type Context = {
     config: Config;
-    fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>;
+    fetch: (url: URL, init: RequestInit) => Promise<Response>;
   };
 
   export type Status =

@@ -20,8 +20,6 @@ import {
   bundleIcon,
   DeleteFilled,
   DeleteRegular,
-  DocumentFolderFilled,
-  DocumentFolderRegular,
   EditFilled,
   EditRegular,
   Info16Regular,
@@ -53,7 +51,6 @@ const EditIcon = bundleIcon(EditFilled, EditRegular);
 const DeleteIcon = bundleIcon(DeleteFilled, DeleteRegular);
 const PinIcon = bundleIcon(PinFilled, PinRegular);
 const PinOffIcon = bundleIcon(PinOffFilled, PinOffRegular);
-const DocumentFolderIcon = bundleIcon(DocumentFolderFilled, DocumentFolderRegular);
 
 const MoreHorizontalIcon = bundleIcon(MoreHorizontalFilled, MoreHorizontalRegular);
 
@@ -86,12 +83,7 @@ export default function Grid() {
   }, []);
 
   const handleTogglePin = (id: string) => {
-    window.bridge.documentManager
-      .toggleCollectionPin({ id })
-      .then(() => {
-        notifySuccess(t("Knowledge.Notification.CollectionDeleted"));
-      })
-      .catch(console.error);
+    window.bridge.documentManager.toggleCollectionPin({ id }).catch(console.error);
   };
 
   const handleDelete = (id: string) => {

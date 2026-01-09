@@ -6,7 +6,9 @@ import { schema } from "@/main/database/schema";
 import type { ProviderConfig, Provider as ProviderData, ProviderKind } from "@/main/database/types";
 import { Container } from "@/main/internal/container";
 import { Stateful } from "@/main/internal/stateful";
+import { Azure } from "@/main/llm/adapters/azure";
 import { Deepseek } from "@/main/llm/adapters/deepseek";
+import { Openai } from "@/main/llm/adapters/openai";
 import type { Provider } from "@/main/llm/provider";
 import { Logger } from "@/main/services/logger";
 
@@ -15,6 +17,9 @@ const CONSTRUCTORS = {} as Record<ProviderKind, Provider.Constructor>;
 for (const kind of schema.providerKind.enumValues) {
   CONSTRUCTORS[kind] = Deepseek;
 }
+
+CONSTRUCTORS["openai"] = Openai;
+CONSTRUCTORS["azure"] = Azure;
 
 export class ProvidersManager extends Stateful<ProvidersManager.State> {
   #database = Container.inject(Database);
@@ -56,9 +61,9 @@ export class ProvidersManager extends Stateful<ProvidersManager.State> {
     const instance = new CONSTRUCTORS[kind]({
       config,
       // @ts-expect-error
-      fetch: async (input, init) => {
+      fetch: async (url, init) => {
         // @ts-expect-error
-        return fetch(input, { ...init, dispatcher });
+        return fetch(url, { ...init, dispatcher });
       },
     });
 
@@ -138,7 +143,7 @@ export class ProvidersManager extends Stateful<ProvidersManager.State> {
             parameters: options.parameters,
           },
         })
-        .where(eq(schema.project.id, options.id))
+        .where(eq(schema.provider.id, options.id))
         .returning()
         .execute()
         .then((result) => result[0]);
@@ -167,7 +172,7 @@ export class ProvidersManager extends Stateful<ProvidersManager.State> {
         throw new Error("Provider does not exist.");
       }
 
-      return tx.delete(schema.provider).where(eq(schema.project.id, options.id)).execute();
+      return tx.delete(schema.provider).where(eq(schema.provider.id, options.id)).execute();
     });
 
     this.update((draft) => {

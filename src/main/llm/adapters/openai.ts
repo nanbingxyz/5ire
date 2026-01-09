@@ -9,22 +9,43 @@ import { JSONEventSourceParserStream } from "@/main/llm/utils/stream-transformer
 import type { Message } from "@/main/model/content-specification";
 import { JSONUtils } from "@/utils";
 
-const KNOWN_MODELS = ["deepseek-chat", "deepseek-reasoner"] as const;
+const KNOWN_MODELS = [
+  "o1",
+  "o3-mini",
+  "o3",
+  "gpt-4.1",
+  "gpt-4.1-mini",
+  "gpt-4.1-nano",
+  "gpt-4o",
+  "gpt-4o-mini",
+  "gpt-4-turbo",
+  "gpt-4",
+  "gpt-4-0613",
+  "gpt-4.5-preview",
+  "gpt-3.5-turbo",
+  "gpt-5",
+  "gpt-5-mini",
+  "gpt-5-nano",
+  "gpt-5.1",
+  "gpt-5.2",
+  "gpt-5.2-pro",
+] as const;
 
-const DEFAULT_API_ENDPOINT = "https://api.deepseek.com";
+const DEFAULT_API_ENDPOINT = "https://api.openai.com/v1";
 
 const MAP_FINISH_REASON: Record<string, TurnFinishReason> = {
   stop: "stop",
   length: "length",
   content_filter: "content-filter",
+  function_call: "tool-calls",
   tool_calls: "tool-calls",
   insufficient_system_resource: "error",
 };
 
 const TEMPERATURE_RANGE = [0, 2] as const;
 
-export class Deepseek extends Provider {
-  #parameters: Deepseek.Parameters;
+export class Openai extends Provider {
+  #parameters: Openai.Parameters;
   #models: Model[];
   #status: Provider.Status;
   #context: Provider.Context;
@@ -38,16 +59,33 @@ export class Deepseek extends Provider {
   }
 
   get #apiURL() {
-    return new URL(this.#apiEndpoint, "/chat/completions");
+    return new URL("/chat/completions", this.#apiEndpoint);
   }
 
-  #convertUsage(usage: Exclude<Deepseek.StreamChunkUsage, null | undefined>) {
+  #isReasoningModel(model: (typeof KNOWN_MODELS)[number]) {
+    return (
+      model.startsWith("gpt-3") ||
+      model.startsWith("gpt-4") ||
+      model.startsWith("chatgpt-4o") ||
+      model.startsWith("gpt-5-chat")
+    );
+  }
+
+  #convertUsage(usage: Exclude<Openai.StreamChunkUsage, null | undefined>) {
+    let inputCacheHit: number | undefined;
+    let inputCacheMiss: number | undefined;
+
+    if (typeof usage.prompt_tokens === "number" && typeof usage.prompt_tokens_details?.cached_tokens === "number") {
+      inputCacheHit = usage.prompt_tokens_details.cached_tokens;
+      inputCacheMiss = usage.prompt_tokens - usage.prompt_tokens_details.cached_tokens;
+    }
+
     return {
       input: usage.prompt_tokens ?? undefined,
       output: usage.completion_tokens ?? undefined,
       reasoning: usage.completion_tokens_details?.reasoning_tokens ?? undefined,
-      inputCacheHit: usage.prompt_cache_hit_tokens ?? undefined,
-      inputCacheMiss: usage.prompt_cache_miss_tokens ?? undefined,
+      inputCacheHit,
+      inputCacheMiss,
     } satisfies TurnUsage;
   }
 
@@ -59,7 +97,7 @@ export class Deepseek extends Provider {
     const self = this;
 
     let finishReason: TurnFinishReason = "unrecognized";
-    let usage: Deepseek.StreamChunkUsage | null = null;
+    let usage: Openai.StreamChunkUsage | null = null;
 
     const toolCalls: {
       id: string;
@@ -71,7 +109,7 @@ export class Deepseek extends Provider {
     return response.body
       .pipeThrough(new TextDecoderStream())
       .pipeThrough(new EventSourceParserStream())
-      .pipeThrough(new JSONEventSourceParserStream(Deepseek.StreamChunkSchema))
+      .pipeThrough(new JSONEventSourceParserStream(Openai.StreamChunkSchema))
       .pipeThrough(
         new TransformStream({
           transform(chunk, controller: TransformStreamDefaultController<Model.GenerateResultChunk>) {
@@ -91,12 +129,18 @@ export class Deepseek extends Provider {
               usage = data.usage;
             }
 
-            if (delta?.reasoning_content) {
-              controller.enqueue({ type: "reasoning", text: delta.reasoning_content });
-            }
-
             if (delta?.content) {
               controller.enqueue({ type: "text", text: delta.content });
+            }
+
+            if (delta?.annotations) {
+              for (const annotation of delta.annotations) {
+                controller.enqueue({
+                  type: "source",
+                  url: annotation.url,
+                  title: annotation.title,
+                });
+              }
             }
 
             if (delta?.tool_calls?.length) {
@@ -180,7 +224,7 @@ export class Deepseek extends Provider {
           required: tool.inputSchema.required,
         },
       },
-    } satisfies Deepseek.FunctionTool;
+    } satisfies Openai.FunctionTool;
   }
 
   #convertTemperature(value: number) {
@@ -188,22 +232,82 @@ export class Deepseek extends Provider {
   }
 
   #convertUserMessage(message: Extract<Message, { role: "user" }>) {
-    const content = message.content.map((part) => {
+    const content: Openai.UserMessage["content"] = [];
+
+    for (const part of message.content) {
       if (part.type === "reference") {
-        return Model.stringifyReference(part);
+        if (part.mimetype?.startsWith("image/")) {
+          content.push({
+            type: "image_url",
+            image_url: {
+              url: part.url,
+            },
+          });
+        }
+        content.push({
+          type: "text",
+          text: Model.stringifyReference(part),
+        });
       }
 
       if (part.type === "resource") {
-        return Model.stringifyResource(part);
+        if (typeof part.content === "string") {
+          return {
+            type: "file",
+            file: {
+              name: part.url,
+              content: `data:${part.mimetype || "text/plain"};base64,${Buffer.from(part.content).toString("base64")}`,
+            },
+          };
+        } else {
+          if (part.mimetype?.startsWith("image/")) {
+            content.push({
+              type: "image_url",
+              image_url: {
+                url: `data:${part.mimetype},base64;${Buffer.from(part.content).toString("base64")}`,
+              },
+            });
+          }
+
+          if (part.mimetype?.startsWith("audio/mp3")) {
+            content.push({
+              type: "input_audio",
+              input_audio: {
+                data: `data:${part.mimetype},base64;${Buffer.from(part.content).toString("base64")}`,
+                format: "mp3",
+              },
+            });
+          }
+
+          if (part.mimetype?.startsWith("audio/wav")) {
+            content.push({
+              type: "input_audio",
+              input_audio: {
+                data: `data:${part.mimetype},base64;${Buffer.from(part.content).toString("base64")}`,
+                format: "wav",
+              },
+            });
+          }
+
+          content.push({
+            type: "text",
+            text: Model.stringifyResource(part),
+          });
+        }
       }
 
-      return part.text;
-    });
+      if (part.type === "text") {
+        content.push({
+          type: "text",
+          text: part.text,
+        });
+      }
+    }
 
     return {
       role: "user",
-      content: content.join("\n"),
-    } satisfies Deepseek.Message;
+      content,
+    } satisfies Openai.UserMessage;
   }
 
   #convertAssistantMessage(message: Extract<Message, { role: "assistant" }>) {
@@ -223,7 +327,6 @@ export class Deepseek extends Provider {
         return part.text;
       });
 
-    const reasoning = message.content.filter((part) => part.type === "reasoning").map((part) => part.text);
     const toolCalls = message.content
       .filter((part) => part.type === "tool-call")
       .map((part) => {
@@ -234,19 +337,18 @@ export class Deepseek extends Provider {
             name: part.tool,
             arguments: part.arguments,
           },
-        } satisfies Deepseek.MessageToolCall;
+        } satisfies Openai.MessageToolCall;
       });
 
     return {
       role: "assistant",
       content: content.join("\n"),
-      reasoning_content: reasoning.join("\n"),
-      tool_calls: toolCalls,
-    } satisfies Deepseek.Message;
+      tool_calls: toolCalls.length ? toolCalls : undefined,
+    } satisfies Openai.Message;
   }
 
   #convertToolMessage(message: Extract<Message, { role: "tool" }>) {
-    const messages: Deepseek.Message[] = message.content.map((result) => {
+    const messages: Openai.Message[] = message.content.map((result) => {
       return {
         role: "tool",
         content: result.result
@@ -267,7 +369,7 @@ export class Deepseek extends Provider {
     return messages;
   }
 
-  #convertSystemMessage(message: Extract<Message, { role: "system" }>) {
+  #convertSystemMessage(message: Extract<Message, { role: "system" }>, model: (typeof KNOWN_MODELS)[number]) {
     const content: string[] = [];
 
     for (const part of message.content) {
@@ -281,16 +383,16 @@ export class Deepseek extends Provider {
     }
 
     return {
-      role: "system",
+      role: this.#isReasoningModel(model) ? "developer" : "system",
       content: content.join("\n"),
-    } satisfies Deepseek.Message;
+    } satisfies Openai.Message;
   }
 
-  #convertPrompt(prompt: Message[]) {
+  #convertPrompt(prompt: Message[], model: (typeof KNOWN_MODELS)[number]) {
     const messages = prompt.map((message) => {
       switch (message.role) {
         case "system":
-          return this.#convertSystemMessage(message);
+          return this.#convertSystemMessage(message, model);
         case "user":
           return this.#convertUserMessage(message);
         case "assistant":
@@ -306,15 +408,29 @@ export class Deepseek extends Provider {
   }
 
   async #createRequestBody(model: (typeof KNOWN_MODELS)[number], options: Model.GenerateOptions) {
-    return JSON.stringify({
+    const reasoningEffort = this.#isReasoningModel(model) ? "medium" : undefined;
+
+    const init: Record<string, unknown> = {
       model,
-      max_tokens: options.maxOutputTokens,
+      max_completion_tokens: options.maxOutputTokens,
       tools: options.tools.map((tool) => this.#convertTool(tool)),
       tool_choice: "auto",
       temperature: options.temperature ? this.#convertTemperature(options.temperature) : undefined,
-      messages: await this.#convertPrompt(options.prompt),
+      messages: this.#convertPrompt(options.prompt, model),
       stream: true,
-    });
+      reasoning_effort: reasoningEffort,
+      stream_options: {
+        include_usage: true,
+      },
+    };
+
+    if (reasoningEffort) {
+      if (!model.startsWith("gpt-5.1")) {
+        delete init.temperature;
+      }
+    }
+
+    return JSON.stringify(init);
   }
 
   async #createRequestInit(model: (typeof KNOWN_MODELS)[number], options: Model.GenerateOptions) {
@@ -339,6 +455,7 @@ export class Deepseek extends Provider {
         return this.#context.fetch(this.#apiURL, init);
       })
       .catch((error) => {
+        console.log(error);
         throw new Error(`Failed to send request: ${asError(error).message}`);
       })
       .then(async (response) => {
@@ -347,7 +464,7 @@ export class Deepseek extends Provider {
 
           try {
             const json = await response.json();
-            const error = Deepseek.ErrorSchema.parse(json);
+            const error = Openai.ErrorSchema.parse(json);
 
             message = error.error.message;
           } catch {}
@@ -368,11 +485,7 @@ export class Deepseek extends Provider {
       }
 
       get maxOutput() {
-        if (model === "deepseek-reasoner") {
-          return 64 * 1000;
-        }
-
-        return 8 * 1000;
+        return 0;
       }
 
       get maxContextLength() {
@@ -384,7 +497,7 @@ export class Deepseek extends Provider {
       }
 
       get title() {
-        return model === "deepseek-chat" ? "Deepseek Chat" : "Deepseek Reasoner";
+        return model;
       }
 
       get description() {
@@ -393,8 +506,9 @@ export class Deepseek extends Provider {
 
       get capabilities() {
         return {
-          reasoning: model === "deepseek-reasoner",
+          reasoning: provider.#isReasoningModel(model),
           functionCalling: true,
+          vision: true,
         };
       }
 
@@ -415,7 +529,7 @@ export class Deepseek extends Provider {
     };
     this.#context = context;
 
-    const parameters = Deepseek.ParametersSchema.safeParse(context.config.parameters);
+    const parameters = Openai.ParametersSchema.safeParse(context.config.parameters);
 
     if (parameters.success) {
       this.#parameters = parameters.data;
@@ -454,22 +568,22 @@ export class Deepseek extends Provider {
     {
       key: "API_KEY",
       label: "API Key",
-      description: "Your Deepseek API key",
+      description: "Your OpenAI API key",
       secret: true,
       required: true,
     },
     {
       key: "API_ENDPOINT",
       label: "API Endpoint",
-      description: "The endpoint to use for Deepseek API requests",
+      description: "The endpoint to use for OpenAI API requests",
       default: DEFAULT_API_ENDPOINT,
     },
   ];
 }
 
-const _: Provider.Constructor = Deepseek;
+const _: Provider.Constructor = Openai;
 
-export namespace Deepseek {
+export namespace Openai {
   export const ParametersSchema = z.object({
     API_KEY: z.string().nonempty(),
     API_ENDPOINT: z.url().optional(),
@@ -477,22 +591,44 @@ export namespace Deepseek {
 
   export type Parameters = z.infer<typeof ParametersSchema>;
 
-  export type Message = SystemMessage | UserMessage | AssistantMessage | ToolMessage;
+  export type Message = SystemMessage | DeveloperMessage | UserMessage | AssistantMessage | ToolMessage;
 
   export type SystemMessage = {
     role: "system";
     content: string;
   };
 
+  export type DeveloperMessage = {
+    role: "developer";
+    content: string;
+  };
+
   export type UserMessage = {
     role: "user";
-    content: string;
+    name?: string;
+    content: Array<
+      | {
+          type: "image_url";
+          image_url: { url: string };
+        }
+      | {
+          type: "text";
+          text: string;
+        }
+      | {
+          type: "input_audio";
+          input_audio: { data: string; format: "wav" | "mp3" };
+        }
+      | {
+          type: "file";
+          file: { filename: string; file_data: string };
+        }
+    >;
   };
 
   export type AssistantMessage = {
     role: "assistant";
     content?: string | null;
-    reasoning_content?: string;
     tool_calls?: Array<MessageToolCall>;
   };
 
@@ -525,12 +661,17 @@ export namespace Deepseek {
     .object({
       prompt_tokens: z.number().nullish(),
       completion_tokens: z.number().nullish(),
-      prompt_cache_hit_tokens: z.number().nullish(),
-      prompt_cache_miss_tokens: z.number().nullish(),
       total_tokens: z.number().nullish(),
+      prompt_tokens_details: z
+        .object({
+          cached_tokens: z.number().nullish(),
+        })
+        .nullish(),
       completion_tokens_details: z
         .object({
           reasoning_tokens: z.number().nullish(),
+          accepted_prediction_tokens: z.number().nullish(),
+          rejected_prediction_tokens: z.number().nullish(),
         })
         .nullish(),
     })
@@ -539,17 +680,26 @@ export namespace Deepseek {
   export const StreamChunkToolCallSchema = z.object({
     index: z.number(),
     id: z.string().nullish(),
+    type: z.literal("function").nullish(),
     function: z.object({
       name: z.string().nullish(),
       arguments: z.string().nullish(),
     }),
   });
 
+  export const StreamChunkAnnotation = z.object({
+    type: z.literal("url_citation"),
+    start_index: z.number(),
+    end_index: z.number(),
+    url: z.string(),
+    title: z.string(),
+  });
+
   export const StreamChunkDeltaSchema = z.object({
     role: z.enum(["assistant"]).nullish(),
     content: z.string().nullish(),
-    reasoning_content: z.string().nullish(),
     tool_calls: StreamChunkToolCallSchema.array().nullish(),
+    annotations: StreamChunkAnnotation.array().nullish(),
   });
 
   export const StreamChunkChoiceSchema = z.object({

@@ -6,12 +6,14 @@ import AppLoader from "@/renderer/apps/Loader";
 import Bookmarks from "@/renderer/pages/bookmark";
 import Bookmark from "@/renderer/pages/bookmark/Bookmark";
 import Chat from "@/renderer/pages/chat";
+import Conversation from "@/renderer/pages/conversation";
 import Knowledge from "@/renderer/pages/knowledge";
 import KnowledgeCollectionForm from "@/renderer/pages/knowledge/CollectionForm";
 import KnowledgeFiles from "@/renderer/pages/knowledge-files";
 import Prompts from "@/renderer/pages/prompt";
 import PromptForm from "@/renderer/pages/prompt/Form";
 import Providers from "@/renderer/pages/providers";
+import ProvidersNext from "@/renderer/pages/providers-next";
 import Settings from "@/renderer/pages/settings";
 import Tools from "@/renderer/pages/tool";
 import Usage from "@/renderer/pages/usage";
@@ -55,6 +57,8 @@ export const Routes = () => {
       <Route path="/prompts/form/:id?" element={wrap(<PromptForm />)} />
       <Route path="/settings" element={wrap(<Settings />)} />
       <Route path="/providers" element={wrap(<Providers />)} />
+      <Route path="/providers-next" element={wrap(<ProvidersNext />)} />
+      <Route path="/conversation" element={wrap(<Conversation />)} />
     </InternalRoutes>
   );
 };

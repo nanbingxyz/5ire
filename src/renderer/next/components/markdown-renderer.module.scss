@@ -1,0 +1,81 @@
+.md {
+    text-align: left;
+    font-family:
+            Barlow,
+            -apple-system,
+            BlinkMacSystemFont,
+            'PingFang SC',
+            'Hiragino Sans GB',
+            Roboto,
+            'helvetica neue',
+            helvetica,
+            'segoe ui',
+            Arial,
+            sans-serif;
+
+    hr {
+        margin-bottom: 8px;
+        height: 0.5px;
+        background-color: rgba(var(--color-border));
+        border: none;
+    }
+
+    p {
+        margin-bottom: 3px;
+        line-height: 1.8;
+    }
+
+    p:not(:first-of-type) {
+        margin-top: 12px;
+    }
+
+    ul {
+        margin-bottom: 12px;
+    }
+
+    a {
+        text-decoration: underline;
+    }
+
+    li {
+        padding: 2px 0;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: separate;
+        border: 1px solid rgba(var(--color-border), 0.6);
+        border-radius: 6px;
+        margin-bottom: 12px;
+    }
+
+    th {
+        border-top: none;
+        background-color: rgba(var(--color-bg-surface-2), 1);
+    }
+
+    td,
+    th {
+        border-left: 1px solid rgba(var(--color-border), 0.6);
+        border-top: 1px solid rgba(var(--color-border), 0.6);
+        padding: 2px 8px;
+    }
+
+    td:first-child,
+    th:first-child {
+        border-left: none;
+    }
+
+    table tr:first-child th:first-child {
+        border-top-left-radius: 6px;
+    }
+
+    table tr:first-child th:last-child {
+        border-top-right-radius: 6px;
+    }
+    img {
+        max-width: 95%;
+        max-height: 300px;
+        border-radius: 6px;
+    }
+}

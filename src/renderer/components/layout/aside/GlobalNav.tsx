@@ -149,7 +149,7 @@ export default function GlobalNav({ collapsed }: { collapsed: boolean }) {
           title="Mod+n"
           icon={<ChatAddIcon />}
           className="w-full mx-auto justify-start flex-grow"
-          onClick={async () => navigate(`/chats/${TEMP_CHAT_ID}`)}
+          onClick={() => navigate("/conversation?id=4c1b1383-3481-47ff-b859-485b5decae27")}
         >
           {collapsed ? null : t("Chat.New")}
         </Button>

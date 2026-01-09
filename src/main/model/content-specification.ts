@@ -140,7 +140,7 @@ export namespace Part {
     /**
      * Execution status; the tool's output result should also correspond to the content
      */
-    status: "success" | "failure";
+    status: "success" | "failure" | "pending";
   };
 
   /**
