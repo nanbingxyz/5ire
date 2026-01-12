@@ -5,20 +5,20 @@ import {
   useRef,
   useCallback,
   useMemo,
-} from 'react';
-import useChatStore from 'stores/useChatStore';
-import { useTranslation } from 'react-i18next';
-import { Button } from '@fluentui/react-components';
-import { removeTagsExceptImg, setCursorToEnd } from 'utils/util';
-import { debounce } from 'lodash';
-import { IChatContext } from 'intellichat/types';
-import Spinner from '../../../components/Spinner';
-import Toolbar from './Toolbar';
+} from "react";
+import useChatStore from "stores/useChatStore";
+import { useTranslation } from "react-i18next";
+import { Button } from "@fluentui/react-components";
+import { removeTagsExceptImg, setCursorToEnd } from "utils/util";
+import { debounce } from "lodash";
+import { IChatContext } from "intellichat/types";
+import Spinner from "../../../components/Spinner";
+import Toolbar from "./Toolbar";
 
 /**
  * A rich text editor component for chat input with support for keyboard shortcuts,
  * image pasting, and toolbar integration.
- * 
+ *
  * @param {Object} props - The component props
  * @param {IChatContext} props.ctx - The chat context object
  * @param {boolean} props.isReady - Whether the editor is ready for input
@@ -92,12 +92,12 @@ export default function Editor({
 
   /**
    * Inserts text at the current cursor position in the editor.
-   * 
+   *
    * @param {string} text - The text to insert
    */
   const insertText = useCallback((text: string) => {
-    if (text === '\n') {
-      document.execCommand('insertLineBreak');
+    if (text === "\n") {
+      document.execCommand("insertLineBreak");
     } else {
       const selection = window.getSelection();
       if (!selection?.rangeCount) return;
@@ -110,45 +110,45 @@ export default function Editor({
   /**
    * Handles keyboard events for the editor, including Enter key submission
    * and line break insertion with modifier keys.
-   * 
+   *
    * @param {KeyboardEvent<HTMLDivElement>} event - The keyboard event
    */
   const onKeyDown = useCallback(
     (event: KeyboardEvent<HTMLDivElement>) => {
-      if (event.key === 'Enter') {
+      if (event.key === "Enter") {
         // void submit when using IME.
         if (event.keyCode !== 229) {
           // void submit when shiftKey, ctrlKey or metaKey is pressed.
           if (event.shiftKey || event.ctrlKey || event.metaKey) {
             event.preventDefault();
             // even execCommand is deprecated, it seems to be the only way to insert a line break in contentEditable.
-            document.execCommand('insertLineBreak');
+            document.execCommand("insertLineBreak");
             // scroll to bottom
             if (editorRef.current) {
               requestAnimationFrame(() => {
                 editorRef.current?.scrollTo({
                   top: editorRef.current.scrollHeight,
-                  behavior: 'smooth',
+                  behavior: "smooth",
                 });
               });
             }
           } else {
             event.preventDefault();
             setSubmitted(true);
-            onSubmit(removeTagsExceptImg(editorRef.current?.innerHTML || ''));
+            onSubmit(removeTagsExceptImg(editorRef.current?.innerHTML || ""));
             // @ts-ignore
-            editorRef.current.innerHTML = '';
-            editStage(chat.id, { input: '' });
+            editorRef.current.innerHTML = "";
+            editStage(chat.id, { input: "" });
           }
         }
       }
     },
-    [onSubmit, chat.id, editStage],
+    [onSubmit, chat.id, editStage]
   );
 
   /**
    * Handles paste events to insert plain text and images without formatting.
-   * 
+   *
    * @param {ClipboardEvent} e - The clipboard event
    */
   const pasteWithoutStyle = useCallback((e: ClipboardEvent) => {
@@ -156,22 +156,22 @@ export default function Editor({
     if (!e.clipboardData) return;
     // @ts-expect-error clipboardData is not defined in types
     const clipboardItems = e.clipboardData.items || window.clipboardData;
-    let text = '';
+    let text = "";
     Array.from(clipboardItems).forEach((item: DataTransferItem) => {
-      if (item.kind === 'string' && item.type === 'text/plain') {
+      if (item.kind === "string" && item.type === "text/plain") {
         item.getAsString(function (clipText) {
-          let txt = clipText.replace(/&[a-z]+;/gi, ' ');
-          txt = txt.replace(/<\/(p|div|br|h[1-6])>/gi, '\n');
-          txt = txt.replace(/\n+/g, '\n\n').trim();
+          let txt = clipText.replace(/&[a-z]+;/gi, " ");
+          txt = txt.replace(/<\/(p|div|br|h[1-6])>/gi, "\n");
+          txt = txt.replace(/\n+/g, "\n\n").trim();
           text += txt;
           insertText(text);
         });
-      } else if (item.kind === 'file' && item.type.startsWith('image/')) {
+      } else if (item.kind === "file" && item.type.startsWith("image/")) {
         // handle image paste
         const file = item.getAsFile();
         const reader = new FileReader();
         reader.onload = function (event) {
-          const img = document.createElement('img');
+          const img = document.createElement("img");
           img.src = event.target?.result as string;
           if (editorRef.current) {
             editorRef.current.appendChild(img);
@@ -200,11 +200,11 @@ export default function Editor({
   useEffect(() => {
     setSubmitted(false);
     if (editorRef.current) {
-      editorRef.current.addEventListener('paste', pasteWithoutStyle);
+      editorRef.current.addEventListener("paste", pasteWithoutStyle);
     }
     if (editorRef.current && chat.id) {
       editorRef.current.focus();
-      const content = chat.input || '';
+      const content = chat.input || "";
       if (content !== editorRef.current.innerHTML) {
         editorRef.current.innerHTML = content;
         setCursorToEnd(editorRef.current);
@@ -212,7 +212,7 @@ export default function Editor({
     }
     return () => {
       if (editorRef.current) {
-        editorRef.current.removeEventListener('paste', pasteWithoutStyle);
+        editorRef.current.removeEventListener("paste", pasteWithoutStyle);
       }
     };
   }, [chat.id]);
@@ -238,7 +238,7 @@ export default function Editor({
         <div className="editor-loading-mask absolute flex flex-col justify-center items-center">
           <Button onClick={onAbortClick} className="flex items-center">
             <Spinner size={18} className="mr-2" />
-            {t('Common.StopGenerating')}
+            {t("Common.StopGenerating")}
           </Button>
         </div>
       ) : null}
@@ -250,11 +250,11 @@ export default function Editor({
       />
       {!isReady && (
         <div className="absolute top-[40px] max-w-md right-0 left-0 tips px-2.5">
-          <p>{t('Notification.APINotReady')}</p>
+          <p>{t("Notification.APINotReady")}</p>
         </div>
       )}
       <div
-        contentEditable={isReady}
+        contentEditable={isReady && !states.loading}
         role="textbox"
         aria-label="editor"
         aria-multiline="true"
@@ -269,9 +269,9 @@ export default function Editor({
         onBlur={onBlur}
         onInput={onInput}
         style={{
-          resize: 'none',
-          minHeight: '60%',
-          whiteSpace: 'pre-wrap',
+          resize: "none",
+          minHeight: "60%",
+          whiteSpace: "pre-wrap",
           opacity: isReady ? 1 : 0,
         }}
       />
