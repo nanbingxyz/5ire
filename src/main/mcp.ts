@@ -248,6 +248,7 @@ export default class ModuleContext {
       const client = new this.Client({
         name: server.key,
         version: "1.0.0",
+        resetTimeoutOnProgress: true,
       });
       const config = this.getConfig();
       const mcpSvr = ModuleContext.getMCPServer(server, config) as IMCPServer;
