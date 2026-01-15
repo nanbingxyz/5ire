@@ -1,21 +1,21 @@
 /* eslint-disable react/no-danger */
-import { useTranslation } from "react-i18next";
+
 import DOMPurify from "dompurify";
-// @ts-ignore
-import MarkdownIt from "markdown-it";
-// @ts-ignore
-import texmath from "markdown-it-texmath";
-import katex from "katex";
-// @ts-ignore
-import markdownItMermaid from "markdown-it-mermaid";
 import hljs from "highlight.js/lib/common";
-import useAppearanceStore from "stores/useAppearanceStore";
-// @ts-ignore
+import katex from "katex";
+// @ts-expect-error
+import MarkdownIt from "markdown-it";
+// @ts-expect-error
 import { full as markdownItEmoji } from "markdown-it-emoji";
+// @ts-expect-error
+import markdownItMermaid from "markdown-it-mermaid";
+// @ts-expect-error
+import texmath from "markdown-it-texmath";
+import { useTranslation } from "react-i18next";
+import useAppearanceStore from "stores/useAppearanceStore";
 import MarkdownItCodeCopy from "../libs/markdownit-plugins/CodeCopy";
-import useToast from "./useToast";
-// @ts-ignore
 import markdownItEChartsPlugin from "../libs/markdownit-plugins/markdownItEChartsPlugin";
+import useToast from "./useToast";
 
 // 缓存配置
 const CACHE_SIZE = 100;
@@ -44,8 +44,7 @@ function processLatexExpressions(str: string): string {
     existingMath.add(match[1]);
   }
 
-  const latexRegex =
-    /(\\[a-zA-Z]+(?:\{(?:[^{}]|\{(?:[^{}]|\{[^}]*\})*\})*\})*)/g;
+  const latexRegex = /(\\[a-zA-Z]+(?:\{(?:[^{}]|\{(?:[^{}]|\{[^}]*\})*\})*\})*)/g;
 
   return str.replace(latexRegex, (match, expr) => {
     // check if the expression is already wrapped in $$
@@ -81,9 +80,7 @@ function batchProcessString(str: string): string {
     result = processLatexExpressions(result);
 
     // step 3: handle left/right parentheses
-    result = result.replace(/\\left|\\right/g, (match) =>
-      match === "\\left" ? "(" : ")"
-    );
+    result = result.replace(/\\left|\\right/g, (match) => (match === "\\left" ? "(" : ")"));
 
     return result;
   } catch (error) {
@@ -137,19 +134,13 @@ export default function useMarkdown() {
         } catch (__) {
           return (
             `<pre className="hljs">` +
-            `<code>${hljs.highlightAuto(code).value}${
-              isLoading ? loader : ""
-            }</code>` +
+            `<code>${hljs.highlightAuto(code).value}${isLoading ? loader : ""}</code>` +
             `</pre>`
           );
         }
       }
       return (
-        `<pre className="hljs">` +
-        `<code>${hljs.highlightAuto(code).value}${
-          isLoading ? loader : ""
-        }</code>` +
-        `</pre>`
+        `<pre className="hljs">` + `<code>${hljs.highlightAuto(code).value}${isLoading ? loader : ""}</code>` + `</pre>`
       );
     },
   })
@@ -160,7 +151,7 @@ export default function useMarkdown() {
     })
     .use(markdownItMermaid, {
       startOnLoad: false,
-      securityLevel: "loose",
+      securityLevel: "strict",
     })
     .use(MarkdownItCodeCopy, {
       element:
@@ -186,17 +177,9 @@ export default function useMarkdown() {
 
   const defaultRender =
     md.renderer.rules.link_open ||
-    function (tokens: any, idx: any, options: any, env: any, self: any) {
-      return self.renderToken(tokens, idx, options);
-    };
+    ((tokens: any, idx: any, options: any, env: any, self: any) => self.renderToken(tokens, idx, options));
 
-  md.renderer.rules.link_open = function (
-    tokens: any,
-    idx: any,
-    options: any,
-    env: any,
-    self: any
-  ) {
+  md.renderer.rules.link_open = (tokens: any, idx: any, options: any, env: any, self: any) => {
     // Add a new `target` attribute, or replace the value of the existing one.
     tokens[idx].attrSet("target", "_blank");
     // Pass the token to the default renderer.
@@ -205,26 +188,14 @@ export default function useMarkdown() {
 
   const defaultImageRender =
     md.renderer.rules.image ||
-    function (tokens: any, idx: any, options: any, env: any, self: any) {
-      return self.renderToken(tokens, idx, options);
-    };
+    ((tokens: any, idx: any, options: any, env: any, self: any) => self.renderToken(tokens, idx, options));
 
-  md.renderer.rules.image = function (
-    tokens: any,
-    idx: any,
-    options: any,
-    env: any,
-    self: any
-  ) {
+  md.renderer.rules.image = (tokens: any, idx: any, options: any, env: any, self: any) => {
     const token = tokens[idx];
     const srcIndex = token.attrIndex("src");
     if (srcIndex >= 0) {
       const src = token.attrs[srcIndex][1];
-      if (
-        !src.startsWith("http") &&
-        !src.startsWith("file://") &&
-        !src.startsWith("data:")
-      ) {
+      if (!src.startsWith("http") && !src.startsWith("file://") && !src.startsWith("data:")) {
         token.attrs[srcIndex][1] = `file://${src}`;
       }
     }
@@ -239,33 +210,7 @@ export default function useMarkdown() {
       }
       try {
         const processedStr = batchProcessString(str);
-
-        // 先渲染 Markdown
-        const rendered = md.render(processedStr);
-
-        // 对 ECharts 容器进行特殊处理
-        const result = DOMPurify.sanitize(rendered, {
-          FORBID_TAGS: ["script", "iframe", "object", "embed", "link"],
-          FORBID_ATTR: [
-            "onerror",
-            "onload",
-            "onclick",
-            "onmouseover",
-            "onmouseout",
-            "onkeydown",
-            "onkeyup",
-          ],
-          ALLOWED_URI_REGEXP:
-            /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|sms|cid|xmpp|data):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
-          ADD_ATTR: [
-            "class",
-            "id",
-            "data-echarts-option", // ECharts 配置数据
-            "data-mermaid", // Mermaid 图表数据
-            "style", // 允许 style 属性(需要配合 ALLOW_UNKNOWN_PROTOCOLS)
-          ]
-        });
-
+        const result = DOMPurify.sanitize(md.render(processedStr));
         setCachedResult(str, result);
         return result;
       } catch (error) {

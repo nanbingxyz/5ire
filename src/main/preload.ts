@@ -5,12 +5,15 @@ import { contextBridge, type IpcRendererEvent, ipcRenderer } from "electron";
 import { platform } from "os";
 import type { ThemeType } from "types/appearance";
 import v8 from "v8";
+import type { DeepLinkHandlerBridge } from "@/main/bridge/deep-link-handler-bridge";
 import type { DocumentEmbedderBridge } from "@/main/bridge/document-embedder-bridge";
 import type { DocumentManagerBridge } from "@/main/bridge/document-manager-bridge";
 import type { DownloaderBridge } from "@/main/bridge/downloader-bridge";
 import type { EmbedderBridge } from "@/main/bridge/embedder-bridge";
 import type { EncryptorBridge } from "@/main/bridge/encryptor-bridge";
 import type { LegacyDataMigratorBridge } from "@/main/bridge/legacy-data-migrator-bridge";
+import type { MCPConnectionsManagerBridge } from "@/main/bridge/mcp-connections-manager-bridge";
+import type { MCPServersManagerBridge } from "@/main/bridge/mcp-servers-manager-bridge";
 import type { PromptManagerBridge } from "@/main/bridge/prompt-manager-bridge";
 import type { RendererBridge } from "@/main/bridge/renderer-bridge";
 import type { SettingsBridge } from "@/main/bridge/settings-bridge";
@@ -68,6 +71,7 @@ const BRIDGE = {
     updateCollection: "async",
     toggleCollectionPin: "async",
     importDocuments: "async",
+    importDocumentsFromFileSystem: "async",
     deleteDocument: "async",
     liveCollections: "stream",
     liveDocuments: "stream",
@@ -89,6 +93,33 @@ const BRIDGE = {
   }),
   legacyDataMigrator: connector.connect<LegacyDataMigratorBridge>("legacy-data-migrator", {
     createStateStream: "stream",
+  }),
+  deepLinkHandler: connector.connect<DeepLinkHandlerBridge>("deep-link-handler", {
+    createUnhandledDeepLinksStateStream: "stream",
+    handled: "async",
+  }),
+  mcpConnectionsManager: connector.connect<MCPConnectionsManagerBridge>("mcp-connections-manager", {
+    createStateStream: "stream",
+    tool: {
+      call: "async",
+      createStateStream: "stream",
+    },
+    prompt: {
+      createStateStream: "stream",
+      get: "async",
+    },
+    resource: {
+      read: "async",
+      createStateStream: "stream",
+    },
+  }),
+  mcpServersManager: connector.connect<MCPServersManagerBridge>("mcp-servers-manager", {
+    createServer: "async",
+    updateServer: "async",
+    deleteServer: "async",
+    activateServer: "async",
+    deactivateServer: "async",
+    liveServers: "stream",
   }),
 };
 

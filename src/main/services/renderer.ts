@@ -54,12 +54,16 @@ export class Renderer extends Stateful<Renderer.State> {
         draft.shouldUseInvertedColorScheme = nativeTheme.shouldUseInvertedColorScheme;
         draft.inForcedColorsMode = nativeTheme.inForcedColorsMode;
         draft.prefersReducedTransparency = nativeTheme.prefersReducedTransparency;
-
-        draft.window?.setTitleBarOverlay(this.#getTitleBarOverlayStyle());
       });
+      if (this.state.window?.setTitleBarOverlay) {
+        this.state.window?.setTitleBarOverlay(this.#getTitleBarOverlayStyle());
+      }
     });
   }
 
+  /**
+   * Get title bar overlay style
+   */
   #getTitleBarOverlayStyle() {
     return TITLE_BAR_OVERLAY_STYLES[nativeTheme.shouldUseDarkColors ? "dark" : "light"];
   }

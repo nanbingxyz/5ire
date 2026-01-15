@@ -11,6 +11,8 @@ import type {
   provider,
   providerKind,
   server,
+  serverApprovalPolicy,
+  serverTransport,
   turn,
   turnFinishReason,
   usage,
@@ -273,6 +275,8 @@ export type Usage = InferSelectModel<typeof usage>;
 export type UsageRaw = InferSelectModel<typeof usage, { dbColumnNames: true }>;
 export type UsageInsert = InferInsertModel<typeof usage>;
 
+export type ServerTransport = InferEnum<typeof serverTransport>;
+export type ServerApprovalPolicy = InferEnum<typeof serverApprovalPolicy>;
 export type Server = InferSelectModel<typeof server>;
 export type ServerRaw = InferSelectModel<typeof server, { dbColumnNames: true }>;
 export type ServerInsert = InferInsertModel<typeof server>;

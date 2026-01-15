@@ -8,6 +8,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path, { join, resolve } from "node:path";
 import type { Readable } from "node:stream";
+import { asError } from "catch-unknown";
 import {
   app,
   BrowserWindow,
@@ -26,18 +27,16 @@ import { HttpsProxyAgent } from "https-proxy-agent";
 import fetch from "node-fetch";
 import type { IMCPServer } from "types/mcp";
 import { isValidMCPServer, isValidMCPServerKey } from "utils/validators";
-import {
-  KNOWLEDGE_IMPORT_MAX_FILE_SIZE,
-  KNOWLEDGE_IMPORT_MAX_FILES,
-  SUPPORTED_FILE_TYPES,
-  SUPPORTED_IMAGE_TYPES,
-} from "@/consts";
+import { KNOWLEDGE_IMPORT_MAX_FILE_SIZE, SUPPORTED_IMAGE_TYPES } from "@/consts";
+import { DeepLinkHandlerBridge } from "@/main/bridge/deep-link-handler-bridge";
 import { DocumentEmbedderBridge } from "@/main/bridge/document-embedder-bridge";
 import { DocumentManagerBridge } from "@/main/bridge/document-manager-bridge";
 import { DownloaderBridge } from "@/main/bridge/downloader-bridge";
 import { EmbedderBridge } from "@/main/bridge/embedder-bridge";
 import { EncryptorBridge } from "@/main/bridge/encryptor-bridge";
 import { LegacyDataMigratorBridge } from "@/main/bridge/legacy-data-migrator-bridge";
+import { MCPConnectionsManagerBridge } from "@/main/bridge/mcp-connections-manager-bridge";
+import { MCPServersManagerBridge } from "@/main/bridge/mcp-servers-manager-bridge";
 import { PromptManagerBridge } from "@/main/bridge/prompt-manager-bridge";
 import { RendererBridge } from "@/main/bridge/renderer-bridge";
 import { SettingsBridge } from "@/main/bridge/settings-bridge";
@@ -45,6 +44,7 @@ import { UpdaterBridge } from "@/main/bridge/updater-bridge";
 import { Database } from "@/main/database";
 import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
+import { DeepLinkHandler } from "@/main/services/deep-link-handler";
 import { DocumentEmbedder } from "@/main/services/document-embedder";
 import { DocumentExtractor } from "@/main/services/document-extractor";
 import { DocumentManager } from "@/main/services/document-manager";
@@ -52,12 +52,20 @@ import { Downloader } from "@/main/services/downloader";
 import { Embedder } from "@/main/services/embedder";
 import { Encryptor } from "@/main/services/encryptor";
 import { LegacyDataMigrator } from "@/main/services/legacy-data-migrator";
+import { LegacyServersConfigLoader } from "@/main/services/legacy-servers-config-loader";
 import { LegacyVectorDatabaseLoader } from "@/main/services/legacy-vector-database-loader";
 import { Logger } from "@/main/services/logger";
+import { MCPCompletionHandler } from "@/main/services/mcp-completion-handler";
+import { MCPConnectionsManager } from "@/main/services/mcp-connections-manager";
 import { MCPContentConverter } from "@/main/services/mcp-content-converter";
+import { MCPPromptsManager } from "@/main/services/mcp-prompts-manager";
+import { MCPResourcesManager } from "@/main/services/mcp-resources-manager";
+import { MCPServersManager } from "@/main/services/mcp-servers-manager";
+import { MCPToolsManager } from "@/main/services/mcp-tools-manager";
 import { PromptManager } from "@/main/services/prompt-manager";
 import { Renderer } from "@/main/services/renderer";
 import { Settings } from "@/main/services/settings";
+import { ShutdownCoordinator } from "@/main/services/shutdown-coordinator";
 import { Updater } from "@/main/services/updater";
 import { URLParser } from "@/main/services/url-parser";
 import ModuleContext from "./mcp";
@@ -96,6 +104,7 @@ Container.singleton(Environment, () => {
     axiomToken: process.env.AXIOM_TOKEN,
     axiomOrgId: process.env.AXIOM_ORG_ID,
     logsFolder: resolve(userDataFolder, "Logs"),
+    deepLinkProtocol: app.isPackaged ? "app.5ire" : "dev.5ire",
   };
 
   ensureDirSync(env.embedderCacheFolder);
@@ -124,6 +133,7 @@ Container.singleton(Database, () => new Database());
 Container.singleton(LegacyDataMigrator, () => new LegacyDataMigrator());
 Container.singleton(LegacyDataMigratorBridge, () => new LegacyDataMigratorBridge());
 Container.singleton(LegacyVectorDatabaseLoader, () => new LegacyVectorDatabaseLoader());
+Container.singleton(LegacyServersConfigLoader, () => new LegacyServersConfigLoader());
 Container.singleton(DocumentManager, () => new DocumentManager());
 Container.singleton(DocumentManagerBridge, () => new DocumentManagerBridge());
 Container.singleton(DocumentExtractor, () => new DocumentExtractor());
@@ -133,6 +143,17 @@ Container.singleton(PromptManager, () => new PromptManager());
 Container.singleton(PromptManagerBridge, () => new PromptManagerBridge());
 Container.singleton(URLParser, () => new URLParser());
 Container.singleton(MCPContentConverter, () => new MCPContentConverter());
+Container.singleton(MCPServersManager, () => new MCPServersManager());
+Container.singleton(MCPConnectionsManager, () => new MCPConnectionsManager());
+Container.singleton(MCPToolsManager, () => new MCPToolsManager());
+Container.singleton(MCPPromptsManager, () => new MCPPromptsManager());
+Container.singleton(MCPResourcesManager, () => new MCPResourcesManager());
+Container.singleton(MCPCompletionHandler, () => new MCPCompletionHandler());
+Container.singleton(MCPConnectionsManagerBridge, () => new MCPConnectionsManagerBridge());
+Container.singleton(MCPServersManagerBridge, () => new MCPServersManagerBridge());
+Container.singleton(DeepLinkHandler, () => new DeepLinkHandler());
+Container.singleton(DeepLinkHandlerBridge, () => new DeepLinkHandlerBridge());
+Container.singleton(ShutdownCoordinator, () => new ShutdownCoordinator());
 
 // init crash reporter
 (() => {
@@ -156,13 +177,7 @@ let pendingInstallTool: any = null;
 
 const protocol = app.isPackaged ? "app.5ire" : "dev.5ire";
 
-if (process.defaultApp) {
-  if (process.argv.length >= 2) {
-    app.setAsDefaultProtocolClient(protocol, process.execPath, [path.resolve(process.argv[1])]);
-  }
-} else {
-  app.setAsDefaultProtocolClient(protocol);
-}
+Container.inject(DeepLinkHandler).setAsDefaultProtocolClient();
 
 const getMainWindow = () => {
   return Container.inject(Renderer).state.window;
@@ -170,6 +185,10 @@ const getMainWindow = () => {
 
 const onDeepLink = (link: string) => {
   const logger = Container.inject(Logger).scope("Main:OnDeepLink");
+  const deepLinkHandler = Container.inject(DeepLinkHandler);
+
+  deepLinkHandler.parse(link);
+
   const { host, hash } = new URL(link);
   if (host === "login-callback") {
     const params = new URLSearchParams(hash.substring(1));
@@ -272,7 +291,7 @@ const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
   app.quit();
 } else {
-  app.on("second-instance", (event, commandLine) => {
+  app.on("second-instance", (_, commandLine) => {
     Container.inject(Renderer)
       .focus()
       .catch(() => {
@@ -303,6 +322,12 @@ if (!gotTheLock) {
       Container.inject(DocumentEmbedderBridge).expose(ipcMain);
       Container.inject(LegacyDataMigratorBridge).expose(ipcMain);
       Container.inject(PromptManagerBridge).expose(ipcMain);
+      Container.inject(MCPConnectionsManagerBridge).expose(ipcMain);
+      Container.inject(MCPServersManagerBridge).expose(ipcMain);
+      Container.inject(DeepLinkHandlerBridge).expose(ipcMain);
+
+      await Container.inject(Database).init();
+      await Container.inject(Renderer).init();
 
       Container.inject(Embedder)
         .init()
@@ -322,13 +347,16 @@ if (!gotTheLock) {
           logger.error("Failed to init document embedder:", err);
         });
 
-      await Container.inject(Database).ready;
-      await Container.inject(Renderer).init();
-
-      await Container.inject(LegacyDataMigrator)
+      Container.inject(LegacyDataMigrator)
         .migrate(legacySqliteDatabase)
         .catch((error) => {
-          console.log(error);
+          logger.error("Failed to migrate legacy data:", error);
+        });
+
+      Container.inject(MCPConnectionsManager)
+        .init()
+        .catch((error) => {
+          logger.error("Failed to init MCP connections manager:", error);
         });
 
       app.on("activate", () => {
@@ -585,53 +613,6 @@ ipcMain.handle("get-system-language", () => {
 });
 
 // eslint-disable-next-line consistent-return
-ipcMain.handle("select-knowledge-files", async () => {
-  const logger = Container.inject(Logger).scope("Main:SelectKnowledgeFiles");
-  try {
-    const result = await dialog.showOpenDialog({
-      properties: ["openFile", "multiSelections"],
-      filters: [
-        {
-          name: "Documents",
-          extensions: ["doc", "docx", "pdf", "md", "txt", "csv", "pptx", "xlsx"],
-        },
-      ],
-    });
-    if (result.filePaths.length > KNOWLEDGE_IMPORT_MAX_FILES) {
-      dialog.showErrorBox("Error", `Please not more than ${KNOWLEDGE_IMPORT_MAX_FILES} files a time.`);
-      return "[]";
-    }
-    const files = [];
-    // eslint-disable-next-line no-restricted-syntax
-    for (const filePath of result.filePaths) {
-      // eslint-disable-next-line no-await-in-loop
-      const fileType = await getFileType(filePath);
-      if (!SUPPORTED_FILE_TYPES[fileType]) {
-        dialog.showErrorBox("Error", `Unsupported file type ${fileType} for ${filePath}`);
-        return "[]";
-      }
-      // eslint-disable-next-line no-await-in-loop
-      const fileInfo: any = await getFileInfo(filePath);
-      if (fileInfo.size > KNOWLEDGE_IMPORT_MAX_FILE_SIZE) {
-        dialog.showErrorBox(
-          "Error",
-          `the size of ${filePath} exceeds the limit (${KNOWLEDGE_IMPORT_MAX_FILE_SIZE / (1024 * 1024)} MB})`,
-        );
-        return "[]";
-      }
-      fileInfo.type = fileType;
-      files.push(fileInfo);
-    }
-    logger.debug(files);
-    return JSON.stringify(files);
-  } catch (err: any) {
-    logger.capture(err, {
-      reason: "Failed to select knowledge files",
-    });
-  }
-});
-
-// eslint-disable-next-line consistent-return
 ipcMain.handle("select-image-with-base64", async () => {
   const logger = Container.inject(Logger).scope("Main:SelectImageWithBase64");
   try {
@@ -676,37 +657,38 @@ ipcMain.handle("select-image-with-base64", async () => {
 
 /** mcp */
 ipcMain.handle("mcp-init", () => {
-  const logger = Container.inject(Logger).scope("Main:MCPInit");
-  // eslint-disable-next-line promise/catch-or-return
-  mcp.init().then(async () => {
-    // https://github.com/sindresorhus/fix-path
-    logger.info("mcp initialized");
-    await mcp.load();
-    getMainWindow()?.webContents.send("mcp-server-loaded", mcp.getClientNames());
-  });
+  // const logger = Container.inject(Logger).scope("Main:MCPInit");
+  // // eslint-disable-next-line promise/catch-or-return
+  // mcp.init().then(async () => {
+  //   // https://github.com/sindresorhus/fix-path
+  //   logger.info("mcp initialized");
+  //   await mcp.load();
+  //   getMainWindow()?.webContents.send("mcp-server-loaded", mcp.getClientNames());
+  // });
 });
 ipcMain.handle("mcp-add-server", (_, server: IMCPServer) => {
-  return mcp.addServer(server);
+  // return mcp.addServer(server);
 });
 ipcMain.handle("mcp-update-server", (_, server: IMCPServer) => {
-  return mcp.updateServer(server);
+  // return mcp.updateServer(server);
 });
 ipcMain.handle("mcp-activate", async (_, server: IMCPServer) => {
-  return mcp.activate(server);
+  // return mcp.activate(server);
 });
 ipcMain.handle("mcp-deactivate", async (_, clientName: string) => {
-  return mcp.deactivate(clientName);
+  // return mcp.deactivate(clientName);
 });
-ipcMain.handle("mcp-list-tools", async (_, name: string) => {
+ipcMain.handle("mcp-list-tools", async (_, __: string) => {
   const logger = Container.inject(Logger).scope("Main:MCPListTools");
+  const toolsManager = Container.inject(MCPToolsManager);
   try {
-    return await mcp.listTools(name);
-  } catch (error: any) {
+    return await toolsManager.legacyList();
+  } catch (error) {
     logger.error("Error listing MCP tools:", error);
     return {
       tools: [],
       error: {
-        message: error.message || "Unknown error listing tools",
+        message: asError(error).message || "Unknown error listing tools",
         code: "unexpected_error",
       },
     };
@@ -714,15 +696,21 @@ ipcMain.handle("mcp-list-tools", async (_, name: string) => {
 });
 ipcMain.handle("mcp-call-tool", async (_, args: { client: string; name: string; args: any; requestId?: string }) => {
   const logger = Container.inject(Logger).scope("Main:MCPCallTool");
+  const toolsManager = Container.inject(MCPToolsManager);
   try {
-    return await mcp.callTool(args);
-  } catch (error: any) {
+    return await toolsManager.legacyCall({
+      client: args.client,
+      name: args.name,
+      arguments: args.args,
+      requestId: args.requestId,
+    });
+  } catch (error) {
     logger.error("Error invoking MCP tool:", error);
     return {
       isError: true,
       content: [
         {
-          error: error.message || "Unknown error calling tool",
+          error: asError(error).message || "Unknown error calling tool",
           code: "unexpected_error",
         },
       ],
@@ -730,18 +718,18 @@ ipcMain.handle("mcp-call-tool", async (_, args: { client: string; name: string; 
   }
 });
 ipcMain.handle("mcp-cancel-tool", (_, requestId: string) => {
-  mcp.cancelToolCall(requestId);
+  return Container.inject(MCPToolsManager).legacyCancelCall({ requestId });
 });
 ipcMain.handle("mcp-list-prompts", async (_, name: string) => {
   const logger = Container.inject(Logger).scope("Main:MCPListPrompts");
   try {
-    return await mcp.listPrompts(name);
-  } catch (error: any) {
+    return await Container.inject(MCPPromptsManager).legacyList();
+  } catch (error) {
     logger.error("Error listing MCP prompts:", error);
     return {
       prompts: [],
       error: {
-        message: error.message || "Unknown error listing prompts",
+        message: asError(error).message || "Unknown error listing prompts",
         code: "unexpected_error",
       },
     };
@@ -751,14 +739,18 @@ ipcMain.handle("mcp-list-prompts", async (_, name: string) => {
 ipcMain.handle("mcp-get-prompt", async (_, args: { client: string; name: string; args?: any }) => {
   const logger = Container.inject(Logger).scope("Main:MCPGetPrompt");
   try {
-    return await mcp.getPrompt(args.client, args.name, args.args);
-  } catch (error: any) {
+    return await Container.inject(MCPPromptsManager).legacyGet({
+      client: args.client,
+      name: args.name,
+      arguments: args.args,
+    });
+  } catch (error) {
     logger.error("Error getting MCP prompt:", error);
     return {
       isError: true,
       content: [
         {
-          error: error.message || "Unknown error getting prompt",
+          error: asError(error).message || "Unknown error getting prompt",
           code: "unexpected_error",
         },
       ],

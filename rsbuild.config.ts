@@ -50,10 +50,6 @@ export default defineConfig(async ({ command }): Promise<RsbuildConfig> => {
         from: `node_modules/onnxruntime-node/bin/napi-v3/${process.platform}/${process.arch}`,
         to: `bin/onnxruntime/${process.platform}/${process.arch}`,
       },
-      {
-        from: "node_modules/pdf-parse/dist/worker/pdf.worker.mjs",
-        to: "pdf.worker.mjs",
-      },
     ];
 
     const externals: string[] = ["better-sqlite3", "@electric-sql/pglite", "sharp"];
@@ -199,7 +195,8 @@ export default defineConfig(async ({ command }): Promise<RsbuildConfig> => {
         root: "output",
       },
       cleanDistPath: true,
-      sourceMap: isCommandDev,
+      // sourceMap: true,
+      minify: false,
     },
     tools: {
       rspack: {

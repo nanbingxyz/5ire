@@ -1,17 +1,14 @@
-import { IChatContext, IChatRequestMessage } from 'intellichat/types';
-import { urlJoin } from 'utils/util';
-import OpenAIChatService from './OpenAIChatService';
-import DeepSeek from '../../providers/DeepSeek';
-import INextChatService from './INextCharService';
+import type { IChatContext, IChatRequestMessage } from "intellichat/types";
+import { urlJoin } from "utils/util";
+import DeepSeek from "../../providers/DeepSeek";
+import type INextChatService from "./INextCharService";
+import OpenAIChatService from "./OpenAIChatService";
 
 /**
  * Chat service implementation for DeepSeek AI provider.
  * Extends OpenAIChatService to provide DeepSeek-specific functionality.
  */
-export default class DeepSeekChatService
-  extends OpenAIChatService
-  implements INextChatService
-{
+export default class DeepSeekChatService extends OpenAIChatService implements INextChatService {
   /**
    * Creates a new DeepSeekChatService instance.
    * @param name - The name identifier for this chat service
@@ -29,26 +26,19 @@ export default class DeepSeekChatService
    * @param msgId - Optional message ID for context tracking
    * @returns Promise that resolves to the formatted chat request messages
    */
-  protected async makeMessages(
-    messages: IChatRequestMessage[],
-    msgId?: string,
-  ): Promise<IChatRequestMessage[]> {
+  protected async makeMessages(messages: IChatRequestMessage[], msgId?: string): Promise<IChatRequestMessage[]> {
     const result = await super.makeMessages(messages, msgId);
 
     const formated = result
       .map((msg) => {
-        if (typeof msg.content === 'string') {
-          return msg;
-        }
-
         if (Array.isArray(msg.content)) {
           return {
             ...msg,
-            content: msg.content.map((part) => part.text || '').join('\n'),
+            content: msg.content.map((part) => part.text || "").join("\n"),
           };
         }
 
-        return null;
+        return msg;
       })
       .filter(Boolean) as IChatRequestMessage[];
 
@@ -62,14 +52,11 @@ export default class DeepSeekChatService
    * @param msgId - Optional message ID for context tracking
    * @returns Promise that resolves to the HTTP response from DeepSeek API
    */
-  protected async makeRequest(
-    messages: IChatRequestMessage[],
-    msgId?: string,
-  ): Promise<Response> {
+  protected async makeRequest(messages: IChatRequestMessage[], msgId?: string): Promise<Response> {
     const provider = this.context.getProvider();
-    const url = urlJoin('/chat/completions', provider.apiBase.trim());
+    const url = urlJoin("/chat/completions", provider.apiBase.trim());
     const headers = {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       Authorization: `Bearer ${provider.apiKey.trim()}`,
     };
     const isStream = this.context.isStream();

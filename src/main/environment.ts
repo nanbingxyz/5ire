@@ -85,6 +85,10 @@ export type Environment = {
    * The folder where logs are stored.
    */
   readonly logsFolder: string;
+  /**
+   * The protocol used for deep linking.
+   */
+  readonly deepLinkProtocol: string;
 };
 
 export namespace Environment {}

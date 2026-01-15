@@ -1,0 +1,5 @@
+name: Test YAML File
+purpose: This is a YAML file for testing .yml file handling
+data:
+  key1: value1
+  key2: value2
