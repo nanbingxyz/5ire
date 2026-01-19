@@ -12,6 +12,7 @@ import { Container } from "@/main/internal/container";
 import { Emitter } from "@/main/internal/emitter";
 import { Stateful } from "@/main/internal/stateful";
 import { Logger } from "@/main/services/logger";
+import { MCPServersManager } from "@/main/services/mcp-servers-manager";
 
 /**
  * The implementation details of the Model Context Protocol (MCP) client.
@@ -43,6 +44,7 @@ export class MCPConnectionsManager extends Stateful<MCPConnectionsManager.State>
   #logger = Container.inject(Logger).scope("MCPConnectionsManager");
   #database = Container.inject(Database);
   #emitter = Emitter.create<MCPConnectionsManager.Events>();
+  #serversManager = Container.inject(MCPServersManager);
 
   /**
    * The emitter for MCP server events.
@@ -275,6 +277,7 @@ export class MCPConnectionsManager extends Stateful<MCPConnectionsManager.State>
               projectId: change.projectId,
               config: change.config,
               endpoint: change.endpoint,
+              shortId: this.#serversManager.getShortId(change.id),
             };
 
             const connection = this.state.connections.get(server.id);
@@ -348,7 +351,9 @@ export namespace MCPConnectionsManager {
   /**
    * Represents a snapshot of an MCP server.
    */
-  export type ServerSnapshot = Pick<Server, "id" | "transport" | "projectId" | "config" | "endpoint">;
+  export type ServerSnapshot = Pick<Server, "id" | "transport" | "projectId" | "config" | "endpoint"> & {
+    shortId: number;
+  };
 
   /**
    * Represents the connection state of an MCP server.
