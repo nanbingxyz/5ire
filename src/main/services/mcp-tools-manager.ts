@@ -6,6 +6,7 @@ import type { Part } from "@/main/model/content-specification";
 import { Logger } from "@/main/services/logger";
 import { MCPConnectionsManager } from "@/main/services/mcp-connections-manager";
 import { MCPContentConverter } from "@/main/services/mcp-content-converter";
+import { MCPServersManager } from "@/main/services/mcp-servers-manager";
 
 /**
  * Maximum number of pages to fetch when retrieving tools from an MCP server.
@@ -103,7 +104,7 @@ export class MCPToolsManager extends Stateful<MCPToolsManager.State> {
               return {
                 ...tool,
                 ...{
-                  uri: this.#formatToolURI(id, tool),
+                  uri: this.#formatToolURI(connection.serverSnapshot.shortId.toString(16), tool),
                 },
               };
             }),
@@ -286,7 +287,13 @@ export class MCPToolsManager extends Stateful<MCPToolsManager.State> {
 
     this.#legacyCallAbortControllers.set(controllerId, controller);
 
-    const connection = this.#connectionsManager.state.connections.get(options.client);
+    let connection: MCPConnectionsManager.Connection | undefined;
+
+    for (const conn of this.#connectionsManager.state.connections.values()) {
+      if (conn.serverSnapshot.shortId.toString(16) === options.client) {
+        connection = conn;
+      }
+    }
 
     if (!connection || connection.status !== "connected") {
       return {
@@ -345,7 +352,7 @@ export class MCPToolsManager extends Stateful<MCPToolsManager.State> {
             return {
               ...tool,
               ...{
-                name: `${id}--${tool.name}`,
+                name: `${this.#parseToolURI(tool.uri)?.connectionId}--${tool.name}`,
               },
             };
           }),

@@ -2,7 +2,9 @@ import { eq } from "drizzle-orm";
 import { default as memoize } from "memoizee";
 import { Database } from "@/main/database";
 import type { Server } from "@/main/database/types";
+import { Environment } from "@/main/environment";
 import { Container } from "@/main/internal/container";
+import { Stateful } from "@/main/internal/stateful";
 import { Logger } from "@/main/services/logger";
 
 /**
@@ -12,7 +14,7 @@ import { Logger } from "@/main/services/logger";
  * This class provides methods to perform CRUD operations on MCP servers and
  * maintains live queries to track server state changes in real-time.
  */
-export class MCPServersManager {
+export class MCPServersManager extends Stateful.Persistable<MCPServersManager.State> {
   #logger = Container.inject(Logger).scope("MCPServersManager");
   #database = Container.inject(Database);
 
@@ -24,6 +26,15 @@ export class MCPServersManager {
    * primitive values as cache keys and handle promises.
    */
   constructor() {
+    super({
+      name: "mcp-servers-manager",
+      directory: Container.inject(Environment).storiesFolder,
+      defaults: {
+        shortIds: new Map(),
+        nextShortId: 0,
+      },
+    });
+
     this.liveServers = memoize(this.liveServers.bind(this), {
       primitive: true,
       promise: true,
@@ -32,6 +43,29 @@ export class MCPServersManager {
       primitive: true,
       promise: true,
     });
+  }
+
+  /**
+   * Initializes the manager by populating the short ID map from existing servers in the database.
+   * This ensures that servers created in previous sessions are assigned a short ID.
+   */
+  async init() {
+    const client = this.#database.client;
+    const schema = this.#database.schema;
+
+    await client
+      .select({ id: schema.server.id })
+      .from(schema.server)
+      .execute()
+      .then((servers) => {
+        for (const server of servers) {
+          this.update((draft) => {
+            if (!draft.shortIds.has(server.id)) {
+              draft.shortIds.set(server.id, draft.nextShortId++);
+            }
+          });
+        }
+      });
   }
 
   /**
@@ -63,7 +97,18 @@ export class MCPServersManager {
         });
     }
 
-    await client.insert(schema.server).values(options).returning().execute();
+    await client
+      .insert(schema.server)
+      .values(options)
+      .returning()
+      .execute()
+      .then(([server]) => {
+        this.update((draft) => {
+          if (!draft.shortIds.has(server.id)) {
+            draft.shortIds.set(server.id, draft.nextShortId++);
+          }
+        });
+      });
   }
 
   /**
@@ -76,6 +121,10 @@ export class MCPServersManager {
     const schema = this.#database.schema;
 
     await client.delete(schema.server).where(eq(schema.server.id, options.id)).execute();
+
+    this.update((draft) => {
+      draft.shortIds.delete(options.id);
+    });
   }
 
   /**
@@ -243,6 +292,35 @@ export class MCPServersManager {
       initialResults: live.initialResults,
     };
   }
+
+  /**
+   * Retrieves the short ID for a given server ID.
+   * @param id The full ID of the server.
+   * @returns The numeric short ID.
+   * @throws An error if the short ID for the given server ID is not found.
+   */
+  getShortId(id: string) {
+    const shortId = this.state.shortIds.get(id);
+
+    if (shortId === undefined) {
+      throw new Error(`Short ID for server with ID "${id}" not found.`);
+    }
+
+    return shortId;
+  }
+
+  /**
+   * Retrieves the full server ID from a given short ID.
+   * @param shortId The numeric short ID of the server.
+   * @returns The full server ID, or undefined if not found.
+   */
+  getIdFromShortId(shortId: number) {
+    for (const [id, sId] of this.state.shortIds.entries()) {
+      if (sId === shortId) {
+        return id;
+      }
+    }
+  }
 }
 
 export namespace MCPServersManager {
@@ -316,5 +394,19 @@ export namespace MCPServersManager {
      * The ID of the server to deactivate.
      */
     id: string;
+  };
+
+  /**
+   * Defines the persisted state for the MCPServersManager.
+   */
+  export type State = {
+    /**
+     * A map from the full server ID to a shorter, unique numeric ID.
+     */
+    shortIds: Map<string, number>;
+    /**
+     * The next available short ID to be assigned.
+     */
+    nextShortId: number;
   };
 }

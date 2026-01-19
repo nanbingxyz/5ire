@@ -353,6 +353,12 @@ if (!gotTheLock) {
           logger.error("Failed to migrate legacy data:", error);
         });
 
+      Container.inject(MCPServersManager)
+        .init()
+        .catch((error) => {
+          logger.error("Failed to init MCP servers manager:", error);
+        });
+
       Container.inject(MCPConnectionsManager)
         .init()
         .catch((error) => {
