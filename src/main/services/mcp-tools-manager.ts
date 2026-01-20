@@ -41,7 +41,7 @@ export class MCPToolsManager extends Stateful<MCPToolsManager.State> {
         const connectionId = hostname;
         const name = decodeURIComponent(pathname.slice(1));
 
-        if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(connectionId) && name) {
+        if (connectionId && name) {
           return {
             connectionId,
             name,
@@ -126,6 +126,7 @@ export class MCPToolsManager extends Stateful<MCPToolsManager.State> {
             draft.collections.set(id, {
               status: "loaded",
               tools,
+              server: connection.serverSnapshot,
             });
           }
         });
@@ -290,7 +291,7 @@ export class MCPToolsManager extends Stateful<MCPToolsManager.State> {
     let connection: MCPConnectionsManager.Connection | undefined;
 
     for (const conn of this.#connectionsManager.state.connections.values()) {
-      if (conn.serverSnapshot.shortId.toString(16) === options.client) {
+      if (`t_${conn.serverSnapshot.shortId.toString(16).padStart(2, "0")}` === options.client) {
         connection = conn;
       }
     }
@@ -352,7 +353,7 @@ export class MCPToolsManager extends Stateful<MCPToolsManager.State> {
             return {
               ...tool,
               ...{
-                name: `${this.#parseToolURI(tool.uri)?.connectionId}--${tool.name}`,
+                name: `t_${collection.server.shortId.toString(16).padStart(2, "0")}--${tool.name}`,
               },
             };
           }),
@@ -406,6 +407,7 @@ export class MCPToolsManager extends Stateful<MCPToolsManager.State> {
         draft.collections.set(id, {
           status: "loaded",
           tools: [],
+          server: connection.serverSnapshot,
         });
       });
 
@@ -455,6 +457,10 @@ export namespace MCPToolsManager {
          * The tools in the collection.
          */
         tools: Array<ToolEnhanced>;
+        /**
+         * Server info
+         */
+        server: MCPConnectionsManager.ServerSnapshot;
       }
     | {
         /**
