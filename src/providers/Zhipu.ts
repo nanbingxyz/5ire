@@ -1,15 +1,57 @@
-import { IServiceProvider } from './types';
+import type { IServiceProvider } from "./types";
 
 const chatModels = [
   {
-    id: 'glm-4.5',
-    name: 'GLM-4.5',
+    id: "glm-4.7",
+    name: "GLM-4.7",
+    contextWindow: 200000,
+    maxTokens: 128000,
+    defaultMaxTokens: 100000,
+    inputPrice: 0.002,
+    outputPrice: 0.008,
+    isDefault: true,
+    description: `GLM-4.7 is Zhipu’s latest flagship model, with major upgrades focused on advanced coding capabilities and more reliable multi-step reasoning and execution. It shows clear gains in complex agent workflows, while delivering a more natural conversational experience and stronger front-end design sensibility.`,
+    capabilities: {
+      tools: {
+        enabled: true,
+      },
+      json: {
+        enabled: true,
+      },
+    },
+  },
+  {
+    id: "glm-4.6v",
+    name: "GLM-4.6V",
+    contextWindow: 200000,
+    maxTokens: 128000,
+    defaultMaxTokens: 100000,
+    inputPrice: 0.002,
+    outputPrice: 0.008,
+    isDefault: true,
+    description: ``,
+    capabilities: {
+      tools: {
+        enabled: true,
+      },
+      json: {
+        enabled: true,
+      },
+      vision: {
+        enabled: true,
+        allowBase64: true,
+        allowUrl: true,
+      },
+    },
+  },
+  {
+    id: "glm-4.5",
+    name: "GLM-4.5",
     contextWindow: 128000,
     maxTokens: 96000,
     defaultMaxTokens: 8000,
     inputPrice: 0.002,
     outputPrice: 0.008,
-    isDefault: true,
     description: `Our most powerful reasoning model with 355B parameters, supports deep thinking, tool calling, and 128K context`,
     capabilities: {
       tools: {
@@ -21,8 +63,8 @@ const chatModels = [
     },
   },
   {
-    id: 'glm-4.5-air',
-    name: 'GLM-4.5-Air',
+    id: "glm-4.5-air",
+    name: "GLM-4.5-Air",
     contextWindow: 128000,
     maxTokens: 96000,
     defaultMaxTokens: 8000,
@@ -40,8 +82,8 @@ const chatModels = [
     },
   },
   {
-    id: 'glm-4.5-x',
-    name: 'GLM-4.5-X',
+    id: "glm-4.5-x",
+    name: "GLM-4.5-X",
     contextWindow: 128000,
     maxTokens: 96000,
     defaultMaxTokens: 8000,
@@ -59,8 +101,8 @@ const chatModels = [
     },
   },
   {
-    id: 'glm-4.5-airx',
-    name: 'GLM-4.5-AirX',
+    id: "glm-4.5-airx",
+    name: "GLM-4.5-AirX",
     contextWindow: 128000,
     maxTokens: 96000,
     defaultMaxTokens: 8000,
@@ -78,8 +120,8 @@ const chatModels = [
     },
   },
   {
-    id: 'glm-4.5-flash',
-    name: 'GLM-4.5-Flash',
+    id: "glm-4.5-flash",
+    name: "GLM-4.5-Flash",
     contextWindow: 128000,
     maxTokens: 96000,
     defaultMaxTokens: 8000,
@@ -97,8 +139,8 @@ const chatModels = [
     },
   },
   {
-    id: 'glm-4-plus',
-    name: 'GLM-4-Plus',
+    id: "glm-4-plus",
+    name: "GLM-4-Plus",
     contextWindow: 128000,
     maxTokens: 4000,
     defaultMaxTokens: 4000,
@@ -116,8 +158,8 @@ const chatModels = [
     },
   },
   {
-    id: 'glm-4-air-250414',
-    name: 'GLM-4-Air-250414',
+    id: "glm-4-air-250414",
+    name: "GLM-4-Air-250414",
     contextWindow: 128000,
     maxTokens: 16000,
     defaultMaxTokens: 8000,
@@ -135,8 +177,8 @@ const chatModels = [
     },
   },
   {
-    id: 'glm-4-airx',
-    name: 'GLM-4-AirX',
+    id: "glm-4-airx",
+    name: "GLM-4-AirX",
     contextWindow: 8000,
     maxTokens: 4000,
     defaultMaxTokens: 4000,
@@ -154,8 +196,8 @@ const chatModels = [
     },
   },
   {
-    id: 'glm-4-flashx-250414',
-    name: 'GLM-4-FlashX-250414',
+    id: "glm-4-flashx-250414",
+    name: "GLM-4-FlashX-250414",
     contextWindow: 128000,
     maxTokens: 16000,
     defaultMaxTokens: 8000,
@@ -173,8 +215,8 @@ const chatModels = [
     },
   },
   {
-    id: 'glm-4-flash-250414',
-    name: 'GLM-4-Flash-250414',
+    id: "glm-4-flash-250414",
+    name: "GLM-4-Flash-250414",
     contextWindow: 128000,
     maxTokens: 16000,
     defaultMaxTokens: 8000,
@@ -192,8 +234,8 @@ const chatModels = [
     },
   },
   {
-    id: 'glm-z1-air',
-    name: 'GLM-Z1-Air',
+    id: "glm-z1-air",
+    name: "GLM-Z1-Air",
     contextWindow: 128000,
     maxTokens: 32000,
     defaultMaxTokens: 8000,
@@ -208,8 +250,8 @@ const chatModels = [
     },
   },
   {
-    id: 'glm-z1-airx',
-    name: 'GLM-Z1-AirX',
+    id: "glm-z1-airx",
+    name: "GLM-Z1-AirX",
     contextWindow: 32000,
     maxTokens: 30000,
     defaultMaxTokens: 8000,
@@ -224,8 +266,8 @@ const chatModels = [
     },
   },
   {
-    id: 'glm-z1-flashx',
-    name: 'GLM-Z1-FlashX',
+    id: "glm-z1-flashx",
+    name: "GLM-Z1-FlashX",
     contextWindow: 128000,
     maxTokens: 32000,
     defaultMaxTokens: 8000,
@@ -240,8 +282,8 @@ const chatModels = [
     },
   },
   {
-    id: 'glm-z1-flash',
-    name: 'GLM-Z1-Flash',
+    id: "glm-z1-flash",
+    name: "GLM-Z1-Flash",
     contextWindow: 128000,
     maxTokens: 32000,
     defaultMaxTokens: 8000,
@@ -256,8 +298,8 @@ const chatModels = [
     },
   },
   {
-    id: 'glm-4.1v-thinking-flashx',
-    name: 'GLM-4.1V-Thinking-FlashX',
+    id: "glm-4.1v-thinking-flashx",
+    name: "GLM-4.1V-Thinking-FlashX",
     contextWindow: 64000,
     maxTokens: 8000,
     defaultMaxTokens: 4000,
@@ -275,8 +317,8 @@ const chatModels = [
     },
   },
   {
-    id: 'glm-4.1v-thinking-flash',
-    name: 'GLM-4.1V-Thinking-Flash',
+    id: "glm-4.1v-thinking-flash",
+    name: "GLM-4.1V-Thinking-Flash",
     contextWindow: 64000,
     maxTokens: 8000,
     defaultMaxTokens: 4000,
@@ -294,8 +336,8 @@ const chatModels = [
     },
   },
   {
-    id: 'glm-4v-plus-0111',
-    name: 'GLM-4V-Plus-0111',
+    id: "glm-4v-plus-0111",
+    name: "GLM-4V-Plus-0111",
     contextWindow: 16000,
     maxTokens: 16000,
     defaultMaxTokens: 4000,
@@ -315,15 +357,15 @@ const chatModels = [
 ];
 
 export default {
-  name: 'Zhipu',
-  apiBase: 'https://open.bigmodel.cn/api/paas/v4',
-  currency: 'CNY',
+  name: "Zhipu",
+  apiBase: "https://open.bigmodel.cn/api/paas/v4",
+  currency: "CNY",
   options: {
     apiBaseCustomizable: true,
     apiKeyCustomizable: true,
   },
   chat: {
-    apiSchema: ['base', 'key', 'proxy'],
+    apiSchema: ["base", "key", "proxy"],
     presencePenalty: { min: -2, max: 2, default: 0 },
     topP: { min: 0, max: 1, default: 1 },
     temperature: { min: 0, max: 2, default: 1 },
