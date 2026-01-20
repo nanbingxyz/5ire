@@ -50,30 +50,6 @@ const chatModels = [
     description: `Anthropic's fastest model with near-frontier intelligence`,
   },
   {
-    id: "claude-opus-4-5",
-    name: "claude-sonnet-4-5-20250929",
-    label: "claude-sonnet-4-5",
-    contextWindow: 200000,
-    maxTokens: 64000,
-    defaultMaxTokens: 30000,
-    inputPrice: 0.003,
-    outputPrice: 0.015,
-    capabilities: {
-      json: {
-        enabled: true,
-      },
-      tools: {
-        enabled: true,
-      },
-      vision: {
-        enabled: true,
-        allowBase64: true,
-        allowedMimeTypes: ["image/jpeg", "image/png", "image/gif", "image/webp"],
-      },
-    },
-    description: `Anthropic's smart model for complex agents and coding`,
-  },
-  {
     id: "claude-opus-4",
     name: "claude-opus-4-20250514",
     label: "claude-opus-4",
