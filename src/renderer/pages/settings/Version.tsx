@@ -36,7 +36,8 @@ export default function Version() {
           {updater.status.type === "available" && (
             <div className="flex items-center">
               <div className="tips">
-                {t("Version.HasNewVersion")} (v{updater.status.updateInfo.version})
+                {t("Version.HasNewVersion")} (v
+                {updater.status.updateInfo.version})
               </div>
             </div>
           )}
@@ -55,7 +56,8 @@ export default function Version() {
           {updater.status.type === "downloaded" && (
             <div className="flex items-center">
               <span className="tips">
-                {t("Version.HasNewVersion")} (v{updater.status.updateInfo.version})
+                {t("Version.HasNewVersion")} (v
+                {updater.status.updateInfo.version})
               </span>
             </div>
           )}
@@ -63,7 +65,8 @@ export default function Version() {
           {updater.status.type === "error" && updater.status.updateInfo && (
             <div className="flex items-center">
               <span className="tips">
-                {t("Version.HasNewVersion")} (v{updater.status.updateInfo.version})
+                {t("Version.HasNewVersion")} (v
+                {updater.status.updateInfo.version})
               </span>
             </div>
           )}
@@ -75,12 +78,15 @@ export default function Version() {
               {typeof updater.status.updateInfo.releaseNotes === "string" && (
                 <div
                   // biome-ignore lint/security/noDangerouslySetInnerHtml: xx
-                  dangerouslySetInnerHTML={{ __html: markdown.render(updater.status.updateInfo.releaseNotes) }}
+                  dangerouslySetInnerHTML={{
+                    __html: markdown.render(updater.status.updateInfo.releaseNotes),
+                  }}
                   className="mb-4 text-gray-500"
                 />
               )}
               <Button
                 appearance="primary"
+                size="small"
                 onClick={() => {
                   window.bridge.updater.downloadUpdates();
                 }}
@@ -94,6 +100,7 @@ export default function Version() {
             <div>
               <Button
                 appearance="primary"
+                size="small"
                 onClick={() => {
                   window.bridge.updater.installNow();
                 }}
@@ -110,12 +117,12 @@ export default function Version() {
           )}
 
           {updater.status.type === "error" && (
-            <div className="text-red-300">
+            <div className="text-red-500">
               {updater.status.updateInfo ? t("Updater.DownloadUpdatesFailed") : t("Updater.CheckForUpdatesFailed")}{" "}
               {updater.status.updateInfo && (
-                <button className="underline cursor-pointer" type="button" onClick={handleOpenWebsite}>
+                <Button appearance="primary" size="small" className="ml-2" onClick={handleOpenWebsite}>
                   {t("Updater.ManualDownload")}
-                </button>
+                </Button>
               )}
             </div>
           )}
@@ -124,6 +131,7 @@ export default function Version() {
             <div>
               <Button
                 appearance="primary"
+                size="small"
                 onClick={() => {
                   window.bridge.updater.checkForUpdates();
                 }}
