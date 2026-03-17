@@ -148,6 +148,7 @@ export const ServerEditDialog = forwardRef<ServerEditDialogInstance>((_, ref) =>
             id: serverId,
             config: serverConfig,
             label: serverLabel,
+            description: serverDescription,
             endpoint: serverEndpoint,
             approvalPolicy: serverApprovalPolicy,
           });
@@ -155,6 +156,7 @@ export const ServerEditDialog = forwardRef<ServerEditDialogInstance>((_, ref) =>
           return window.bridge.mcpServersManager.createServer({
             config: serverConfig,
             label: serverLabel,
+            description: serverDescription,
             endpoint: serverEndpoint,
             approvalPolicy: serverApprovalPolicy,
             transport: serverTransport,
