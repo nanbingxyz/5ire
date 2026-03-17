@@ -2,6 +2,7 @@ export interface ITool {
   id: string;
   name: string;
   args?: any;
+  rawFunctionCall?: Record<string, any>;
 }
 
 export interface IReadResult {

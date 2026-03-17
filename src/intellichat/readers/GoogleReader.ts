@@ -25,12 +25,20 @@ export default class GoogleReader extends BaseReader {
       const data = JSON.parse(_chunk);
       if (data.candidates) {
         const firstCandidate = data.candidates[0];
+        const parts = firstCandidate?.content?.parts || [];
+        const text = parts
+          .map((part: Record<string, any>) => part?.text || '')
+          .join('');
+        const functionCallPart = parts.find(
+          (part: Record<string, any>) => !!part?.functionCall,
+        )?.functionCall;
+
         return {
-          content: firstCandidate.content.parts[0].text || '',
+          content: text,
           isEnd: firstCandidate.finishReason,
           inputTokens: data.usageMetadata.promptTokenCount,
           outputTokens: data.usageMetadata.candidatesTokenCount,
-          toolCalls: firstCandidate.content.parts[0].functionCall,
+          toolCalls: functionCallPart,
         };
       }
       return {
@@ -57,10 +65,14 @@ export default class GoogleReader extends BaseReader {
    */
   protected parseTools(respMsg: IChatResponseMessage): ITool | null {
     if (respMsg.toolCalls) {
+      const thoughtSignature =
+        respMsg.toolCalls.thoughtSignature || respMsg.toolCalls.thought_signature;
+
       return {
         id: '',
         name: respMsg.toolCalls.name,
         args: respMsg.toolCalls.args,
+        ...(thoughtSignature ? { rawFunctionCall: respMsg.toolCalls } : {}),
       };
     }
     return null;

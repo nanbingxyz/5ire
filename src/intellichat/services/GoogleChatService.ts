@@ -56,6 +56,7 @@ export default class GoogleChatService
     tool: ITool,
     toolResult: any,
   ): Promise<IChatRequestMessage[]> {
+    const functionCallPart = this.makeFunctionCallPart(tool);
     const parts = [];
 
     if (typeof toolResult === 'string') {
@@ -166,10 +167,7 @@ export default class GoogleChatService
         role: 'model',
         parts: [
           {
-            functionCall: {
-              name: tool.name,
-              args: tool.args,
-            },
+            functionCall: functionCallPart,
           },
         ],
       },
@@ -440,5 +438,24 @@ export default class GoogleChatService
         };
       }),
     );
+  }
+
+  private isGemini3Model(): boolean {
+    return this.getModelName().toLowerCase().startsWith('gemini-3');
+  }
+
+  private makeFunctionCallPart(tool: ITool): Record<string, any> {
+    if (this.isGemini3Model() && tool.rawFunctionCall) {
+      return {
+        ...tool.rawFunctionCall,
+        name: tool.name,
+        args: tool.args,
+      };
+    }
+
+    return {
+      name: tool.name,
+      args: tool.args,
+    };
   }
 }

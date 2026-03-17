@@ -420,6 +420,38 @@ const googleResponseTools = [`[
   }
 ]`];
 
+const googleResponseToolsWithThoughtSignature = [`[
+  {
+    "candidates": [
+      {
+        "content": {
+          "parts": [
+            {
+              "text": ""
+            },
+            {
+              "functionCall": {
+                "name": "search_notes",
+                "args": { "query": "Levenshtein" },
+                "thoughtSignature": "dGhvdWdodF9zaWduYXR1cmU="
+              }
+            }
+          ],
+          "role": "model"
+        },
+        "index": 0,
+        "finishReason": "STOP"
+      }
+    ],
+    "usageMetadata": {
+      "promptTokenCount": 120,
+      "candidatesTokenCount": 12,
+      "totalTokenCount": 132
+    },
+    "modelVersion": "gemini-3-pro-preview"
+  }
+]`];
+
 describe('intellichat/readers/GoogleReader', () => {
   test('read ', async () => {
     const mockReader = new MockReader(
@@ -471,5 +503,39 @@ describe('intellichat/readers/GoogleReader', () => {
     });
     expect(result.outputTokens).toEqual(17);
     expect(result.inputTokens).toEqual(184);
+  });
+
+  test('read with tool calls and thought signature', async () => {
+    const mockReader = new MockReader(
+      googleResponseToolsWithThoughtSignature
+    ) as unknown as ReadableStreamDefaultReader<Uint8Array>;
+    let toolName: null | string = null;
+    const googleReader = new GoogleReader(mockReader);
+    const result = await googleReader.read({
+      onProgress: (content: string) => {
+        //console.log(content);
+      },
+      onError: (err: any) => {
+        console.error(err);
+      },
+      onToolCalls: (tool: string) => {
+        toolName = tool;
+      },
+    });
+
+    expect(result.content).toEqual('');
+    expect(toolName).toEqual('search_notes');
+    expect(result.tool).toEqual({
+      id: "",
+      name: 'search_notes',
+      args: { query: "Levenshtein" },
+      rawFunctionCall: {
+        name: 'search_notes',
+        args: { query: 'Levenshtein' },
+        thoughtSignature: 'dGhvdWdodF9zaWduYXR1cmU=',
+      },
+    });
+    expect(result.outputTokens).toEqual(12);
+    expect(result.inputTokens).toEqual(120);
   });
 });
