@@ -1,5 +1,3 @@
-/* eslint-disable react/no-danger */
-
 import {
   Button,
   createTableColumn,
@@ -44,7 +42,6 @@ import {
   type RowRenderer,
 } from "@fluentui-contrib/react-data-grid-react-window";
 import { asError } from "catch-unknown";
-import useMarkdown from "hooks/useMarkdown";
 import useToast from "hooks/useToast";
 import { capitalize } from "lodash";
 import { useEffect, useState } from "react";
@@ -52,6 +49,7 @@ import { useTranslation } from "react-i18next";
 import type { IMCPServer } from "types/mcp";
 import { useServerConnectionsWithSelector } from "@/renderer/next/hooks/remote/use-server-connections";
 import { useServersWithSelector } from "@/renderer/next/hooks/remote/use-servers";
+import { parseCommandLine } from "@/utils/command-line";
 
 const EditIcon = bundleIcon(EditFilled, EditRegular);
 const DeleteIcon = bundleIcon(DeleteFilled, DeleteRegular);
@@ -135,7 +133,6 @@ export type ServerGridProps = {
 
 export const ServerGrid = (props: ServerGridProps) => {
   const { t } = useTranslation();
-  const { render } = useMarkdown();
   const { notifyError } = useToast();
 
   const [innerHeight, setInnerHeight] = useState(window.innerHeight);
@@ -171,7 +168,7 @@ export const ServerGrid = (props: ServerGridProps) => {
     json.type = server.transport === "stdio" ? "local" : "remote";
 
     if (server.transport === "stdio") {
-      const [command, ...args] = server.endpoint.split(" ");
+      const [command, ...args] = parseCommandLine(server.endpoint);
       json.command = command;
       json.arguments = args;
       json.env = server.config;
@@ -219,13 +216,9 @@ export const ServerGrid = (props: ServerGridProps) => {
                       />
                     </PopoverTrigger>
                     <PopoverSurface tabIndex={-1}>
-                      <div
-                        className="text-xs"
-                        // biome-ignore lint/security/noDangerouslySetInnerHtml: x
-                        dangerouslySetInnerHTML={{
-                          __html: render(`\`\`\`json\n${renderServerJsonConfig(item)}\n\`\`\``),
-                        }}
-                      />
+                      <pre className="text-xs whitespace-pre-wrap break-all max-w-[60vw]">
+                        <code>{renderServerJsonConfig(item)}</code>
+                      </pre>
                     </PopoverSurface>
                   </Popover>
                 </div>

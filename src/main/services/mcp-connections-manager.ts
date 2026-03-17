@@ -13,6 +13,7 @@ import { Emitter } from "@/main/internal/emitter";
 import { Stateful } from "@/main/internal/stateful";
 import { Logger } from "@/main/services/logger";
 import { MCPServersManager } from "@/main/services/mcp-servers-manager";
+import { parseCommandLine } from "@/utils/command-line";
 
 /**
  * The implementation details of the Model Context Protocol (MCP) client.
@@ -70,7 +71,7 @@ export class MCPConnectionsManager extends Stateful<MCPConnectionsManager.State>
    */
   #transport(server: MCPConnectionsManager.ServerSnapshot) {
     if (server.transport === "stdio") {
-      const args = server.endpoint.split(" ").filter(Boolean);
+      const args = parseCommandLine(server.endpoint);
       const command = args.shift();
 
       if (!command) {

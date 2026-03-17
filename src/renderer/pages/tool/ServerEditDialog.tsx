@@ -16,10 +16,10 @@ import { AddCircleRegular, Dismiss24Regular, SubtractCircleRegular } from "@flue
 import { asError } from "catch-unknown";
 import { forwardRef, useImperativeHandle, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import useMarkdown from "@/hooks/useMarkdown";
 import useToast from "@/hooks/useToast";
 import type { ServerApprovalPolicy, ServerTransport } from "@/main/database/types";
 import { useServersRef } from "@/renderer/next/hooks/remote/use-servers";
+import { parseCommandLine } from "@/utils/command-line";
 
 export type ServerEditDialogInstance = {
   openCreateMode: (type: "local" | "remote") => void;
@@ -29,7 +29,6 @@ export type ServerEditDialogInstance = {
 export const ServerEditDialog = forwardRef<ServerEditDialogInstance>((_, ref) => {
   const { t } = useTranslation();
   const { notifyError } = useToast();
-  const { render } = useMarkdown();
 
   const refServers = useServersRef();
 
@@ -211,7 +210,7 @@ export const ServerEditDialog = forwardRef<ServerEditDialogInstance>((_, ref) =>
     json.type = serverTransport === "stdio" ? "local" : "remote";
 
     if (serverTransport === "stdio") {
-      const [command, ...args] = serverEndpoint.split(" ");
+      const [command, ...args] = parseCommandLine(serverEndpoint);
       json.command = command;
       json.arguments = args;
       json.env = serverConfig;
@@ -374,13 +373,9 @@ export const ServerEditDialog = forwardRef<ServerEditDialogInstance>((_, ref) =>
         </Field>
         <div>
           <Field label={t("Tools.ConfigPreview")} hint="in JSON format">
-            <div
-              className="border rounded border-base text-xs"
-              // biome-ignore lint/security/noDangerouslySetInnerHtml: x
-              dangerouslySetInnerHTML={{
-                __html: render(`\`\`\`json\n${renderPreviewConfig()}\n\`\`\``),
-              }}
-            />
+            <pre className="border rounded border-base text-xs p-2 overflow-auto whitespace-pre-wrap break-all">
+              <code>{renderPreviewConfig()}</code>
+            </pre>
           </Field>
         </div>
       </DialogContent>
