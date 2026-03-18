@@ -3,7 +3,7 @@ name: Auto Release
 on:
   push:
     branches:
-      - 0.15.3
+      - 0.15.4
     tags:
       - 'v*'
 
