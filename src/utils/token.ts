@@ -76,7 +76,7 @@ export async function countTokensOfGemini(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-goog-api-key': apiKey,
+        'x-goog-api-key': apiKey.trim(),
       },
       body: JSON.stringify({ contents: messages }),
     },
