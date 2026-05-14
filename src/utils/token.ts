@@ -71,11 +71,12 @@ export async function countTokensOfGemini(
   model: string,
 ) {
   const response = await fetch(
-    `${apiBase}/v1beta/models/${model}:countTokens?key=${apiKey}`,
+    `${apiBase}/v1beta/models/${model}:countTokens`,
     {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'x-goog-api-key': apiKey,
       },
       body: JSON.stringify({ contents: messages }),
     },

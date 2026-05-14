@@ -411,11 +411,12 @@ export default class GoogleChatService
     const url = urlJoin(
       `/v1beta/models/${this.getModelName()}:${
         isStream ? 'streamGenerateContent' : 'generateContent'
-      }?key=${provider.apiKey.trim()}`,
+      }`,
       provider.apiBase.trim(),
     );
     const headers = {
       'Content-Type': 'application/json',
+      'x-goog-api-key': provider.apiKey.trim(),
     };
 
     return this.makeHttpRequest(url, headers, payload, isStream);
