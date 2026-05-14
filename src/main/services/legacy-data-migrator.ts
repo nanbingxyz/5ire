@@ -11,6 +11,7 @@ import { Stateful } from "@/main/internal/stateful";
 import { LegacyServersConfigLoader } from "@/main/services/legacy-servers-config-loader";
 import { LegacyVectorDatabaseLoader } from "@/main/services/legacy-vector-database-loader";
 import { Logger } from "@/main/services/logger";
+import { formatCommandLine } from "@/utils/command-line";
 
 /**
  * Responsible for migrating old database structures to new database structures
@@ -390,7 +391,7 @@ export class LegacyDataMigrator extends Stateful.Persistable<LegacyDataMigrator.
         if (server.command) {
           data = {
             transport: "stdio",
-            endpoint: [server.command, ...(server.args || [])].join(" "),
+            endpoint: formatCommandLine([server.command, ...(server.args || [])]),
             label: server.name || server.key,
             config: server.env || {},
             description: server.description,

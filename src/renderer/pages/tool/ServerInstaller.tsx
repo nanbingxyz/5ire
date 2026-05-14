@@ -20,6 +20,7 @@ import useMarkdown from "@/hooks/useMarkdown";
 import useToast from "@/hooks/useToast";
 import type { MCPServersManager } from "@/main/services/mcp-servers-manager";
 import ListInput from "@/renderer/components/ListInput";
+import { formatCommandLine } from "@/utils/command-line";
 import { fillArgs, FillEnvOrHeaders as fillConfig, getParameters } from "@/utils/mcp";
 
 const ServerTemplateBaseSchema = z.object({
@@ -335,7 +336,7 @@ export const ServerInstaller = forwardRef<ServerInstallerInstance>((_, ref) => {
     };
 
     if (templateRendered.type === "local") {
-      options.endpoint = [templateRendered.command, templateRendered.arguments].flat().join(" ");
+      options.endpoint = formatCommandLine([templateRendered.command, ...templateRendered.arguments]);
     } else {
       options.endpoint = templateRendered.url;
     }
