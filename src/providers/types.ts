@@ -1,21 +1,22 @@
 export type ProviderType =
-  | 'OpenAI'
-  | 'Google'
-  | 'Azure'
-  | 'Baidu'
-  | 'Anthropic'
-  | 'Moonshot'
-  | 'Mistral'
-  | 'DeepSeek'
-  | 'Ollama'
-  | 'LMStudio'
-  | 'ChatBro'
-  | '5ire'
-  | 'Doubao'
-  | 'Grok'
-  | '302.AI'
-  | 'Zhipu'
-  | 'Perplexity';
+  | "OpenAI"
+  | "Google"
+  | "Azure"
+  | "Baidu"
+  | "Anthropic"
+  | "Moonshot"
+  | "Mistral"
+  | "DeepSeek"
+  | "Ollama"
+  | "LMStudio"
+  | "ChatBro"
+  | "5ire"
+  | "Doubao"
+  | "Grok"
+  | "302.AI"
+  | "Zhipu"
+  | "Perplexity"
+  | "LiteLLM";
 
 export interface INumberRange {
   min: number;
@@ -111,7 +112,7 @@ export interface IServiceProvider {
   apiBase: string;
   apiKey?: string;
   apiVersion?: string;
-  currency: 'USD' | 'CNY';
+  currency: "USD" | "CNY";
   options: {
     apiBaseCustomizable?: boolean;
     apiKeyCustomizable?: boolean;
@@ -166,7 +167,7 @@ export interface IChatProviderConfig {
   apiKey: string;
   apiSecret?: string;
   apiVersion?: string;
-  currency: 'USD' | 'CNY';
+  currency: "USD" | "CNY";
   modelExtras?: string[];
   modelsEndpoint?: string;
   models: IChatModelConfig[];
