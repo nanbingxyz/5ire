@@ -1,20 +1,21 @@
-import { ProviderType, IServiceProvider } from './types';
-import Azure from './Azure';
-import Baidu from './Baidu';
-import OpenAI from './OpenAI';
-import Google from './Google';
-import Moonshot from './Moonshot';
-import Anthropic from './Anthropic';
-import Fire from './Fire';
-import Ollama from './Ollama';
-import LMStudio from './LMStudio';
-import Doubao from './Doubao';
-import Grok from './Grok';
-import DeepSeek from './DeepSeek';
-import Mistral from './Mistral';
-import Perplexity from './Perplexity';
-import AI302 from './AI302';
-import Zhipu from './Zhipu';
+import AI302 from "./AI302";
+import Anthropic from "./Anthropic";
+import Azure from "./Azure";
+import Baidu from "./Baidu";
+import DeepSeek from "./DeepSeek";
+import Doubao from "./Doubao";
+import Fire from "./Fire";
+import Google from "./Google";
+import Grok from "./Grok";
+import LiteLLM from "./LiteLLM";
+import LMStudio from "./LMStudio";
+import Mistral from "./Mistral";
+import Moonshot from "./Moonshot";
+import Ollama from "./Ollama";
+import OpenAI from "./OpenAI";
+import Perplexity from "./Perplexity";
+import type { IServiceProvider, ProviderType } from "./types";
+import Zhipu from "./Zhipu";
 
 export const providers: { [key: string]: IServiceProvider } = {
   OpenAI,
@@ -31,13 +32,12 @@ export const providers: { [key: string]: IServiceProvider } = {
   LMStudio,
   Zhipu,
   Perplexity,
-  '302.AI': AI302,
-  '5ire': Fire,
+  "302.AI": AI302,
+  "5ire": Fire,
+  LiteLLM,
 };
 
-export function getBuiltInProvider(
-  providerName: ProviderType,
-): IServiceProvider {
+export function getBuiltInProvider(providerName: ProviderType): IServiceProvider {
   return providers[providerName];
 }
 
