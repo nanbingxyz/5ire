@@ -15,6 +15,7 @@ import Ollama from "./Ollama";
 import OpenAI from "./OpenAI";
 import Perplexity from "./Perplexity";
 import type { IServiceProvider, ProviderType } from "./types";
+import UnoRouter from "./UnoRouter";
 import Zhipu from "./Zhipu";
 
 export const providers: { [key: string]: IServiceProvider } = {
@@ -35,6 +36,7 @@ export const providers: { [key: string]: IServiceProvider } = {
   "302.AI": AI302,
   "5ire": Fire,
   LiteLLM,
+  UnoRouter,
 };
 
 export function getBuiltInProvider(providerName: ProviderType): IServiceProvider {
