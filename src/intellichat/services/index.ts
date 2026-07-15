@@ -16,6 +16,7 @@ import MoonshotChatService from "./MoonshotChatService";
 import OllamaChatService from "./OllamaChatService";
 import OpenAIChatService from "./OpenAIChatService";
 import PerplexityChatService from "./PerplexityChatService";
+import UnoRouterChatService from "./UnoRouterChatService";
 import ZhipuChatService from "./ZhipuChatService";
 
 const debug = Debug("5ire:intellichat:ChatService");
@@ -56,6 +57,8 @@ export default function createService(chatCtx: IChatContext): INextChatService {
       return new ZhipuChatService(provider.name, chatCtx);
     case "LiteLLM":
       return new LiteLLMChatService(provider.name, chatCtx);
+    case "UnoRouter":
+      return new UnoRouterChatService(provider.name, chatCtx);
     default:
       return new OpenAIChatService(provider.name, chatCtx);
   }

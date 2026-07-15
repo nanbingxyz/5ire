@@ -16,7 +16,8 @@ export type ProviderType =
   | "302.AI"
   | "Zhipu"
   | "Perplexity"
-  | "LiteLLM";
+  | "LiteLLM"
+  | "UnoRouter";
 
 export interface INumberRange {
   min: number;
