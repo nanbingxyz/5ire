@@ -160,6 +160,28 @@ MCP servers are configured in `mcp.json` with:
 - Environment variables and proxy settings
 - Activation state and capabilities
 
+Example configuration for popular MCP servers:
+
+```json
+{
+  "mcpServers": {
+    "you-com": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://api.you.com/mcp", "--header", "Authorization: Bearer $YDC_API_KEY"],
+      "env": {
+        "YDC_API_KEY": "your_api_key_here"
+      },
+      "isActive": true
+    },
+    "you-com-free": {
+      "command": "npx", 
+      "args": ["-y", "mcp-remote", "https://api.you.com/mcp?profile=free"],
+      "isActive": false
+    }
+  }
+}
+```
+
 ### Knowledge Base (RAG)
 
 The knowledge base implements Retrieval-Augmented Generation using local embeddings.

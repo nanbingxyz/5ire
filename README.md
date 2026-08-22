@@ -45,7 +45,7 @@
 </div>
 <br />
 
-### Before to activating tools feature, ensure the following components are installed:
+### Before activating tools feature, ensure the following components are installed:
 
 - Python
 - Node.js
@@ -63,13 +63,13 @@ If you want to contribute code to 5ire or develop your own apps based on 5ire, s
 
 Visit [Wiki](https://deepwiki.com/nanbingxyz/5ire) for more details.
 
-**🚀 To integrate 5ire’s one-click server installation into your website, see the** [One-Click Server Installation Integration Guide](https://github.com/nanbingxyz/5ire/wiki/One%E2%80%90Click-Server-Installation-Integration-Guide).
+**🚀 To integrate 5ire's one-click server installation into your website, see the** [One-Click Server Installation Integration Guide](https://github.com/nanbingxyz/5ire/wiki/One%E2%80%90Click-Server-Installation-Integration-Guide).
 
 <br/>
 
 ### 💬 Community
 
-**[Join the Discord](https://discord.gg/ADfBTGd5jd)**,  By joining, you’ll get:
+**[Join the Discord](https://discord.gg/ADfBTGd5jd)**,  By joining, you'll get:
 
 - Faster responses to your questions and issues
 - Direct input on new features and improvements
@@ -92,6 +92,49 @@ We have created an open [marketplace for MCP Servers](https://github.com/nanbing
 
 https://github.com/user-attachments/assets/be66c30e-bb29-4dfe-9f25-8d396470ed60
 
+### Pre-configured MCP Server Examples
+
+Here are some popular MCP servers you can easily configure in 5ire:
+
+#### You.com Search & Research
+Access current web search, URL content extraction, and AI research through You.com's MCP server:
+
+```json
+{
+  "mcpServers": {
+    "you-com": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://api.you.com/mcp", "--header", "Authorization: Bearer ${YDC_API_KEY}"],
+      "env": {
+        "YDC_API_KEY": "your_api_key_here"
+      }
+    },
+    "you-com-free": {
+      "command": "npx", 
+      "args": ["-y", "mcp-remote", "https://api.you.com/mcp?profile=free"]
+    },
+    "you-com-finance": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://api.you.com/mcp?tools=you-finance", "--header", "Authorization: Bearer ${YDC_API_KEY}"],
+      "env": {
+        "YDC_API_KEY": "your_api_key_here"
+      }
+    },
+    "you-docs": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://you.com/docs/_mcp/server"]
+    }
+  }
+}
+```
+
+- **you-com**: Full authenticated access with tools: `you-search`, `you-contents`, `you-research`, `you-discover`, `you-balance` (requires [You.com API key](https://you.com/platform/api-keys?utm_source=5ire&utm_medium=mcp-integration&utm_campaign=2026-08-oss-integrations))
+- **you-com-free**: Keyless web search with tools: `you-search` (100 searches/day)
+- **you-com-finance**: Optional finance-enabled profile with tools: `you-search`, `you-contents`, `you-research`, `you-discover`, `you-balance`, `you-finance` (requires API key)
+- **you-docs**: You.com documentation search with tools: `searchDocs`
+
+> **Note**: The `you-finance` tool is not enabled by default on the main `you-com` profile. To access finance data and market research capabilities, use the `you-com-finance` profile or add `?tools=you-finance` to your MCP server URL.
+
 ## 💡 Local Knowledge Base
 
 We have integrated the bge-m3 as our local embedding model, which excels in multilingual vectorization. 5ire now supports parsing and vectorization of docx, xlsx, pptx, pdf, txt, and csv documents, enabling storage of these vectors to power robust Retrieval-Augmented Generation (RAG) capabilities locally.
@@ -108,7 +151,7 @@ By keeping track of your API usage and spending, you can gain a better understan
 
 The prompt library provides an effective way to create and organize your own prompts. These prompts are highly versatile, thanks to their support for variables.
 
-![Prompts Library Screenshot](https://5ire.app/prompts.png)
+![Prompts Library Screenshots](https://5ire.app/prompts.png)
 
 ## 🔖 Bookmarks
 
@@ -121,7 +164,7 @@ You can perform keyword searches across all conversations, quickly pinpointing t
 ![Search Screenshot](https://5ire.app/search.png)
 
 > [!TIP]
-> Since 5ire uses native dependencies, it needs to be packaged on the corresponding platform. If it is on Mac OS, you may also need to configure APPLE_TEAM_ID, APPLE_ID, and APPLE_ID_PASS for notarization to avoid security alerts.
+> Since 5ire uses native dependencies, it needs to be packaged on the corresponding platform. If it is on macOS, you may also need to configure APPLE_TEAM_ID, APPLE_ID, and APPLE_ID_PASS for notarization to avoid security alerts.
 
 <hr/>
 
