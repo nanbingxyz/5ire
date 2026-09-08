@@ -1,6 +1,7 @@
 import Debug from "debug";
 import type { IChatContext } from "../types";
 import AnthropicChatService from "./AnthropicChatService";
+import APIRouteChatService from "./APIRouteChatService";
 import AzureChatService from "./AzureChatService";
 import BaiduChatService from "./BaiduChatService";
 import DeepSeekChatService from "./DeepSeekChatService";
@@ -25,6 +26,8 @@ export default function createService(chatCtx: IChatContext): INextChatService {
   const provider = chatCtx.getProvider();
   debug("CreateService", provider.name);
   switch (provider.name) {
+    case "API Route":
+      return new APIRouteChatService(provider.name, chatCtx);
     case "Anthropic":
       return new AnthropicChatService(provider.name, chatCtx);
     case "OpenAI":
