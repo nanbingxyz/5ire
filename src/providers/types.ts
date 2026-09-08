@@ -1,4 +1,5 @@
 export type ProviderType =
+  | "API Route"
   | "OpenAI"
   | "Google"
   | "Azure"
