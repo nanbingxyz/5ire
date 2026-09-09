@@ -108,6 +108,7 @@ export default abstract class NextCharService {
     tool: ITool,
     toolResult: any,
     content?: string,
+    reasoning?: string,
   ): IChatRequestMessage[] | Promise<IChatRequestMessage[]>;
 
   protected abstract makeTool(
@@ -463,6 +464,7 @@ export default abstract class NextCharService {
               readResult.tool,
               toolCallsResult,
               readResult.content,
+              readResult.reasoning,
             )),
           ] as IChatRequestMessage[];
           await this.chat(messagesWithTool);
