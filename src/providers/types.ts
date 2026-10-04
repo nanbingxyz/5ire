@@ -17,7 +17,8 @@ export type ProviderType =
   | "Zhipu"
   | "Perplexity"
   | "LiteLLM"
-  | "UnoRouter";
+  | "UnoRouter"
+  | "CheaperInference";
 
 export interface INumberRange {
   min: number;

@@ -3,6 +3,7 @@ import type { IChatContext } from "../types";
 import AnthropicChatService from "./AnthropicChatService";
 import AzureChatService from "./AzureChatService";
 import BaiduChatService from "./BaiduChatService";
+import CheaperInferenceChatService from "./CheaperInferenceChatService";
 import DeepSeekChatService from "./DeepSeekChatService";
 import DoubaoChatService from "./DoubaoChatService";
 import FireChatService from "./FireChatService";
@@ -59,6 +60,8 @@ export default function createService(chatCtx: IChatContext): INextChatService {
       return new LiteLLMChatService(provider.name, chatCtx);
     case "UnoRouter":
       return new UnoRouterChatService(provider.name, chatCtx);
+    case "CheaperInference":
+      return new CheaperInferenceChatService(provider.name, chatCtx);
     default:
       return new OpenAIChatService(provider.name, chatCtx);
   }

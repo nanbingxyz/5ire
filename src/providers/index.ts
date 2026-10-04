@@ -2,6 +2,7 @@ import AI302 from "./AI302";
 import Anthropic from "./Anthropic";
 import Azure from "./Azure";
 import Baidu from "./Baidu";
+import CheaperInference from "./CheaperInference";
 import DeepSeek from "./DeepSeek";
 import Doubao from "./Doubao";
 import Fire from "./Fire";
@@ -37,6 +38,7 @@ export const providers: { [key: string]: IServiceProvider } = {
   "5ire": Fire,
   LiteLLM,
   UnoRouter,
+  CheaperInference,
 };
 
 export function getBuiltInProvider(providerName: ProviderType): IServiceProvider {
