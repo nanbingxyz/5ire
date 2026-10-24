@@ -16,6 +16,7 @@ import MoonshotChatService from "./MoonshotChatService";
 import OllamaChatService from "./OllamaChatService";
 import OpenAIChatService from "./OpenAIChatService";
 import PerplexityChatService from "./PerplexityChatService";
+import TokenDosChatService from "./TokenDosChatService";
 import UnoRouterChatService from "./UnoRouterChatService";
 import ZhipuChatService from "./ZhipuChatService";
 
@@ -59,6 +60,8 @@ export default function createService(chatCtx: IChatContext): INextChatService {
       return new LiteLLMChatService(provider.name, chatCtx);
     case "UnoRouter":
       return new UnoRouterChatService(provider.name, chatCtx);
+    case "TokenDos":
+      return new TokenDosChatService(provider.name, chatCtx);
     default:
       return new OpenAIChatService(provider.name, chatCtx);
   }
