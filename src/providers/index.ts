@@ -1,5 +1,6 @@
 import AI302 from "./AI302";
 import Anthropic from "./Anthropic";
+import APIRoute from "./APIRoute";
 import Azure from "./Azure";
 import Baidu from "./Baidu";
 import DeepSeek from "./DeepSeek";
@@ -20,6 +21,7 @@ import UnoRouter from "./UnoRouter";
 import Zhipu from "./Zhipu";
 
 export const providers: { [key: string]: IServiceProvider } = {
+  "API Route": APIRoute,
   OpenAI,
   Anthropic,
   Azure,
