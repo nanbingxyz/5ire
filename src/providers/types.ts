@@ -20,7 +20,8 @@ export type ProviderType =
   | "UnoRouter"
   | "TokenDos"
   | "Atlas Cloud"
-  | "UberLLM";
+  | "UberLLM"
+  | "Obscurify.ai";
 
 export interface INumberRange {
   min: number;
