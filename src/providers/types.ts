@@ -18,7 +18,8 @@ export type ProviderType =
   | "Perplexity"
   | "LiteLLM"
   | "UnoRouter"
-  | "TokenDos";
+  | "TokenDos"
+  | "Obscurify.ai";
 
 export interface INumberRange {
   min: number;
