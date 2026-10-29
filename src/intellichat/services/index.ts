@@ -1,6 +1,7 @@
 import Debug from "debug";
 import type { IChatContext } from "../types";
 import AnthropicChatService from "./AnthropicChatService";
+import AtlasCloudChatService from "./AtlasCloudChatService";
 import AzureChatService from "./AzureChatService";
 import BaiduChatService from "./BaiduChatService";
 import DeepSeekChatService from "./DeepSeekChatService";
@@ -62,6 +63,8 @@ export default function createService(chatCtx: IChatContext): INextChatService {
       return new UnoRouterChatService(provider.name, chatCtx);
     case "TokenDos":
       return new TokenDosChatService(provider.name, chatCtx);
+    case "Atlas Cloud":
+      return new AtlasCloudChatService(provider.name, chatCtx);
     default:
       return new OpenAIChatService(provider.name, chatCtx);
   }

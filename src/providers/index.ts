@@ -1,5 +1,6 @@
 import AI302 from "./AI302";
 import Anthropic from "./Anthropic";
+import AtlasCloud from "./AtlasCloud";
 import Azure from "./Azure";
 import Baidu from "./Baidu";
 import DeepSeek from "./DeepSeek";
@@ -39,6 +40,7 @@ export const providers: { [key: string]: IServiceProvider } = {
   LiteLLM,
   UnoRouter,
   TokenDos,
+  "Atlas Cloud": AtlasCloud,
 };
 
 export function getBuiltInProvider(providerName: ProviderType): IServiceProvider {
