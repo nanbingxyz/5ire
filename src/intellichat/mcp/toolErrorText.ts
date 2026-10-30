@@ -6,11 +6,20 @@ const TOOL_ERROR_FALLBACK = "Tool call failed without an error message.";
  * MCP servers report a failed call as a `CallToolResult` with `isError: true`
  * and the error text in `content`; the main process uses the same shape for its
  * own failures (`{ error, code, ... }` items in `content`). An explicit `error`
- * field is still honoured when present.
+ * field is still honoured when present and not blank.
+ *
+ * Binary blocks (images, audio, embedded blob resources) are replaced by a
+ * short placeholder so their base64 data does not end up in the model's text
+ * context.
  */
 export function getToolErrorText(toolResult: any): string {
-  if (toolResult?.error !== undefined && toolResult.error !== null) {
-    return typeof toolResult.error === "string" ? toolResult.error : JSON.stringify(toolResult.error);
+  const explicitError = toolResult?.error;
+  if (typeof explicitError === "string") {
+    if (explicitError.trim().length > 0) {
+      return explicitError;
+    }
+  } else if (explicitError !== undefined && explicitError !== null) {
+    return JSON.stringify(explicitError);
   }
 
   const content = toolResult?.content;
@@ -26,6 +35,13 @@ export function getToolErrorText(toolResult: any): string {
       }
       if (typeof block?.error === "string") {
         return block.error;
+      }
+      if (block?.type === "image" || block?.type === "audio") {
+        return `[${block.type} content${block.mimeType ? ` (${block.mimeType})` : ""} omitted]`;
+      }
+      if (block?.type === "resource" && block.resource && typeof block.resource.blob === "string") {
+        const { blob: _blob, ...resource } = block.resource;
+        return JSON.stringify({ ...block, resource });
       }
       return JSON.stringify(block);
     })
