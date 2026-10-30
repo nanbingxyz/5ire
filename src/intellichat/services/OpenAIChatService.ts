@@ -1,6 +1,7 @@
 import type { ContentBlock as MCPContentBlock } from "@modelcontextprotocol/sdk/types.js";
 import Debug from "debug";
 import { ContentBlockConverter as MCPContentBlockConverter } from "intellichat/mcp/ContentBlockConverter";
+import { getToolErrorText } from "intellichat/mcp/toolErrorText";
 import type { ITool } from "intellichat/readers/IChatReader";
 import OpenAIReader from "intellichat/readers/OpenAIReader";
 import type {
@@ -290,7 +291,7 @@ export default class OpenAIChatService extends NextChatService implements INextC
     if (toolResult.isError) {
       toolMessageContent.push({
         type: "text",
-        text: JSON.stringify(toolResult.content?.[0] || toolResult.content),
+        text: getToolErrorText(toolResult),
       });
     }
 

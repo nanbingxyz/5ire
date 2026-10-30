@@ -154,4 +154,29 @@ describe("intellichat/services/AnthropicChatService", () => {
     expect(toolResultBlocks).toHaveLength(1);
     expect((toolResultBlocks[0].content as string).trim().length).toBeGreaterThan(0);
   });
+
+  test("passes MCP error content to the model for isError tool results", async () => {
+    const service = new TestAnthropicChatService("anthropic", createContext());
+    const messages = await service.makeToolMessagesPublic(
+      {
+        id: "toolu_err",
+        name: "fs--write_file",
+        args: {},
+      } as ITool,
+      {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: "file already exists",
+          },
+        ],
+      },
+      "",
+    );
+
+    const toolResultBlocks = (messages[1].content as any[]).filter((item: any) => item.type === "tool_result");
+    expect(toolResultBlocks).toHaveLength(1);
+    expect(toolResultBlocks[0].content).toBe("file already exists");
+  });
 });
