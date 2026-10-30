@@ -25,6 +25,7 @@ import {
 import BaseReader from 'intellichat/readers/BaseReader';
 import GoogleReader from 'intellichat/readers/GoogleReader';
 import { ContentBlockConverter as MCPContentBlockConverter } from 'intellichat/mcp/ContentBlockConverter';
+import { getToolErrorText } from 'intellichat/mcp/toolErrorText';
 import { ContentBlock as MCPContentBlock } from '@modelcontextprotocol/sdk/types.js';
 import { ITool } from 'intellichat/readers/IChatReader';
 import NextChatService from './NextChatService';
@@ -75,7 +76,7 @@ export default class GoogleChatService
         functionResponse: {
           name: tool.name,
           response: {
-            content: JSON.stringify(toolResult.error),
+            content: getToolErrorText(toolResult),
           },
         },
       });
