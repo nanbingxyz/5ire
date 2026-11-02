@@ -19,7 +19,8 @@ export type ProviderType =
   | "LiteLLM"
   | "UnoRouter"
   | "TokenDos"
-  | "Atlas Cloud";
+  | "Atlas Cloud"
+  | "Runcrate";
 
 export interface INumberRange {
   min: number;

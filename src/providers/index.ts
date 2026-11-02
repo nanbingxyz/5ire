@@ -15,6 +15,7 @@ import Moonshot from "./Moonshot";
 import Ollama from "./Ollama";
 import OpenAI from "./OpenAI";
 import Perplexity from "./Perplexity";
+import Runcrate from "./Runcrate";
 import type { IServiceProvider, ProviderType } from "./types";
 import TokenDos from "./TokenDos";
 import UnoRouter from "./UnoRouter";
@@ -41,6 +42,7 @@ export const providers: { [key: string]: IServiceProvider } = {
   UnoRouter,
   TokenDos,
   "Atlas Cloud": AtlasCloud,
+  Runcrate,
 };
 
 export function getBuiltInProvider(providerName: ProviderType): IServiceProvider {
