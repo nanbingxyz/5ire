@@ -17,6 +17,7 @@ import MoonshotChatService from "./MoonshotChatService";
 import OllamaChatService from "./OllamaChatService";
 import OpenAIChatService from "./OpenAIChatService";
 import PerplexityChatService from "./PerplexityChatService";
+import RuncrateChatService from "./RuncrateChatService";
 import TokenDosChatService from "./TokenDosChatService";
 import UnoRouterChatService from "./UnoRouterChatService";
 import ZhipuChatService from "./ZhipuChatService";
@@ -65,6 +66,8 @@ export default function createService(chatCtx: IChatContext): INextChatService {
       return new TokenDosChatService(provider.name, chatCtx);
     case "Atlas Cloud":
       return new AtlasCloudChatService(provider.name, chatCtx);
+    case "Runcrate":
+      return new RuncrateChatService(provider.name, chatCtx);
     default:
       return new OpenAIChatService(provider.name, chatCtx);
   }
