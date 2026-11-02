@@ -4,6 +4,7 @@ import AnthropicChatService from "./AnthropicChatService";
 import AtlasCloudChatService from "./AtlasCloudChatService";
 import AzureChatService from "./AzureChatService";
 import BaiduChatService from "./BaiduChatService";
+import CloudGPUChatService from "./CloudGPUChatService";
 import DeepSeekChatService from "./DeepSeekChatService";
 import DoubaoChatService from "./DoubaoChatService";
 import FireChatService from "./FireChatService";
@@ -65,6 +66,8 @@ export default function createService(chatCtx: IChatContext): INextChatService {
       return new TokenDosChatService(provider.name, chatCtx);
     case "Atlas Cloud":
       return new AtlasCloudChatService(provider.name, chatCtx);
+    case "CloudGPU":
+      return new CloudGPUChatService(provider.name, chatCtx);
     default:
       return new OpenAIChatService(provider.name, chatCtx);
   }
