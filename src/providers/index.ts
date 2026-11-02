@@ -3,6 +3,7 @@ import Anthropic from "./Anthropic";
 import AtlasCloud from "./AtlasCloud";
 import Azure from "./Azure";
 import Baidu from "./Baidu";
+import CloudGPU from "./CloudGPU";
 import DeepSeek from "./DeepSeek";
 import Doubao from "./Doubao";
 import Fire from "./Fire";
@@ -41,6 +42,7 @@ export const providers: { [key: string]: IServiceProvider } = {
   UnoRouter,
   TokenDos,
   "Atlas Cloud": AtlasCloud,
+  CloudGPU,
 };
 
 export function getBuiltInProvider(providerName: ProviderType): IServiceProvider {

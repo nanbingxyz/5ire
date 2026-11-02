@@ -83,6 +83,35 @@ const isModelReady = (
   });
 };
 
+type RemoteCatalogModel = {
+  id?: string;
+  name?: string;
+  type?: string;
+  input_modalities?: string[];
+  output_modalities?: string[];
+};
+
+const isTextOnly = (modalities?: string[]) =>
+  Array.isArray(modalities) &&
+  modalities.length > 0 &&
+  modalities.every((modality) => modality === 'text');
+
+// CloudGPU lists chat, image, transcription and speech rows on one endpoint.
+const isRemoteChatModel = (providerName: string, model: RemoteCatalogModel) => {
+  const modelId = (model.id || model.name) as string;
+  if (modelId.indexOf('embed') >= 0) {
+    return false;
+  }
+  if (providerName !== 'CloudGPU') {
+    return true;
+  }
+  return (
+    model.type === 'chat' &&
+    isTextOnly(model.input_modalities) &&
+    isTextOnly(model.output_modalities)
+  );
+};
+
 const mergeRemoteModel = (
   modelName: string,
   customModel?: IChatModelConfig,
@@ -495,12 +524,11 @@ const useProviderStore = create<IProviderStore>((set, get) => ({
           );
           const data = await resp.json();
           $models = (data.models || data.data || [])
-            .filter(
-              (model: { id?: string; name: string }) =>
-                (model.id || model.name).indexOf('embed') < 0,
+            .filter((model: RemoteCatalogModel) =>
+              isRemoteChatModel(provider.name, model),
             )
-            .map((model: { id?: string; name: string }) => {
-              const modelName = model.id || model.name;
+            .map((model: RemoteCatalogModel) => {
+              const modelName = (model.id || model.name) as string;
               const customModel = modelsMap[modelName];
               delete modelsMap[modelName];
               return mergeRemoteModel(modelName, {
