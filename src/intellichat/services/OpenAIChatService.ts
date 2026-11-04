@@ -67,6 +67,14 @@ export default class OpenAIChatService extends NextChatService implements INextC
     return stripHtmlTags(content);
   }
 
+  // eslint-disable-next-line class-methods-use-this
+  protected makeAssistantContextMessage(message: IChatMessage): IChatRequestMessage {
+    return {
+      role: "assistant",
+      content: message.reply,
+    };
+  }
+
   /**
    * Filter out image content from the messages if vision is not enabled
    *
@@ -136,10 +144,7 @@ export default class OpenAIChatService extends NextChatService implements INextC
           content: msg.prompt,
         });
       }
-      result.push({
-        role: "assistant",
-        content: msg.reply,
-      });
+      result.push(this.makeAssistantContextMessage(msg));
     });
 
     const processedMessages = await Promise.all(

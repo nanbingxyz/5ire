@@ -159,6 +159,7 @@ export interface IChatRequestMessage {
   role: 'user' | 'assistant' | 'system' | 'tool' | 'model';
   name?: string;
   content?: string | IChatRequestMessageContent[];
+  reasoning_content?: string;
   tool_call_id?: string;
   parts?: IGeminiChatRequestMessagePart[];
   tool_calls?: any;
