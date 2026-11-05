@@ -18,6 +18,7 @@ import OllamaChatService from "./OllamaChatService";
 import OpenAIChatService from "./OpenAIChatService";
 import PerplexityChatService from "./PerplexityChatService";
 import TokenDosChatService from "./TokenDosChatService";
+import UberLLMChatService from "./UberLLMChatService";
 import UnoRouterChatService from "./UnoRouterChatService";
 import ZhipuChatService from "./ZhipuChatService";
 
@@ -65,6 +66,8 @@ export default function createService(chatCtx: IChatContext): INextChatService {
       return new TokenDosChatService(provider.name, chatCtx);
     case "Atlas Cloud":
       return new AtlasCloudChatService(provider.name, chatCtx);
+    case "UberLLM":
+      return new UberLLMChatService(provider.name, chatCtx);
     default:
       return new OpenAIChatService(provider.name, chatCtx);
   }
