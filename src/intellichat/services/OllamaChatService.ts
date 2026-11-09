@@ -8,6 +8,7 @@ import OllamaReader from 'intellichat/readers/OllamaChatReader';
 import { ITool } from 'intellichat/readers/IChatReader';
 import { splitByImg, stripHtmlTags, urlJoin } from 'utils/util';
 import { ContentBlockConverter as MCPContentBlockConverter } from 'intellichat/mcp/ContentBlockConverter';
+import { getToolErrorText } from 'intellichat/mcp/toolErrorText';
 import { ContentBlock as MCPContentBlock } from '@modelcontextprotocol/sdk/types.js';
 import OpenAIChatService from './OpenAIChatService';
 import INextChatService from './INextCharService';
@@ -102,7 +103,7 @@ export default class OllamaChatService
     if (toolResult.isError) {
       toolMessageContent.push({
         type: 'text',
-        text: JSON.stringify(toolResult.error),
+        text: getToolErrorText(toolResult),
       });
     }
 
