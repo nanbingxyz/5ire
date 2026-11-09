@@ -15,6 +15,7 @@ import Moonshot from "./Moonshot";
 import Ollama from "./Ollama";
 import OpenAI from "./OpenAI";
 import Perplexity from "./Perplexity";
+import StandardCompute from "./StandardCompute";
 import type { IServiceProvider, ProviderType } from "./types";
 import TokenDos from "./TokenDos";
 import UberLLM from "./UberLLM";
@@ -43,6 +44,7 @@ export const providers: { [key: string]: IServiceProvider } = {
   TokenDos,
   "Atlas Cloud": AtlasCloud,
   UberLLM,
+  "Standard Compute": StandardCompute,
 };
 
 export function getBuiltInProvider(providerName: ProviderType): IServiceProvider {
