@@ -152,10 +152,12 @@ export default class GoogleReader extends BaseReader {
               onProgress(response.content || '');
             }
 
-            const lastItemEnd = buffer.lastIndexOf('}') + 1;
-            if (lastItemEnd > 0) {
-              buffer = buffer.substring(lastItemEnd);
+            // keep only the data after the last complete object
+            let lastItemEnd = 0;
+            for (const item of items) {
+              lastItemEnd = buffer.indexOf(item, lastItemEnd) + item.length;
             }
+            buffer = buffer.substring(lastItemEnd);
           }
         } catch (parseErr) {
           debug('JSON parsing incomplete, continuing to collect more data', parseErr);
