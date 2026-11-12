@@ -421,9 +421,28 @@ export function extractFirstLevelBrackets(text: string): string[] {
   const stack = [];
   let current = "";
   let firstLevelCapture = false;
+  let inString = false;
+  let escaped = false;
 
   for (let i = 0; i < text.length; i++) {
     const char = text[i];
+
+    if (inString) {
+      // braces inside JSON string values do not count
+      if (escaped) {
+        escaped = false;
+      } else if (char === "\\") {
+        escaped = true;
+      } else if (char === '"') {
+        inString = false;
+      }
+      current += char;
+      continue;
+    }
+
+    if (char === '"' && stack.length > 0) {
+      inString = true;
+    }
 
     if (char === "{") {
       if (stack.length === 0) {
