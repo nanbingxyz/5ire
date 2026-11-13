@@ -20,7 +20,8 @@ export type ProviderType =
   | "UnoRouter"
   | "TokenDos"
   | "Atlas Cloud"
-  | "UberLLM";
+  | "UberLLM"
+  | "Keln";
 
 export interface INumberRange {
   min: number;
