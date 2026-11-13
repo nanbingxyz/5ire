@@ -8,6 +8,7 @@ import Doubao from "./Doubao";
 import Fire from "./Fire";
 import Google from "./Google";
 import Grok from "./Grok";
+import Keln from "./Keln";
 import LiteLLM from "./LiteLLM";
 import LMStudio from "./LMStudio";
 import Mistral from "./Mistral";
@@ -15,8 +16,8 @@ import Moonshot from "./Moonshot";
 import Ollama from "./Ollama";
 import OpenAI from "./OpenAI";
 import Perplexity from "./Perplexity";
-import type { IServiceProvider, ProviderType } from "./types";
 import TokenDos from "./TokenDos";
+import type { IServiceProvider, ProviderType } from "./types";
 import UberLLM from "./UberLLM";
 import UnoRouter from "./UnoRouter";
 import Zhipu from "./Zhipu";
@@ -43,6 +44,7 @@ export const providers: { [key: string]: IServiceProvider } = {
   TokenDos,
   "Atlas Cloud": AtlasCloud,
   UberLLM,
+  Keln,
 };
 
 export function getBuiltInProvider(providerName: ProviderType): IServiceProvider {

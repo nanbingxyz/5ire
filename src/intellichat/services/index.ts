@@ -10,6 +10,7 @@ import FireChatService from "./FireChatService";
 import GoogleChatService from "./GoogleChatService";
 import GrokChatService from "./GrokChatService";
 import type INextChatService from "./INextCharService";
+import KelnChatService from "./KelnChatService";
 import LiteLLMChatService from "./LiteLLMChatService";
 import LMStudioChatService from "./LMStudioChatService";
 import MistralChatService from "./MistralChatService";
@@ -68,6 +69,8 @@ export default function createService(chatCtx: IChatContext): INextChatService {
       return new AtlasCloudChatService(provider.name, chatCtx);
     case "UberLLM":
       return new UberLLMChatService(provider.name, chatCtx);
+    case "Keln":
+      return new KelnChatService(provider.name, chatCtx);
     default:
       return new OpenAIChatService(provider.name, chatCtx);
   }
