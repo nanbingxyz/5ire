@@ -14,6 +14,7 @@ import LiteLLMChatService from "./LiteLLMChatService";
 import LMStudioChatService from "./LMStudioChatService";
 import MistralChatService from "./MistralChatService";
 import MoonshotChatService from "./MoonshotChatService";
+import ObscurifyChatService from "./ObscurifyChatService";
 import OllamaChatService from "./OllamaChatService";
 import OpenAIChatService from "./OpenAIChatService";
 import PerplexityChatService from "./PerplexityChatService";
@@ -68,6 +69,8 @@ export default function createService(chatCtx: IChatContext): INextChatService {
       return new AtlasCloudChatService(provider.name, chatCtx);
     case "UberLLM":
       return new UberLLMChatService(provider.name, chatCtx);
+    case "Obscurify.ai":
+      return new ObscurifyChatService(provider.name, chatCtx);
     default:
       return new OpenAIChatService(provider.name, chatCtx);
   }

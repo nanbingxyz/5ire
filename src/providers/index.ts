@@ -12,6 +12,7 @@ import LiteLLM from "./LiteLLM";
 import LMStudio from "./LMStudio";
 import Mistral from "./Mistral";
 import Moonshot from "./Moonshot";
+import Obscurify from "./Obscurify";
 import Ollama from "./Ollama";
 import OpenAI from "./OpenAI";
 import Perplexity from "./Perplexity";
@@ -43,6 +44,7 @@ export const providers: { [key: string]: IServiceProvider } = {
   TokenDos,
   "Atlas Cloud": AtlasCloud,
   UberLLM,
+  "Obscurify.ai": Obscurify,
 };
 
 export function getBuiltInProvider(providerName: ProviderType): IServiceProvider {
