@@ -17,6 +17,7 @@ import OpenAI from "./OpenAI";
 import Perplexity from "./Perplexity";
 import type { IServiceProvider, ProviderType } from "./types";
 import TokenDos from "./TokenDos";
+import TrustedRouter from "./TrustedRouter";
 import UberLLM from "./UberLLM";
 import UnoRouter from "./UnoRouter";
 import Zhipu from "./Zhipu";
@@ -43,6 +44,7 @@ export const providers: { [key: string]: IServiceProvider } = {
   TokenDos,
   "Atlas Cloud": AtlasCloud,
   UberLLM,
+  TrustedRouter,
 };
 
 export function getBuiltInProvider(providerName: ProviderType): IServiceProvider {
