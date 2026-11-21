@@ -12,6 +12,7 @@ import LiteLLM from "./LiteLLM";
 import LMStudio from "./LMStudio";
 import Mistral from "./Mistral";
 import Moonshot from "./Moonshot";
+import CrowLLM from "./CrowLLM";
 import Ollama from "./Ollama";
 import OpenAI from "./OpenAI";
 import Perplexity from "./Perplexity";
@@ -40,6 +41,7 @@ export const providers: { [key: string]: IServiceProvider } = {
   "302.AI": AI302,
   "5ire": Fire,
   LiteLLM,
+  CrowLLM,
   UnoRouter,
   TokenDos,
   "Atlas Cloud": AtlasCloud,

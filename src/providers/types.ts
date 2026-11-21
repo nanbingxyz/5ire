@@ -17,6 +17,7 @@ export type ProviderType =
   | "Zhipu"
   | "Perplexity"
   | "LiteLLM"
+  | "CrowLLM"
   | "UnoRouter"
   | "TokenDos"
   | "Atlas Cloud"
