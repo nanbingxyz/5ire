@@ -1,5 +1,6 @@
 import Debug from "debug";
 import type { IChatContext } from "../types";
+import AIGROWChatService from "./AIGROWChatService";
 import AnthropicChatService from "./AnthropicChatService";
 import AtlasCloudChatService from "./AtlasCloudChatService";
 import AzureChatService from "./AzureChatService";
@@ -71,6 +72,8 @@ export default function createService(chatCtx: IChatContext): INextChatService {
       return new UberLLMChatService(provider.name, chatCtx);
     case "TrustedRouter":
       return new TrustedRouterChatService(provider.name, chatCtx);
+    case "AIGROW":
+      return new AIGROWChatService(provider.name, chatCtx);
     default:
       return new OpenAIChatService(provider.name, chatCtx);
   }
