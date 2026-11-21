@@ -1,4 +1,5 @@
 import AI302 from "./AI302";
+import AIGROW from "./AIGROW";
 import Anthropic from "./Anthropic";
 import AtlasCloud from "./AtlasCloud";
 import Azure from "./Azure";
@@ -45,6 +46,7 @@ export const providers: { [key: string]: IServiceProvider } = {
   "Atlas Cloud": AtlasCloud,
   UberLLM,
   TrustedRouter,
+  AIGROW,
 };
 
 export function getBuiltInProvider(providerName: ProviderType): IServiceProvider {
