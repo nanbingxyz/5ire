@@ -68,7 +68,7 @@ export default function createService(chatCtx: IChatContext): INextChatService {
       return new TokenDosChatService(provider.name, chatCtx);
     case "Atlas Cloud":
       return new AtlasCloudChatService(provider.name, chatCtx);
-    case "UberLLM":
+    case "MartLLM":
       return new UberLLMChatService(provider.name, chatCtx);
     case "TrustedRouter":
       return new TrustedRouterChatService(provider.name, chatCtx);

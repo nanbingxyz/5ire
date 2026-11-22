@@ -20,7 +20,7 @@ export type ProviderType =
   | "UnoRouter"
   | "TokenDos"
   | "Atlas Cloud"
-  | "UberLLM"
+  | "MartLLM"
   | "TrustedRouter"
   | "Straitly";
 
