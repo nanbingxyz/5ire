@@ -248,7 +248,7 @@ export default abstract class BaseReader implements IChatReader {
       const { value, done } = await this.streamReader.read();
       if (done) break;
 
-      const decodedValue = decoder.decode(value);
+      const decodedValue = decoder.decode(value, { stream: true });
       const lines = this.splitIntoLines(decodedValue);
 
       for (const line of lines) {

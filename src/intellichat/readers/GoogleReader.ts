@@ -129,7 +129,7 @@ export default class GoogleReader extends BaseReader {
         const data = await this.streamReader.read();
 
         done = data.done || false;
-        const value = decoder.decode(data.value);
+        const value = decoder.decode(data.value, { stream: true });
 
         buffer += value;
 
