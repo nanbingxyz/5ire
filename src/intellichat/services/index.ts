@@ -17,6 +17,7 @@ import MoonshotChatService from "./MoonshotChatService";
 import OllamaChatService from "./OllamaChatService";
 import OpenAIChatService from "./OpenAIChatService";
 import PerplexityChatService from "./PerplexityChatService";
+import TeamoRouterChatService from "./TeamoRouterChatService";
 import TokenDosChatService from "./TokenDosChatService";
 import TrustedRouterChatService from "./TrustedRouterChatService";
 import UberLLMChatService from "./UberLLMChatService";
@@ -71,6 +72,8 @@ export default function createService(chatCtx: IChatContext): INextChatService {
       return new UberLLMChatService(provider.name, chatCtx);
     case "TrustedRouter":
       return new TrustedRouterChatService(provider.name, chatCtx);
+    case "TeamoRouter":
+      return new TeamoRouterChatService(provider.name, chatCtx);
     default:
       return new OpenAIChatService(provider.name, chatCtx);
   }
