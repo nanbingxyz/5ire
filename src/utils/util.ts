@@ -1,7 +1,7 @@
 import { TEMP_CHAT_ID } from "consts";
 import DOMPurify from "dompurify";
 import type { IChat, IPromptDef } from "intellichat/types";
-import { isArray, isNull } from "lodash";
+import { escapeRegExp, isArray, isNull } from "lodash";
 
 export function date2unix(date: Date) {
   return Math.floor(date.getTime() / 1000);
@@ -98,12 +98,12 @@ export function highlight(text: string, keyword: string | string[]) {
   if (!keyword) return text;
   if (typeof keyword === "string") {
     if (keyword.trim() === "") return text;
-    const regex = new RegExp(keyword.trim(), "gi");
+    const regex = new RegExp(escapeRegExp(keyword.trim()), "gi");
     return DOMPurify.sanitize(text).replace(regex, (match) => `<mark>${match}</mark>`);
   }
   let result = text;
   keyword.forEach((word) => {
-    const regex = new RegExp(word, "gi");
+    const regex = new RegExp(escapeRegExp(word), "gi");
     result = DOMPurify.sanitize(result).replace(regex, (match) => `<mark>${match}</mark>`);
   });
   return result;
