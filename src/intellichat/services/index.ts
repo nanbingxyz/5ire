@@ -21,6 +21,7 @@ import TokenDosChatService from "./TokenDosChatService";
 import TrustedRouterChatService from "./TrustedRouterChatService";
 import UberLLMChatService from "./UberLLMChatService";
 import UnoRouterChatService from "./UnoRouterChatService";
+import WorldRouterChatService from "./WorldRouterChatService";
 import ZhipuChatService from "./ZhipuChatService";
 
 const debug = Debug("5ire:intellichat:ChatService");
@@ -71,6 +72,8 @@ export default function createService(chatCtx: IChatContext): INextChatService {
       return new UberLLMChatService(provider.name, chatCtx);
     case "TrustedRouter":
       return new TrustedRouterChatService(provider.name, chatCtx);
+    case "WorldRouter":
+      return new WorldRouterChatService(provider.name, chatCtx);
     default:
       return new OpenAIChatService(provider.name, chatCtx);
   }

@@ -20,6 +20,7 @@ import TokenDos from "./TokenDos";
 import TrustedRouter from "./TrustedRouter";
 import UberLLM from "./UberLLM";
 import UnoRouter from "./UnoRouter";
+import WorldRouter from "./WorldRouter";
 import Zhipu from "./Zhipu";
 
 export const providers: { [key: string]: IServiceProvider } = {
@@ -45,6 +46,7 @@ export const providers: { [key: string]: IServiceProvider } = {
   "Atlas Cloud": AtlasCloud,
   UberLLM,
   TrustedRouter,
+  WorldRouter,
 };
 
 export function getBuiltInProvider(providerName: ProviderType): IServiceProvider {
