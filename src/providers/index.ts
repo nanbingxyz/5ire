@@ -13,6 +13,7 @@ import LMStudio from "./LMStudio";
 import Mistral from "./Mistral";
 import Moonshot from "./Moonshot";
 import Ollama from "./Ollama";
+import Onomeo from "./Onomeo";
 import OpenAI from "./OpenAI";
 import Perplexity from "./Perplexity";
 import type { IServiceProvider, ProviderType } from "./types";
@@ -45,6 +46,7 @@ export const providers: { [key: string]: IServiceProvider } = {
   "Atlas Cloud": AtlasCloud,
   UberLLM,
   TrustedRouter,
+  onomeo: Onomeo,
 };
 
 export function getBuiltInProvider(providerName: ProviderType): IServiceProvider {

@@ -15,6 +15,7 @@ import LMStudioChatService from "./LMStudioChatService";
 import MistralChatService from "./MistralChatService";
 import MoonshotChatService from "./MoonshotChatService";
 import OllamaChatService from "./OllamaChatService";
+import OnomeoChatService from "./OnomeoChatService";
 import OpenAIChatService from "./OpenAIChatService";
 import PerplexityChatService from "./PerplexityChatService";
 import TokenDosChatService from "./TokenDosChatService";
@@ -71,6 +72,8 @@ export default function createService(chatCtx: IChatContext): INextChatService {
       return new UberLLMChatService(provider.name, chatCtx);
     case "TrustedRouter":
       return new TrustedRouterChatService(provider.name, chatCtx);
+    case "onomeo":
+      return new OnomeoChatService(provider.name, chatCtx);
     default:
       return new OpenAIChatService(provider.name, chatCtx);
   }
