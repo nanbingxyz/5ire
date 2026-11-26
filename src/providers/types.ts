@@ -21,7 +21,8 @@ export type ProviderType =
   | "TokenDos"
   | "Atlas Cloud"
   | "UberLLM"
-  | "TrustedRouter";
+  | "TrustedRouter"
+  | "onomeo";
 
 export interface INumberRange {
   min: number;
