@@ -1,4 +1,5 @@
-import type { IChatContext, IChatRequestMessage } from "intellichat/types";
+import type { ITool } from "intellichat/readers/IChatReader";
+import type { IChatContext, IChatMessage, IChatRequestMessage } from "intellichat/types";
 import { urlJoin } from "utils/util";
 import DeepSeek from "../../providers/DeepSeek";
 import type INextChatService from "./INextCharService";
@@ -17,6 +18,37 @@ export default class DeepSeekChatService extends OpenAIChatService implements IN
   constructor(name: string, chatContext: IChatContext) {
     super(name, chatContext);
     this.provider = DeepSeek;
+  }
+
+  protected makeAssistantContextMessage(message: IChatMessage): IChatRequestMessage {
+    const result = super.makeAssistantContextMessage(message);
+
+    if (message.reasoning !== undefined) {
+      result.reasoning_content = message.reasoning;
+    }
+
+    return result;
+  }
+
+  protected async makeToolMessages(
+    tool: ITool,
+    toolResult: any,
+    content?: string,
+    reasoning?: string,
+  ): Promise<IChatRequestMessage[]> {
+    const result = await super.makeToolMessages(tool, toolResult);
+    const assistantMessage = result.find((message) => message.role === "assistant" && message.tool_calls);
+
+    if (assistantMessage) {
+      if (content !== undefined) {
+        assistantMessage.content = content;
+      }
+      if (reasoning !== undefined) {
+        assistantMessage.reasoning_content = reasoning;
+      }
+    }
+
+    return result;
   }
 
   /**
