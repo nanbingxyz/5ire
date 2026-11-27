@@ -22,7 +22,8 @@ export type ProviderType =
   | "Atlas Cloud"
   | "UberLLM"
   | "TrustedRouter"
-  | "Straitly";
+  | "Straitly"
+  | "Obscurify.ai";
 
 export interface INumberRange {
   min: number;
