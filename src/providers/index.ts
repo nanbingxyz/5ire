@@ -9,6 +9,7 @@ import Fire from "./Fire";
 import Google from "./Google";
 import Grok from "./Grok";
 import LiteLLM from "./LiteLLM";
+import LLMTR from "./LLMTR";
 import LMStudio from "./LMStudio";
 import Mistral from "./Mistral";
 import Moonshot from "./Moonshot";
@@ -47,6 +48,7 @@ export const providers: { [key: string]: IServiceProvider } = {
   UberLLM,
   TrustedRouter,
   Straitly,
+  LLMTR,
 };
 
 export function getBuiltInProvider(providerName: ProviderType): IServiceProvider {

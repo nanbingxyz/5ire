@@ -11,6 +11,7 @@ import GoogleChatService from "./GoogleChatService";
 import GrokChatService from "./GrokChatService";
 import type INextChatService from "./INextCharService";
 import LiteLLMChatService from "./LiteLLMChatService";
+import LLMTRChatService from "./LLMTRChatService";
 import LMStudioChatService from "./LMStudioChatService";
 import MistralChatService from "./MistralChatService";
 import MoonshotChatService from "./MoonshotChatService";
@@ -74,6 +75,8 @@ export default function createService(chatCtx: IChatContext): INextChatService {
       return new TrustedRouterChatService(provider.name, chatCtx);
     case "Straitly":
       return new StraitlyChatService(provider.name, chatCtx);
+    case "LLMTR":
+      return new LLMTRChatService(provider.name, chatCtx);
     default:
       return new OpenAIChatService(provider.name, chatCtx);
   }
