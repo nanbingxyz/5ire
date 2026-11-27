@@ -95,6 +95,33 @@ describe('utils/util', () => {
     );
   });
 
+  test('fillVariables fills the names parseVariables returns', () => {
+    // padded names, as in the parseVariables test
+    expect(fillVariables('Hi {{   name     }}', { name: 'John' })).toEqual(
+      'Hi John',
+    );
+    // names with regex characters
+    expect(fillVariables('Use {{c++ code}}', { 'c++ code': 'C' })).toEqual(
+      'Use C',
+    );
+    expect(
+      fillVariables('Lang {{lang (optional)}}', { 'lang (optional)': 'fr' }),
+    ).toEqual('Lang fr');
+    // values are inserted as typed, not as replace() patterns
+    expect(fillVariables('Cost {{c}}', { c: "$$5 $& $'" })).toEqual(
+      "Cost $$5 $& $'",
+    );
+    // a value that looks like another placeholder is not filled again
+    expect(fillVariables('{{a}} {{b}}', { a: '{{b}}', b: 'B' })).toEqual(
+      '{{b}} B',
+    );
+    // names without a value stay as they are
+    expect(fillVariables('{{a}} {{b}}', { a: 'A' })).toEqual('A {{b}}');
+    // a triple brace is read the way parseVariables reads it
+    expect(parseVariables('x {{{n}}} y')).toEqual(['{n']);
+    expect(fillVariables('x {{{n}}} y', { '{n': 'V' })).toEqual('x V} y');
+  });
+
   test('transformPropertiesType', () => {
     const input = {
       properties: {
