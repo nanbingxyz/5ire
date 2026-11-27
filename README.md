@@ -33,6 +33,7 @@
     <span style="font-size:12px;">/ Grok</span>
     <span style="font-size:12px;">/ DeepSeek</span>
     <span style="font-size:12px;">/ Ollama</span>
+    <span style="font-size:12px;">/ Rapid-MLX</span>
   </div>
     <br />
     <a href="https://x.com/intent/follow?screen_name=1ronben">Twitter</a>
@@ -44,6 +45,8 @@
 <video src="https://github.com/user-attachments/assets/741b23d3-31df-4749-bde4-103e2d415953.mp4"></video>
 </div>
 <br />
+
+To use [Rapid-MLX](https://github.com/raullenchai/Rapid-MLX) locally on Apple Silicon, start `rapid-mlx serve qwen3.5-4b-4bit --port 8000`, then select the Rapid-MLX provider in 5ire. The default API base is `http://localhost:8000/v1`; an API key is only needed when server authentication is enabled (`--api-key` or `RAPID_MLX_API_KEY`).
 
 ### Before to activating tools feature, ensure the following components are installed:
 

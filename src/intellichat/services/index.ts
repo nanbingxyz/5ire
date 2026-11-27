@@ -17,6 +17,7 @@ import MoonshotChatService from "./MoonshotChatService";
 import OllamaChatService from "./OllamaChatService";
 import OpenAIChatService from "./OpenAIChatService";
 import PerplexityChatService from "./PerplexityChatService";
+import RapidMLXChatService from "./RapidMLXChatService";
 import StraitlyChatService from "./StraitlyChatService";
 import TokenDosChatService from "./TokenDosChatService";
 import TrustedRouterChatService from "./TrustedRouterChatService";
@@ -56,6 +57,8 @@ export default function createService(chatCtx: IChatContext): INextChatService {
       return new DeepSeekChatService(provider.name, chatCtx);
     case "LMStudio":
       return new LMStudioChatService(provider.name, chatCtx);
+    case "Rapid-MLX":
+      return new RapidMLXChatService(provider.name, chatCtx);
     case "Perplexity":
       return new PerplexityChatService(provider.name, chatCtx);
     case "Zhipu":

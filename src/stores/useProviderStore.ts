@@ -494,7 +494,7 @@ const useProviderStore = create<IProviderStore>((set, get) => ({
             },
           );
           const data = await resp.json();
-          $models = (data.models || data.data || [])
+          $models = (data.data || data.models || [])
             .filter(
               (model: { id?: string; name: string }) =>
                 (model.id || model.name).indexOf('embed') < 0,
