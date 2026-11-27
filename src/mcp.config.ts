@@ -81,6 +81,14 @@ export default {
       isActive: false,
     },
     {
+      key: 'OrcaReplay',
+      command: 'npx',
+      description:
+        'Read a recorded AI agent run: what it sent, which tools it called, what changed on disk. Requires a run recorded with `orca record` in the working directory.',
+      args: ['-y', '--prefer-offline', 'orcareplay', 'mcp'],
+      isActive: false,
+    },
+    {
       key: 'Postgres',
       command: 'npx',
       description: 'Read-only database access with schema inspection.',
