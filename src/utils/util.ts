@@ -125,12 +125,12 @@ export function parseVariables(text: string): string[] {
 }
 
 export function fillVariables(text: string, variables: { [key: string]: string }) {
-  let result = text;
-  Object.keys(variables).forEach((key) => {
-    const regex = new RegExp(`{{${key}}}`, "g");
-    result = result.replace(regex, variables[key]);
+  // Same placeholder syntax and trimming as parseVariables, one pass, and the
+  // value is inserted as is (no `$&` style patterns, no regex built from a name).
+  return text.replace(/\{\{([^}]+)\}\}/g, (placeholder, name: string) => {
+    const value = variables[name.trim()];
+    return typeof value === "string" ? value : placeholder;
   });
-  return result;
 }
 export function sortPrompts(prompts: IPromptDef[]) {
   if (!isArray || prompts.length === 0) {
