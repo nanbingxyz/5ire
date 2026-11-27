@@ -15,10 +15,11 @@ import Moonshot from "./Moonshot";
 import Ollama from "./Ollama";
 import OpenAI from "./OpenAI";
 import Perplexity from "./Perplexity";
+import RapidMLX from "./RapidMLX";
 import Straitly from "./Straitly";
-import type { IServiceProvider, ProviderType } from "./types";
 import TokenDos from "./TokenDos";
 import TrustedRouter from "./TrustedRouter";
+import type { IServiceProvider, ProviderType } from "./types";
 import UberLLM from "./UberLLM";
 import UnoRouter from "./UnoRouter";
 import Zhipu from "./Zhipu";
@@ -36,6 +37,7 @@ export const providers: { [key: string]: IServiceProvider } = {
   Doubao,
   DeepSeek,
   LMStudio,
+  "Rapid-MLX": RapidMLX,
   Zhipu,
   Perplexity,
   "302.AI": AI302,

@@ -9,6 +9,7 @@ export type ProviderType =
   | "DeepSeek"
   | "Ollama"
   | "LMStudio"
+  | "Rapid-MLX"
   | "ChatBro"
   | "5ire"
   | "Doubao"
