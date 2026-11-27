@@ -4,6 +4,7 @@ import {
   type FinalContentBlock,
   ContentBlockConverter as MCPContentBlockConverter,
 } from "intellichat/mcp/ContentBlockConverter";
+import { getToolErrorText } from "intellichat/mcp/toolErrorText";
 import AnthropicReader from "intellichat/readers/AnthropicReader";
 import type { ITool } from "intellichat/readers/IChatReader";
 import type {
@@ -167,7 +168,7 @@ export default class AnthropicChatService extends NextChatService implements INe
       parts.push({
         type: "tool_result",
         tool_use_id: tool.id,
-        content: JSON.stringify(toolResult.error),
+        content: getToolErrorText(toolResult),
       });
     }
 
