@@ -1,5 +1,6 @@
 import { find, isNil, keyBy, omit, pickBy, unionBy } from 'lodash';
 import { getBuiltInProvider, getBuiltInProviders } from 'providers';
+import { currentProviderName, renameSavedProviders } from 'providers/renamed';
 import {
   IChatModel,
   IChatModelConfig,
@@ -201,7 +202,7 @@ const mergeProviders = (
   custom?: IChatProviderConfig[],
 ): IChatProviderConfig[] => {
   const customProviders = keyBy(
-    custom || window.electron.store.get('providers'),
+    renameSavedProviders(custom || window.electron.store.get('providers') || []),
     'name',
   );
   const builtInProviders = keyBy(getBuiltInProviders(), 'name');
@@ -409,6 +410,7 @@ const useProviderStore = create<IProviderStore>((set, get) => ({
     const providers = getAvailableProviders();
     return (
       find(providers, { name: providerName }) ||
+      find(providers, { name: currentProviderName(providerName) }) ||
       find(providers, { isDefault: true }) ||
       providers[0]
     );

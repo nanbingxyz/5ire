@@ -1,8 +1,8 @@
 import type { IServiceProvider } from "./types";
 
 export default {
-  name: "UberLLM",
-  apiBase: "https://api.uberllm.dev/v1",
+  name: "MartLLM",
+  apiBase: "https://api.martllm.com/v1",
   currency: "USD",
   options: {
     apiBaseCustomizable: true,
@@ -19,7 +19,7 @@ export default {
       topP: "An alternative to sampling with temperature, called nucleus sampling, where the model considers the results of the tokens with topP probability mass.",
     },
     placeholders: {
-      base: "api.uberllm.dev/v1",
+      base: "api.martllm.com/v1",
     },
     presencePenalty: { min: -2, max: 2, default: 0 },
     topP: { min: 0, max: 1, default: 1 },

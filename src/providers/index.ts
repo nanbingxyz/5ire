@@ -44,7 +44,7 @@ export const providers: { [key: string]: IServiceProvider } = {
   UnoRouter,
   TokenDos,
   "Atlas Cloud": AtlasCloud,
-  UberLLM,
+  MartLLM: UberLLM,
   TrustedRouter,
   Straitly,
 };
